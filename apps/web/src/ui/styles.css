@@ -1029,72 +1029,7 @@ button {
   transform: rotate(3deg);
 }
 
-/* ---------- Admin wizard (Kahoot-ish) ---------- */
-
-.admin {
-  --k-red: #e21b3c;
-  --k-blue: #1368ce;
-  --k-yellow: #d89e00;
-  --k-green: #26890c;
-  --k-purple: #46178f;
-  font-family: 'Inter', system-ui, sans-serif;
-}
-
-.kbutton {
-  --tone: var(--k-purple);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 48px;
-  padding: 0 20px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--tone);
-  color: #fff;
-  font-weight: 800;
-  font-size: 1rem;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.35);
-  transition:
-    transform 0.08s,
-    box-shadow 0.08s,
-    filter 0.15s;
-}
-
-.kbutton:hover:not(:disabled) {
-  filter: brightness(1.1);
-}
-
-.kbutton:active:not(:disabled) {
-  transform: translateY(4px);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
-}
-
-.kbutton:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.kbutton--red {
-  --tone: var(--k-red);
-}
-.kbutton--blue {
-  --tone: var(--k-blue);
-}
-.kbutton--yellow {
-  --tone: var(--k-yellow);
-}
-.kbutton--green {
-  --tone: var(--k-green);
-}
-.kbutton--purple {
-  --tone: var(--k-purple);
-}
-.kbutton--ghost {
-  --tone: rgba(255, 255, 255, 0.12);
-}
+/* ---------- Admin wizard ---------- */
 
 .button--small {
   min-height: 34px;
@@ -1121,54 +1056,41 @@ button {
 
 .rail {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   overflow-x: auto;
-  padding: 6px 2px 14px;
+  padding: 4px 2px 10px;
   scroll-snap-type: x proximity;
   scrollbar-width: thin;
 }
 
 .rail__tile {
-  --tone: var(--k-red);
   position: relative;
   flex: 0 0 auto;
-  min-width: 84px;
-  height: 84px;
-  padding: 8px 12px;
-  border: 0;
+  width: 76px;
+  height: 76px;
+  padding: 0;
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--tone);
-  color: #fff;
+  background: var(--surface);
+  color: var(--muted);
   cursor: pointer;
   scroll-snap-align: start;
   overflow: hidden;
-  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.35);
   display: grid;
   place-items: center;
-  transition: transform 0.12s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .rail__tile:hover {
-  transform: translateY(-2px);
-}
-
-.rail__tile--red {
-  --tone: var(--k-red);
-}
-.rail__tile--blue {
-  --tone: var(--k-blue);
-}
-.rail__tile--yellow {
-  --tone: var(--k-yellow);
-}
-.rail__tile--green {
-  --tone: var(--k-green);
+  border-color: var(--muted);
+  color: var(--text);
 }
 
 .rail__tile--active {
-  outline: 4px solid #fff;
-  outline-offset: 3px;
-  transform: translateY(-3px) scale(1.04);
+  border: 2px solid var(--accent);
+  color: var(--text);
 }
 
 .rail__photo {
@@ -1177,49 +1099,54 @@ button {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.4;
-}
-
-.rail__shape {
-  position: absolute;
-  top: 6px;
-  left: 8px;
-  font-size: 0.85rem;
-  opacity: 0.8;
 }
 
 .rail__label {
   position: relative;
-  font-weight: 900;
-  font-size: 1.7rem;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
-  white-space: nowrap;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-align: center;
+  line-height: 1.2;
+  padding: 0 4px;
 }
 
-.rail__tile:first-child .rail__label,
-.rail__tile:nth-last-child(-n + 2) .rail__label {
-  font-size: 1rem;
+.rail__tile--photo .rail__label {
+  align-self: end;
+  width: 100%;
+  padding: 14px 4px 5px;
+  color: #fff;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+}
+
+.rail__tile--done {
+  border-color: #3fb27f;
+  box-shadow: inset 0 0 0 1px #3fb27f;
+}
+
+.rail__tile--done.rail__tile--active {
+  border-color: var(--accent);
 }
 
 .rail__done {
   position: absolute;
-  bottom: 6px;
-  right: 8px;
-  width: 22px;
-  height: 22px;
+  top: 5px;
+  left: 5px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: #fff;
-  color: var(--k-green);
-  font-weight: 900;
-  font-size: 0.8rem;
+  background: #3fb27f;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.7rem;
   display: grid;
   place-items: center;
 }
 
 .rail__bow {
   position: absolute;
-  top: 4px;
-  right: 6px;
+  top: 3px;
+  right: 5px;
+  font-size: 0.85rem;
 }
 
 .wizard__stage {
@@ -1245,14 +1172,14 @@ button {
 }
 
 .wizard__count {
-  font-weight: 800;
+  font-weight: 600;
   color: var(--muted);
 }
 
 .wizard__big {
   margin: 0;
-  font-size: 1.3rem;
-  font-weight: 800;
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
 .door-form {
@@ -1270,8 +1197,7 @@ button {
 }
 
 .door-form__title {
-  font-size: clamp(1.8rem, 7vw, 2.6rem);
-  font-weight: 900;
+  font-size: clamp(1.5rem, 6vw, 2rem);
 }
 
 .door-form__badges {
@@ -1289,7 +1215,8 @@ button {
 }
 
 .chip--good {
-  background: rgba(38, 137, 12, 0.35);
+  background: rgba(127, 209, 199, 0.18);
+  color: #7fd1c7;
 }
 
 .door-form__section {
@@ -1307,8 +1234,8 @@ button {
   width: 100%;
   padding: 0;
   margin-bottom: 4px;
-  font-weight: 800;
-  font-size: 1.05rem;
+  font-weight: 600;
+  font-size: 1rem;
 }
 
 .door-form__actions {
@@ -1319,8 +1246,8 @@ button {
 }
 
 .door-form__saved {
-  font-weight: 800;
-  color: #7ee36a;
+  font-weight: 600;
+  color: #7fd1c7;
   margin: 0;
 }
 
@@ -1343,7 +1270,7 @@ button {
 }
 
 .upload__empty {
-  font-weight: 800;
+  font-weight: 600;
   font-size: 1.1rem;
   color: var(--text);
 }
@@ -1368,7 +1295,7 @@ button {
 .toggle input {
   width: 22px;
   height: 22px;
-  accent-color: var(--k-green);
+  accent-color: var(--accent);
 }
 
 .form__grid {

@@ -336,12 +336,12 @@ export function DoorForm({
 
       {error !== null && <p className="error">{error}</p>}
       <div className="door-form__actions">
-        <button className="kbutton kbutton--green" type="submit" disabled={busy}>
-          {door === undefined ? '＋ Legg til luke' : '💾 Lagre'}
+        <button className="button" type="submit" disabled={busy}>
+          {door === undefined ? 'Legg til luke' : 'Lagre'}
         </button>
         {onNext !== undefined && door !== undefined && (
           <button
-            className="kbutton kbutton--blue"
+            className="button button--ghost"
             type="button"
             disabled={busy}
             onClick={() => {
@@ -355,24 +355,24 @@ export function DoorForm({
           </button>
         )}
         <button
-          className="kbutton kbutton--yellow"
+          className="button button--ghost"
           type="button"
           onClick={() => {
             onPreview(draft());
           }}
         >
-          👀 Forhåndsvis
+          Forhåndsvis
         </button>
         {onRemove !== undefined && (
           <button
-            className="kbutton kbutton--red"
+            className="button button--danger"
             type="button"
             disabled={busy}
             onClick={() => {
               void run(onRemove);
             }}
           >
-            🗑 Slett
+            Slett
           </button>
         )}
         {saved && <span className="door-form__saved">Lagret ✓</span>}

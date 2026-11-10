@@ -148,7 +148,7 @@ function LogIn({ onDone }: { readonly onDone: () => void }) {
           />
         </label>
         {error !== null && <p className="error">{error}</p>}
-        <button className="kbutton kbutton--purple" type="submit">
+        <button className="button button--ghost" type="submit">
           Logg inn
         </button>
       </form>
@@ -266,7 +266,7 @@ function SettingsForm({
       </div>
       {error !== null && <p className="error">{error}</p>}
       <div>
-        <button className="kbutton kbutton--green" type="submit">
+        <button className="button" type="submit">
           {submitLabel}
         </button>
       </div>
@@ -332,9 +332,6 @@ function CalendarList({ onUnauthenticated }: Guarded) {
 }
 
 type Step = 'setup' | 'share' | 'new' | number;
-
-const SHAPES = ['▲', '◆', '●', '■'] as const;
-const COLORS = ['red', 'blue', 'yellow', 'green'] as const;
 
 function parseStep(search: string): Step | null {
   const value = new URLSearchParams(search).get('steg');
@@ -460,28 +457,39 @@ function CalendarEditor({
       <header className="wizard__top">
         <h2 className="wizard__name">{calendar.title}</h2>
         <button
-          className="kbutton kbutton--purple"
+          className="button button--ghost"
           onClick={() => {
             navigate(`/admin/${calendar.id}/preview`);
           }}
         >
-          👀 Se hele kalenderen
+          👀 Forhåndsvis kalenderen
         </button>
       </header>
 
       <nav className="rail" aria-label="Steg">
-        {steps.map((candidate, position) => {
-          const color = COLORS[position % COLORS.length] ?? 'red';
+        {steps.map((candidate) => {
           const active = candidate === step;
           const railDoor =
             typeof candidate === 'number'
               ? doors.find((item) => item.number === candidate)
               : undefined;
-          const done = railDoor !== undefined && railDoor.content.title.trim() !== '';
+          // Ready: a hatch with a title and a photo; sharing once her phone gets notifications.
+          const missing =
+            railDoor === undefined
+              ? null
+              : railDoor.content.title.trim() === ''
+                ? 'mangler tittel'
+                : railDoor.content.imageUrl === null
+                  ? 'mangler bilde'
+                  : null;
+          const done =
+            (railDoor !== undefined && missing === null) ||
+            (candidate === 'share' && details.subscriberCount > 0);
           return (
             <button
               key={String(candidate)}
-              className={`rail__tile rail__tile--${color}${active ? ' rail__tile--active' : ''}`}
+              className={`rail__tile${active ? ' rail__tile--active' : ''}${done ? ' rail__tile--done' : ''}${railDoor?.content.imageUrl != null ? ' rail__tile--photo' : ''}`}
+              title={missing ?? undefined}
               onClick={() => {
                 go(candidate);
               }}
@@ -490,20 +498,21 @@ function CalendarEditor({
               {railDoor?.content.imageUrl != null && (
                 <img className="rail__photo" src={railDoor.content.imageUrl} alt="" />
               )}
-              <span className="rail__shape" aria-hidden="true">
-                {SHAPES[position % SHAPES.length]}
-              </span>
               <span className="rail__label">
                 {candidate === 'setup'
-                  ? '⚙️ Oppsett'
+                  ? 'Oppsett'
                   : candidate === 'share'
-                    ? '🚀 Del'
+                    ? 'Del'
                     : candidate === 'new'
-                      ? '＋ Ny luke'
-                      : String(candidate)}
+                      ? '＋ Ny'
+                      : `Luke ${String(candidate)}`}
               </span>
               {done && <span className="rail__done">✓</span>}
-              {railDoor?.featured === true && <span className="rail__bow">🎀</span>}
+              {railDoor?.featured === true && (
+                <span className="rail__bow" aria-label="Spesiell luke">
+                  🎀
+                </span>
+              )}
             </button>
           );
         })}
@@ -580,7 +589,7 @@ function CalendarEditor({
               </a>
               <div className="door-form__actions">
                 <button
-                  className="kbutton kbutton--green"
+                  className="button"
                   onClick={() => {
                     void navigator.clipboard.writeText(link).then(() => {
                       setNotice('Kopiert ✓');
@@ -590,7 +599,7 @@ function CalendarEditor({
                   📋 Kopier lenke
                 </button>
                 <button
-                  className="kbutton kbutton--red"
+                  className="button button--danger"
                   onClick={() => {
                     if (
                       confirm('Ny lenke? Den gamle slutter å virke, også på Hjem-skjermen hennes.')
@@ -618,7 +627,7 @@ function CalendarEditor({
               </p>
               <div className="door-form__actions">
                 <button
-                  className="kbutton kbutton--blue"
+                  className="button"
                   onClick={() => {
                     admin.sendTestNotification(calendar.id).then(
                       ({ sent, failed }) => {
@@ -641,7 +650,7 @@ function CalendarEditor({
 
       <footer className="wizard__nav">
         <button
-          className="kbutton kbutton--ghost"
+          className="button button--ghost"
           disabled={previous === undefined}
           onClick={() => {
             if (previous !== undefined) {
@@ -655,7 +664,7 @@ function CalendarEditor({
           {index + 1} / {steps.length}
         </span>
         <button
-          className="kbutton kbutton--blue"
+          className="button"
           disabled={following === undefined}
           onClick={() => {
             if (following !== undefined) {
