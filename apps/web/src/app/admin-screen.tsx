@@ -148,7 +148,7 @@ function LogIn({ onDone }: { readonly onDone: () => void }) {
           />
         </label>
         {error !== null && <p className="error">{error}</p>}
-        <button className="button" type="submit">
+        <button className="kbutton kbutton--purple" type="submit">
           Logg inn
         </button>
       </form>
@@ -266,7 +266,7 @@ function SettingsForm({
       </div>
       {error !== null && <p className="error">{error}</p>}
       <div>
-        <button className="button" type="submit">
+        <button className="kbutton kbutton--green" type="submit">
           {submitLabel}
         </button>
       </div>
@@ -331,6 +331,36 @@ function CalendarList({ onUnauthenticated }: Guarded) {
   );
 }
 
+type Step = 'setup' | 'share' | 'new' | number;
+
+const SHAPES = ['▲', '◆', '●', '■'] as const;
+const COLORS = ['red', 'blue', 'yellow', 'green'] as const;
+
+function parseStep(search: string): Step | null {
+  const value = new URLSearchParams(search).get('steg');
+  if (value === 'oppsett') {
+    return 'setup';
+  }
+  if (value === 'del') {
+    return 'share';
+  }
+  if (value === 'ny') {
+    return 'new';
+  }
+  const number = Number(value);
+  return value !== null && Number.isInteger(number) && number > 0 ? number : null;
+}
+
+function stepParam(step: Step): string {
+  return step === 'setup'
+    ? 'oppsett'
+    : step === 'share'
+      ? 'del'
+      : step === 'new'
+        ? 'ny'
+        : String(step);
+}
+
 function CalendarEditor({
   calendarId,
   onUnauthenticated,
@@ -343,6 +373,7 @@ function CalendarEditor({
     null,
   );
   const [now, setNow] = useState(() => Date.now());
+  const [chosen, setChosen] = useState<Step | null>(() => parseStep(location.search));
 
   const load = useCallback(() => {
     admin.calendar(calendarId).then(setDetails, (caught: unknown) => {
@@ -370,10 +401,24 @@ function CalendarEditor({
     );
   }
   const { calendar, doors } = details;
+  const steps: Step[] = ['setup', ...doors.map((door) => door.number), 'new', 'share'];
+  const fallback: Step = doors[0]?.number ?? 'setup';
+  const step: Step = chosen !== null && steps.includes(chosen) ? chosen : fallback;
+  const index = steps.indexOf(step);
+  const go = (next: Step) => {
+    history.replaceState(null, '', `/admin/${calendar.id}?steg=${stepParam(next)}`);
+    setChosen(next);
+    setNotice(null);
+    scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const previous = steps[index - 1];
+  const following = steps[index + 1];
+
   const link = `${location.origin}/c/${calendar.slug}?k=${encodeURIComponent(calendar.accessKey)}`;
   const last = doors.at(-1);
+  const nextNumber = (last?.number ?? 0) + 1;
   const nextDraft: DoorDraftDto = {
-    number: (last?.number ?? 0) + 1,
+    number: nextNumber,
     opensOn: new Date(
       last === undefined ? now + DAY : Date.parse(`${last.opensOn}T12:00:00Z`) + DAY,
     )
@@ -390,7 +435,7 @@ function CalendarEditor({
       confetti: false,
     },
     notification: {
-      title: `Luke ${String((last?.number ?? 0) + 1)} er åpen 🎁`,
+      title: `Luke ${String(nextNumber)} er åpen 🎁`,
       body: 'Noe nytt venter på deg.',
     },
   };
@@ -407,113 +452,220 @@ function CalendarEditor({
       },
     });
   };
+  const door =
+    typeof step === 'number' ? doors.find((candidate) => candidate.number === step) : undefined;
 
   return (
-    <>
-      <section className="card">
-        <h2>{calendar.title}</h2>
-        <p className="admin__muted">Lenken hun skal bruke (hold den hemmelig):</p>
-        <a className="admin__link" href={link} target="_blank" rel="noreferrer">
-          {link}
-        </a>
-        <div className="admin__row">
-          <button
-            className="button"
-            onClick={() => {
-              void navigator.clipboard.writeText(link).then(() => {
-                setNotice('Kopiert ✓');
-              });
+    <div className="wizard">
+      <header className="wizard__top">
+        <h2 className="wizard__name">{calendar.title}</h2>
+        <button
+          className="kbutton kbutton--purple"
+          onClick={() => {
+            navigate(`/admin/${calendar.id}/preview`);
+          }}
+        >
+          👀 Se hele kalenderen
+        </button>
+      </header>
+
+      <nav className="rail" aria-label="Steg">
+        {steps.map((candidate, position) => {
+          const color = COLORS[position % COLORS.length] ?? 'red';
+          const active = candidate === step;
+          const railDoor =
+            typeof candidate === 'number'
+              ? doors.find((item) => item.number === candidate)
+              : undefined;
+          const done = railDoor !== undefined && railDoor.content.title.trim() !== '';
+          return (
+            <button
+              key={String(candidate)}
+              className={`rail__tile rail__tile--${color}${active ? ' rail__tile--active' : ''}`}
+              onClick={() => {
+                go(candidate);
+              }}
+              aria-current={active ? 'step' : undefined}
+            >
+              {railDoor?.content.imageUrl != null && (
+                <img className="rail__photo" src={railDoor.content.imageUrl} alt="" />
+              )}
+              <span className="rail__shape" aria-hidden="true">
+                {SHAPES[position % SHAPES.length]}
+              </span>
+              <span className="rail__label">
+                {candidate === 'setup'
+                  ? '⚙️ Oppsett'
+                  : candidate === 'share'
+                    ? '🚀 Del'
+                    : candidate === 'new'
+                      ? '＋ Ny luke'
+                      : String(candidate)}
+              </span>
+              {done && <span className="rail__done">✓</span>}
+              {railDoor?.featured === true && <span className="rail__bow">🎀</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+      <section className="wizard__stage" key={String(step)}>
+        {step === 'setup' && (
+          <div className="door-form">
+            <h2 className="door-form__title">⚙️ Oppsett</h2>
+            <SettingsForm
+              initial={calendar}
+              submitLabel="💾 Lagre oppsett"
+              onSubmit={async (settings) => {
+                await admin.updateCalendar(calendar.id, settings);
+                load();
+                setNotice('Lagret ✓');
+              }}
+            />
+            {notice !== null && <p className="door-form__saved">{notice}</p>}
+          </div>
+        )}
+
+        {door !== undefined && (
+          <DoorForm
+            key={door.id}
+            door={door}
+            initial={door}
+            defaultOpenTime={calendar.defaultOpenTime}
+            onSave={async (draft) => {
+              await admin.editDoor(door.id, draft);
+              load();
             }}
-          >
-            Kopier lenke
-          </button>
-          <button
-            className="button button--ghost"
-            onClick={() => {
-              navigate(`/admin/${calendar.id}/preview`);
-            }}
-          >
-            Forhåndsvis kalenderen
-          </button>
-          <button
-            className="button button--ghost"
-            onClick={() => {
-              admin.sendTestNotification(calendar.id).then(
-                ({ sent, failed }) => {
-                  setNotice(`Testvarsel: ${String(sent)} sendt, ${String(failed)} feilet`);
-                },
-                (caught: unknown) => {
-                  setNotice(message(caught));
-                },
-              );
-            }}
-          >
-            Send testvarsel
-          </button>
-          <button
-            className="button button--danger"
-            onClick={() => {
-              if (confirm('Ny lenke? Den gamle slutter å virke, også på Hjem-skjermen hennes.')) {
-                admin.rotateKey(calendar.id).then(load, (caught: unknown) => {
-                  setNotice(message(caught));
-                });
+            onRemove={async () => {
+              if (confirm(`Slette luke ${String(door.number)}?`)) {
+                await admin.removeDoor(door.id);
+                load();
+                go(previous ?? 'setup');
               }
             }}
-          >
-            Ny lenke
-          </button>
-        </div>
-        <p className="admin__muted">
-          {details.subscriberCount === 0
-            ? 'Ingen har slått på varsler ennå.'
-            : `${String(details.subscriberCount)} enhet(er) får varsler.`}
-        </p>
-        {notice !== null && <p className="admin__muted">{notice}</p>}
-        <details>
-          <summary className="admin__muted">Innstillinger</summary>
-          <SettingsForm
-            initial={calendar}
-            submitLabel="Lagre innstillinger"
-            onSubmit={async (settings) => {
-              await admin.updateCalendar(calendar.id, settings);
-              load();
-            }}
+            onUpload={upload}
+            onPreview={showPreview}
+            {...(following === undefined
+              ? {}
+              : {
+                  onNext: () => {
+                    go(following);
+                  },
+                })}
           />
-        </details>
+        )}
+
+        {step === 'new' && (
+          <DoorForm
+            key={`new-${String(nextNumber)}`}
+            initial={nextDraft}
+            defaultOpenTime={calendar.defaultOpenTime}
+            onSave={async (draft) => {
+              const added = await admin.addDoor(calendar.id, draft);
+              load();
+              go(added.number);
+            }}
+            onUpload={upload}
+            onPreview={showPreview}
+          />
+        )}
+
+        {step === 'share' && (
+          <div className="door-form">
+            <h2 className="door-form__title">🚀 Del med {calendar.recipientName}</h2>
+            <fieldset className="door-form__section">
+              <legend>🔗 Lenken hennes (hold den hemmelig)</legend>
+              <a className="admin__link" href={link} target="_blank" rel="noreferrer">
+                {link}
+              </a>
+              <div className="door-form__actions">
+                <button
+                  className="kbutton kbutton--green"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(link).then(() => {
+                      setNotice('Kopiert ✓');
+                    });
+                  }}
+                >
+                  📋 Kopier lenke
+                </button>
+                <button
+                  className="kbutton kbutton--red"
+                  onClick={() => {
+                    if (
+                      confirm('Ny lenke? Den gamle slutter å virke, også på Hjem-skjermen hennes.')
+                    ) {
+                      admin.rotateKey(calendar.id).then(load, (caught: unknown) => {
+                        setNotice(message(caught));
+                      });
+                    }
+                  }}
+                >
+                  🔄 Ny lenke
+                </button>
+              </div>
+            </fieldset>
+            <fieldset className="door-form__section">
+              <legend>🔔 Varsler</legend>
+              <p className="wizard__big">
+                {details.subscriberCount === 0
+                  ? 'Ingen har slått på varsler ennå.'
+                  : `${String(details.subscriberCount)} enhet(er) får varsler 🎉`}
+              </p>
+              <p className="admin__muted">
+                iPhone: åpne lenken i Safari → Del → «Legg til på Hjem-skjerm» → åpne fra
+                Hjem-skjermen → «Slå på varsler».
+              </p>
+              <div className="door-form__actions">
+                <button
+                  className="kbutton kbutton--blue"
+                  onClick={() => {
+                    admin.sendTestNotification(calendar.id).then(
+                      ({ sent, failed }) => {
+                        setNotice(`Testvarsel: ${String(sent)} sendt, ${String(failed)} feilet`);
+                      },
+                      (caught: unknown) => {
+                        setNotice(message(caught));
+                      },
+                    );
+                  }}
+                >
+                  📣 Send testvarsel
+                </button>
+              </div>
+            </fieldset>
+            {notice !== null && <p className="door-form__saved">{notice}</p>}
+          </div>
+        )}
       </section>
 
-      {doors.map((door) => (
-        <DoorForm
-          key={door.id}
-          door={door}
-          initial={door}
-          defaultOpenTime={calendar.defaultOpenTime}
-          onSave={async (draft) => {
-            await admin.editDoor(door.id, draft);
-            load();
-          }}
-          onRemove={async () => {
-            if (confirm(`Slette luke ${String(door.number)}?`)) {
-              await admin.removeDoor(door.id);
-              load();
+      <footer className="wizard__nav">
+        <button
+          className="kbutton kbutton--ghost"
+          disabled={previous === undefined}
+          onClick={() => {
+            if (previous !== undefined) {
+              go(previous);
             }
           }}
-          onUpload={upload}
-          onPreview={showPreview}
-        />
-      ))}
-
-      <DoorForm
-        key={`new-${String(nextDraft.number)}`}
-        initial={nextDraft}
-        defaultOpenTime={calendar.defaultOpenTime}
-        onSave={async (draft) => {
-          await admin.addDoor(calendar.id, draft);
-          load();
-        }}
-        onUpload={upload}
-        onPreview={showPreview}
-      />
+        >
+          ◀ Forrige
+        </button>
+        <span className="wizard__count">
+          {index + 1} / {steps.length}
+        </span>
+        <button
+          className="kbutton kbutton--blue"
+          disabled={following === undefined}
+          onClick={() => {
+            if (following !== undefined) {
+              go(following);
+            }
+          }}
+        >
+          Neste ▶
+        </button>
+      </footer>
 
       {preview !== null && (
         <DoorSheet
@@ -526,6 +678,6 @@ function CalendarEditor({
           }}
         />
       )}
-    </>
+    </div>
   );
 }

@@ -22,6 +22,8 @@ interface DoorFormProps {
   readonly onRemove?: () => Promise<void>;
   readonly onUpload: (file: File) => Promise<string>;
   readonly onPreview: (draft: DoorDraftDto) => void;
+  /** Shown as "Lagre og neste": save, then go to the next step. */
+  readonly onNext?: () => void;
 }
 
 /** One door's fields. Empty optional fields become null. */
@@ -33,6 +35,7 @@ export function DoorForm({
   onRemove,
   onUpload,
   onPreview,
+  onNext,
 }: DoorFormProps) {
   const [number, setNumber] = useState(String(initial.number));
   const [opensOn, setOpensOn] = useState(initial.opensOn);
@@ -87,235 +90,292 @@ export function DoorForm({
     }
   };
 
+  const opens =
+    door === undefined
+      ? null
+      : new Date(door.opensAt).toLocaleString('nb-NO', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+
   return (
     <form
-      className="card form admin-door"
+      className="door-form"
       onSubmit={(event) => {
         event.preventDefault();
         void run(() => onSave(draft()));
       }}
     >
-      <div className="admin-door__head">
-        <h3>Luke {number}</h3>
+      <header className="door-form__head">
+        <h2 className="door-form__title">
+          {door === undefined ? 'Ny luke' : `Luke ${number}`}
+          {featured && ' 🎀'}
+        </h2>
         {door !== undefined && (
-          <span className="admin__row">
-            <span className="badge">
-              Åpner{' '}
-              {new Date(door.opensAt).toLocaleString('nb-NO', {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+          <div className="door-form__badges">
+            <span className="chip">🗓 {opens}</span>
+            <span className={`chip${door.notifiedAt === null ? '' : ' chip--good'}`}>
+              {door.notifiedAt === null ? '🔕 Ikke varslet' : '🔔 Varslet'}
             </span>
-            <span className={`badge${door.notifiedAt === null ? '' : ' badge--good'}`}>
-              {door.notifiedAt === null ? 'Ikke varslet' : 'Varslet'}
-            </span>
-            <span className={`badge${door.firstOpenedAt === null ? '' : ' badge--good'}`}>
+            <span className={`chip${door.firstOpenedAt === null ? '' : ' chip--good'}`}>
               {door.firstOpenedAt === null
-                ? 'Ikke åpnet'
-                : `Åpnet ${new Date(door.firstOpenedAt).toLocaleString('nb-NO')}`}
+                ? '🙈 Ikke åpnet'
+                : `👀 Åpnet ${new Date(door.firstOpenedAt).toLocaleString('nb-NO')}`}
             </span>
-          </span>
+          </div>
         )}
-      </div>
-      <div className="form__grid">
-        <label className="field">
-          Nummer
-          <input
-            type="number"
-            min={1}
-            value={number}
-            onChange={(e) => {
-              setNumber(e.target.value);
-            }}
-            required
-          />
-        </label>
-        <label className="field">
-          Dag
-          <input
-            type="date"
-            value={opensOn}
-            onChange={(e) => {
-              setOpensOn(e.target.value);
-            }}
-            required
-          />
-        </label>
-        <div className="field">
-          Tidspunkt (luken åpner og varselet sendes)
-          <label className="field--check">
+      </header>
+
+      <fieldset className="door-form__section">
+        <legend>📅 Når</legend>
+        <div className="form__grid">
+          <label className="field">
+            Lukenummer
             <input
-              type="checkbox"
-              checked={ownTime}
+              type="number"
+              min={1}
+              value={number}
               onChange={(e) => {
-                setOwnTime(e.target.checked);
-              }}
-            />
-            {ownTime ? 'Eget tidspunkt' : `Standard (${defaultOpenTime})`}
-          </label>
-          {ownTime && (
-            <input
-              type="time"
-              value={openTime}
-              onChange={(e) => {
-                setOpenTime(e.target.value);
+                setNumber(e.target.value);
               }}
               required
             />
-          )}
+          </label>
+          <label className="field">
+            Dag
+            <input
+              type="date"
+              value={opensOn}
+              onChange={(e) => {
+                setOpensOn(e.target.value);
+              }}
+              required
+            />
+          </label>
+          <div className="field">
+            Tidspunkt (luken åpner og varselet sendes)
+            <label className="field--check">
+              <input
+                type="checkbox"
+                checked={ownTime}
+                onChange={(e) => {
+                  setOwnTime(e.target.checked);
+                }}
+              />
+              {ownTime ? 'Eget tidspunkt' : `Standard (${defaultOpenTime})`}
+            </label>
+            {ownTime && (
+              <input
+                type="time"
+                value={openTime}
+                onChange={(e) => {
+                  setOpenTime(e.target.value);
+                }}
+                required
+              />
+            )}
+          </div>
         </div>
-      </div>
-      <label className="field">
-        Tittel
-        <input
-          value={title}
-          onChange={(e) => {
-            setTitle(e.target.value);
-          }}
-          required
-          maxLength={120}
-        />
-      </label>
-      <label className="field">
-        Melding
-        <textarea
-          value={message}
-          onChange={(e) => {
-            setMessage(e.target.value);
-          }}
-          maxLength={5000}
-        />
-      </label>
-      <div className="form__grid">
+      </fieldset>
+
+      <fieldset className="door-form__section">
+        <legend>✍️ Innhold</legend>
         <label className="field">
-          Bilde (last opp eller lim inn URL)
+          Tittel
           <input
-            value={imageUrl}
+            value={title}
             onChange={(e) => {
-              setImageUrl(e.target.value);
-            }}
-            placeholder="/media/… eller https://…"
-          />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file !== undefined) {
-                void run(async () => {
-                  setImageUrl(await onUpload(file));
-                });
-              }
-            }}
-          />
-          {imageUrl !== '' && <img className="admin-preview" src={imageUrl} alt="" />}
-        </label>
-        <label className="field">
-          Lenke (Spotify, YouTube eller annet)
-          <input
-            value={linkUrl}
-            onChange={(e) => {
-              setLinkUrl(e.target.value);
-            }}
-            placeholder="https://open.spotify.com/track/…"
-          />
-        </label>
-      </div>
-      <div className="form__grid">
-        <label className="field">
-          Nedtelling til (valgfritt)
-          <input
-            type="datetime-local"
-            value={countdownTo}
-            onChange={(e) => {
-              setCountdownTo(e.target.value);
-            }}
-          />
-        </label>
-        <label className="field">
-          Tekst under nedtellingen
-          <input
-            value={countdownLabel}
-            onChange={(e) => {
-              setCountdownLabel(e.target.value);
-            }}
-            placeholder="til vi drar!"
-          />
-        </label>
-      </div>
-      <label className="field field--check">
-        <input
-          type="checkbox"
-          checked={confetti}
-          onChange={(e) => {
-            setConfetti(e.target.checked);
-          }}
-        />
-        Konfetti når luken åpnes 🎉
-      </label>
-      <label className="field field--check">
-        <input
-          type="checkbox"
-          checked={featured}
-          onChange={(e) => {
-            setFeatured(e.target.checked);
-          }}
-        />
-        Spesiell luke 🎀 (stor og innpakket som en gave, synlig før den åpner)
-      </label>
-      <div className="form__grid">
-        <label className="field">
-          Varsel: tittel
-          <input
-            value={notificationTitle}
-            onChange={(e) => {
-              setNotificationTitle(e.target.value);
+              setTitle(e.target.value);
             }}
             required
-            maxLength={80}
+            maxLength={120}
+            placeholder="Ta med badetøy 👙"
           />
         </label>
         <label className="field">
-          Varsel: tekst
-          <input
-            value={notificationBody}
+          Melding
+          <textarea
+            value={message}
             onChange={(e) => {
-              setNotificationBody(e.target.value);
+              setMessage(e.target.value);
             }}
-            maxLength={200}
+            maxLength={5000}
+            placeholder="Skriv noe fint …"
           />
         </label>
-      </div>
+      </fieldset>
+
+      <fieldset className="door-form__section">
+        <legend>📸 Bilde og lenke</legend>
+        <div className="form__grid">
+          <div className="field">
+            Bilde (vises i ramme)
+            <label className="upload">
+              {imageUrl === '' ? (
+                <span className="upload__empty">＋ Velg bilde</span>
+              ) : (
+                <img className="upload__preview" src={imageUrl} alt="" />
+              )}
+              <input
+                type="file"
+                accept="image/*,.heic,.heif"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file !== undefined) {
+                    void run(async () => {
+                      setImageUrl(await onUpload(file));
+                    });
+                  }
+                }}
+              />
+            </label>
+            {imageUrl !== '' && (
+              <button
+                type="button"
+                className="button button--ghost button--small"
+                onClick={() => {
+                  setImageUrl('');
+                }}
+              >
+                Fjern bilde
+              </button>
+            )}
+          </div>
+          <label className="field">
+            Lenke (Spotify, YouTube eller annet)
+            <input
+              value={linkUrl}
+              onChange={(e) => {
+                setLinkUrl(e.target.value);
+              }}
+              placeholder="https://open.spotify.com/track/…"
+            />
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset className="door-form__section">
+        <legend>⏳ Nedtelling (valgfritt)</legend>
+        <div className="form__grid">
+          <label className="field">
+            Teller ned til
+            <input
+              type="datetime-local"
+              value={countdownTo}
+              onChange={(e) => {
+                setCountdownTo(e.target.value);
+              }}
+            />
+          </label>
+          <label className="field">
+            Tekst under
+            <input
+              value={countdownLabel}
+              onChange={(e) => {
+                setCountdownLabel(e.target.value);
+              }}
+              placeholder="til vi drar! 🚗"
+            />
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset className="door-form__section">
+        <legend>✨ Ekstra</legend>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={confetti}
+            onChange={(e) => {
+              setConfetti(e.target.checked);
+            }}
+          />
+          <span>🎉 Konfetti når luken åpnes</span>
+        </label>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={featured}
+            onChange={(e) => {
+              setFeatured(e.target.checked);
+            }}
+          />
+          <span>🎀 Spesiell luke – stor og innpakket som en gave</span>
+        </label>
+      </fieldset>
+
+      <fieldset className="door-form__section">
+        <legend>🔔 Varsel</legend>
+        <div className="form__grid">
+          <label className="field">
+            Tittel
+            <input
+              value={notificationTitle}
+              onChange={(e) => {
+                setNotificationTitle(e.target.value);
+              }}
+              required
+              maxLength={80}
+            />
+          </label>
+          <label className="field">
+            Tekst
+            <input
+              value={notificationBody}
+              onChange={(e) => {
+                setNotificationBody(e.target.value);
+              }}
+              maxLength={200}
+            />
+          </label>
+        </div>
+      </fieldset>
+
       {error !== null && <p className="error">{error}</p>}
-      <div className="admin__row">
-        <button className="button" type="submit" disabled={busy}>
-          {door === undefined ? 'Legg til luke' : 'Lagre'}
+      <div className="door-form__actions">
+        <button className="kbutton kbutton--green" type="submit" disabled={busy}>
+          {door === undefined ? '＋ Legg til luke' : '💾 Lagre'}
         </button>
+        {onNext !== undefined && door !== undefined && (
+          <button
+            className="kbutton kbutton--blue"
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              void run(async () => {
+                await onSave(draft());
+                onNext();
+              });
+            }}
+          >
+            Lagre og neste ▶
+          </button>
+        )}
         <button
-          className="button button--ghost"
+          className="kbutton kbutton--yellow"
           type="button"
           onClick={() => {
             onPreview(draft());
           }}
         >
-          Forhåndsvis
+          👀 Forhåndsvis
         </button>
         {onRemove !== undefined && (
           <button
-            className="button button--danger"
+            className="kbutton kbutton--red"
             type="button"
             disabled={busy}
             onClick={() => {
               void run(onRemove);
             }}
           >
-            Slett
+            🗑 Slett
           </button>
         )}
-        {saved && <span className="admin__muted">Lagret ✓</span>}
+        {saved && <span className="door-form__saved">Lagret ✓</span>}
       </div>
     </form>
   );
