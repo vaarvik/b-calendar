@@ -96,6 +96,9 @@ importers:
       '@b-calendar/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      heic-to:
+        specifier: 1.6.6
+        version: 1.6.6
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -1199,6 +1202,9 @@ packages:
   hashery@1.5.1:
     resolution: {integrity: sha512-iZyKG96/JwPz1N55vj2Ie2vXbhu440zfUfJvSwEqEbeLluk7NnapfGqa7LH0mOsnDxTF85Mx8/dyR6HfqcbmbQ==}
     engines: {node: '>=20'}
+
+  heic-to@1.6.6:
+    resolution: {integrity: sha512-PYpOtPFEzgPxIoGF4LQ+oBD8o/tMvcFDNynrNzK1fLXfE6mTe2W+AHOvBKc5MwnVak4/Pnb51g9CJAtWL5YGWA==}
 
   hermes-estree@0.25.1:
     resolution: {integrity: sha512-0wUoCcLp+5Ev5pDW2OriHC2MJCbwLwuRx+gAqMTOkGKJJiBCLjtrvy4PWUGn6MIVefecRpzoOZ/UV6iGdOr+Cw==}
@@ -3152,6 +3158,8 @@ snapshots:
   hashery@1.5.1:
     dependencies:
       hookified: 1.15.1
+
+  heic-to@1.6.6: {}
 
   hermes-estree@0.25.1: {}
 
