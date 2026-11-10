@@ -71,7 +71,7 @@ export const BIRTHDAY_WEEK: {
     },
     {
       number: 5,
-      featured: true,
+      featured: false,
       opensAt: new Date('2026-11-19T08:00:00+01:00'),
       content: {
         title: 'Gratulerer med dagen! 🎂',
