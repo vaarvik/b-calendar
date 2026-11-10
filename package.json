@@ -1,0 +1,39 @@
+{
+  "name": "b-calendar",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "tsc -b && pnpm --filter @b-calendar/web typecheck",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:unit": "TEST_SCOPE=unit vitest run",
+    "test:coverage": "vitest run --coverage",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:migrate": "tsc -b apps/api && node --env-file-if-exists=.env apps/api/dist/src/migrate.js",
+    "api": "tsc -b apps/api && node --env-file-if-exists=.env apps/api/dist/src/server.js",
+    "web": "pnpm --filter @b-calendar/web dev",
+    "web:build": "pnpm --filter @b-calendar/web build",
+    "seed:birthday": "tsc -b apps/api && node --env-file-if-exists=.env apps/api/dist/src/cli.js seed-birthday",
+    "contract-check": "tsc -b tools/contract-check && node tools/contract-check/dist/src/cli.js ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "@vitest/coverage-v8": "^5.1.0",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.1.0"
+  }
+}

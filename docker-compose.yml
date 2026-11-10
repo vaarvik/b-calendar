@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bcalendar
+      POSTGRES_PASSWORD: bcalendar
+      POSTGRES_DB: bcalendar
+    ports:
+      - '${POSTGRES_PORT:-5433}:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bcalendar -d bcalendar']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  db-data:

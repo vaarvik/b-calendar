@@ -1,0 +1,32 @@
+{
+  "name": "@b-calendar/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "@b-calendar/source": "./src/index.ts",
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./test-kit": {
+      "@b-calendar/source": "./test-kit/index.ts",
+      "types": "./dist/test-kit/index.d.ts",
+      "default": "./dist/test-kit/index.js"
+    }
+  },
+  "peerDependencies": {
+    "vitest": "^5.1.0"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "vitest": "^5.1.0"
+  }
+}

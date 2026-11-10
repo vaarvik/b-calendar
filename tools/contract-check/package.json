@@ -1,0 +1,12 @@
+{
+  "name": "@b-calendar/contract-check",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "contract-check": "dist/src/cli.js"
+  },
+  "dependencies": {
+    "ts-morph": "^28.0.0"
+  }
+}

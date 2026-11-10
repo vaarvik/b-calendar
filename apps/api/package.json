@@ -1,0 +1,28 @@
+{
+  "name": "@b-calendar/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=../../.env dist/src/server.js"
+  },
+  "dependencies": {
+    "@b-calendar/application": "workspace:*",
+    "@b-calendar/contracts": "workspace:*",
+    "@b-calendar/domain": "workspace:*",
+    "@b-calendar/in-memory": "workspace:*",
+    "@fastify/static": "^10.1.10",
+    "fastify": "^5.12.8",
+    "kysely": "^0.29.8",
+    "pg": "^8.23.1",
+    "pino": "^10.4.0",
+    "web-push": "^3.6.7",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^12.2.1",
+    "@types/pg": "^8.23.1",
+    "@types/web-push": "^3.6.4",
+    "testcontainers": "^12.2.1"
+  }
+}

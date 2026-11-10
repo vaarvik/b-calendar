@@ -1,0 +1,17 @@
+{
+  "name": "@b-calendar/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "@b-calendar/source": "./src/index.ts",
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "dependencies": {
+    "@b-calendar/contracts": "workspace:*",
+    "zod": "^4.6.7"
+  }
+}
