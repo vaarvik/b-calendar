@@ -1,6 +1,6 @@
 import type { CalendarSettings, DoorDraft } from '@b-calendar/contracts';
 
-/** The first calendar: a birthday week, Sunday 15 to Friday 20 November 2026 (Oslo, UTC+1). */
+/** The first calendar: a birthday week, Sunday 15 to Thursday 19 November 2026 (Oslo, UTC+1). */
 export const BIRTHDAY_WEEK: {
   readonly settings: CalendarSettings;
   readonly doors: readonly DoorDraft[];
@@ -71,31 +71,17 @@ export const BIRTHDAY_WEEK: {
     },
     {
       number: 5,
-      featured: false,
+      featured: true,
       opensAt: new Date('2026-11-19T08:00:00+01:00'),
       content: {
         title: 'Gratulerer med dagen! 🎂',
-        message: 'Hipp hipp hurra! Og nå et lite hint om hvor vi skal …',
+        message: 'Hipp hipp hurra! I dag skal vi ut på tur. Pakk det siste – vi drar snart.',
         imageUrl: null,
         linkUrl: null,
-        countdown: null,
+        countdown: { to: new Date('2026-11-19T13:00:00+01:00'), label: 'til vi drar 🚗' },
         confetti: true,
       },
-      notification: { title: 'Gratulerer med dagen! 🎂', body: 'Åpne dagens luke.' },
-    },
-    {
-      number: 6,
-      featured: true,
-      opensAt: new Date('2026-11-20T12:00:00+01:00'),
-      content: {
-        title: 'Snart drar vi!',
-        message: 'Pakk det siste. Vi drar om en time.',
-        imageUrl: null,
-        linkUrl: null,
-        countdown: { to: new Date('2026-11-20T13:00:00+01:00'), label: 'til vi drar 🚗' },
-        confetti: true,
-      },
-      notification: { title: 'En time igjen ⏳', body: 'Siste luke er åpen.' },
+      notification: { title: 'Gratulerer med dagen! 🎂', body: 'Siste luke er åpen.' },
     },
   ],
 };

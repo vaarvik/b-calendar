@@ -34,7 +34,9 @@ export function DoorTile({ door, opening, shaking, when, copy, onTap }: DoorTile
     >
       <span className="door__inside">
         {inside?.imageUrl != null ? (
-          <img className="door__thumb" src={inside.imageUrl} alt="" loading="lazy" />
+          <span className="door__photo">
+            <img src={inside.imageUrl} alt="" loading="lazy" />
+          </span>
         ) : (
           <span className="door__glyph">
             {door.featured ? '🎉' : inside?.link != null ? '♫' : '✦'}

@@ -16,7 +16,9 @@ export function DoorContent({ content, now, copy }: DoorContentProps) {
       <h2 className="door-content__title">{content.title}</h2>
       {content.message !== '' && <p className="door-content__message">{content.message}</p>}
       {content.imageUrl !== null && (
-        <img className="door-content__image" src={content.imageUrl} alt="" loading="lazy" />
+        <figure className="photo-frame">
+          <img className="photo-frame__image" src={content.imageUrl} alt="" loading="lazy" />
+        </figure>
       )}
       {countdown !== null && (
         <div className="door-content__countdown">
