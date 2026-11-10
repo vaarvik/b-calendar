@@ -10,6 +10,7 @@ import { ApiError } from '../shared/shared.model';
 import { RECIPIENT_COPY } from '../shared/shared.model';
 import { DoorForm } from '../ui/door-form';
 import { DoorSheet } from '../ui/door-sheet';
+import { Icon } from '../ui/icon';
 import { CalendarPreviewScreen } from './calendar-preview-screen';
 import { useServices } from './services';
 
@@ -48,8 +49,12 @@ export function AdminScreen() {
 
   useEffect(() => {
     document.title = 'Kalender · admin';
+    const root = document.documentElement;
     if (previewId === undefined) {
-      delete document.documentElement.dataset.theme;
+      delete root.dataset.theme;
+      root.dataset.surface = 'admin';
+    } else {
+      delete root.dataset.surface;
     }
   }, [previewId]);
 
@@ -108,7 +113,7 @@ export function AdminScreen() {
             setSignedIn(false);
           }}
         >
-          Logg ut
+          <Icon name="logOut" /> Logg ut
         </button>
       </div>
       {calendarId === undefined ? (
@@ -462,7 +467,7 @@ function CalendarEditor({
             navigate(`/admin/${calendar.id}/preview`);
           }}
         >
-          👀 Forhåndsvis kalenderen
+          <Icon name="eye" /> Forhåndsvis kalenderen
         </button>
       </header>
 
@@ -499,18 +504,32 @@ function CalendarEditor({
                 <img className="rail__photo" src={railDoor.content.imageUrl} alt="" />
               )}
               <span className="rail__label">
-                {candidate === 'setup'
-                  ? 'Oppsett'
-                  : candidate === 'share'
-                    ? 'Del'
-                    : candidate === 'new'
-                      ? '＋ Ny'
-                      : `Luke ${String(candidate)}`}
+                {candidate === 'setup' ? (
+                  <>
+                    <Icon name="settings" size={20} />
+                    <br />
+                    Oppsett
+                  </>
+                ) : candidate === 'share' ? (
+                  <>
+                    <Icon name="share" size={20} />
+                    <br />
+                    Del
+                  </>
+                ) : candidate === 'new' ? (
+                  <>
+                    <Icon name="plus" size={20} />
+                    <br />
+                    Ny luke
+                  </>
+                ) : (
+                  `Luke ${String(candidate)}`
+                )}
               </span>
               {done && <span className="rail__done">✓</span>}
               {railDoor?.featured === true && (
                 <span className="rail__bow" aria-label="Spesiell luke">
-                  🎀
+                  <Icon name="gift" size={14} />
                 </span>
               )}
             </button>
@@ -521,7 +540,7 @@ function CalendarEditor({
       <section className="wizard__stage" key={String(step)}>
         {step === 'setup' && (
           <div className="door-form">
-            <h2 className="door-form__title">⚙️ Oppsett</h2>
+            <h2 className="door-form__title">Oppsett</h2>
             <SettingsForm
               initial={calendar}
               submitLabel="💾 Lagre oppsett"
@@ -581,9 +600,11 @@ function CalendarEditor({
 
         {step === 'share' && (
           <div className="door-form">
-            <h2 className="door-form__title">🚀 Del med {calendar.recipientName}</h2>
+            <h2 className="door-form__title">Del med {calendar.recipientName}</h2>
             <fieldset className="door-form__section">
-              <legend>🔗 Lenken hennes (hold den hemmelig)</legend>
+              <legend>
+                <Icon name="link" /> Lenken hennes (hold den hemmelig)
+              </legend>
               <a className="admin__link" href={link} target="_blank" rel="noreferrer">
                 {link}
               </a>
@@ -596,7 +617,7 @@ function CalendarEditor({
                     });
                   }}
                 >
-                  📋 Kopier lenke
+                  <Icon name="copy" /> Kopier lenke
                 </button>
                 <button
                   className="button button--danger"
@@ -610,12 +631,14 @@ function CalendarEditor({
                     }
                   }}
                 >
-                  🔄 Ny lenke
+                  <Icon name="refresh" /> Ny lenke
                 </button>
               </div>
             </fieldset>
             <fieldset className="door-form__section">
-              <legend>🔔 Varsler</legend>
+              <legend>
+                <Icon name="bell" /> Varsler
+              </legend>
               <p className="wizard__big">
                 {details.subscriberCount === 0
                   ? 'Ingen har slått på varsler ennå.'
@@ -639,7 +662,7 @@ function CalendarEditor({
                     );
                   }}
                 >
-                  📣 Send testvarsel
+                  <Icon name="send" /> Send testvarsel
                 </button>
               </div>
             </fieldset>
@@ -658,7 +681,7 @@ function CalendarEditor({
             }
           }}
         >
-          ◀ Forrige
+          <Icon name="chevronLeft" /> Forrige
         </button>
         <span className="wizard__count">
           {index + 1} / {steps.length}
@@ -672,7 +695,7 @@ function CalendarEditor({
             }
           }}
         >
-          Neste ▶
+          Neste <Icon name="chevronRight" />
         </button>
       </footer>
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { DoorPreviewDto } from '@b-calendar/contracts';
 import type { DoorDraftDto } from '../admin/admin.ports';
+import { Icon } from './icon';
 
 /** `2026-11-15T08:00` in the browser's time zone, for datetime-local inputs. */
 export function toLocalInput(iso: string): string {
@@ -112,25 +113,35 @@ export function DoorForm({
       <header className="door-form__head">
         <h2 className="door-form__title">
           {door === undefined ? 'Ny luke' : `Luke ${number}`}
-          {featured && ' 🎀'}
+          {featured && (
+            <span className="door-form__gift">
+              <Icon name="gift" size={22} />
+            </span>
+          )}
         </h2>
         {door !== undefined && (
           <div className="door-form__badges">
-            <span className="chip">🗓 {opens}</span>
+            <span className="chip">
+              <Icon name="calendar" /> {opens}
+            </span>
             <span className={`chip${door.notifiedAt === null ? '' : ' chip--good'}`}>
-              {door.notifiedAt === null ? '🔕 Ikke varslet' : '🔔 Varslet'}
+              <Icon name={door.notifiedAt === null ? 'bellOff' : 'bell'} />
+              {door.notifiedAt === null ? 'Ikke varslet' : 'Varslet'}
             </span>
             <span className={`chip${door.firstOpenedAt === null ? '' : ' chip--good'}`}>
+              <Icon name={door.firstOpenedAt === null ? 'eyeOff' : 'eye'} />
               {door.firstOpenedAt === null
-                ? '🙈 Ikke åpnet'
-                : `👀 Åpnet ${new Date(door.firstOpenedAt).toLocaleString('nb-NO')}`}
+                ? 'Ikke åpnet'
+                : `Åpnet ${new Date(door.firstOpenedAt).toLocaleString('nb-NO')}`}
             </span>
           </div>
         )}
       </header>
 
       <fieldset className="door-form__section">
-        <legend>📅 Når</legend>
+        <legend>
+          <Icon name="calendar" /> Når
+        </legend>
         <div className="form__grid">
           <label className="field">
             Lukenummer
@@ -182,7 +193,9 @@ export function DoorForm({
       </fieldset>
 
       <fieldset className="door-form__section">
-        <legend>✍️ Innhold</legend>
+        <legend>
+          <Icon name="pen" /> Innhold
+        </legend>
         <label className="field">
           Tittel
           <input
@@ -209,13 +222,17 @@ export function DoorForm({
       </fieldset>
 
       <fieldset className="door-form__section">
-        <legend>📸 Bilde og lenke</legend>
+        <legend>
+          <Icon name="image" /> Bilde og lenke
+        </legend>
         <div className="form__grid">
           <div className="field">
             Bilde (vises i ramme)
             <label className="upload">
               {imageUrl === '' ? (
-                <span className="upload__empty">＋ Velg bilde</span>
+                <span className="upload__empty">
+                  <Icon name="plus" /> Velg bilde
+                </span>
               ) : (
                 <img className="upload__preview" src={imageUrl} alt="" />
               )}
@@ -258,7 +275,9 @@ export function DoorForm({
       </fieldset>
 
       <fieldset className="door-form__section">
-        <legend>⏳ Nedtelling (valgfritt)</legend>
+        <legend>
+          <Icon name="clock" /> Nedtelling (valgfritt)
+        </legend>
         <div className="form__grid">
           <label className="field">
             Teller ned til
@@ -284,7 +303,9 @@ export function DoorForm({
       </fieldset>
 
       <fieldset className="door-form__section">
-        <legend>✨ Ekstra</legend>
+        <legend>
+          <Icon name="sparkle" /> Ekstra
+        </legend>
         <label className="toggle">
           <input
             type="checkbox"
@@ -293,7 +314,7 @@ export function DoorForm({
               setConfetti(e.target.checked);
             }}
           />
-          <span>🎉 Konfetti når luken åpnes</span>
+          <span>Konfetti når luken åpnes</span>
         </label>
         <label className="toggle">
           <input
@@ -303,12 +324,14 @@ export function DoorForm({
               setFeatured(e.target.checked);
             }}
           />
-          <span>🎀 Spesiell luke – stor og innpakket som en gave</span>
+          <span>Spesiell luke – stor og innpakket som en gave</span>
         </label>
       </fieldset>
 
       <fieldset className="door-form__section">
-        <legend>🔔 Varsel</legend>
+        <legend>
+          <Icon name="bell" /> Varsel
+        </legend>
         <div className="form__grid">
           <label className="field">
             Tittel
@@ -337,6 +360,7 @@ export function DoorForm({
       {error !== null && <p className="error">{error}</p>}
       <div className="door-form__actions">
         <button className="button" type="submit" disabled={busy}>
+          <Icon name={door === undefined ? 'plus' : 'check'} />
           {door === undefined ? 'Legg til luke' : 'Lagre'}
         </button>
         {onNext !== undefined && door !== undefined && (
@@ -351,7 +375,7 @@ export function DoorForm({
               });
             }}
           >
-            Lagre og neste ▶
+            Lagre og neste <Icon name="chevronRight" />
           </button>
         )}
         <button
@@ -361,7 +385,7 @@ export function DoorForm({
             onPreview(draft());
           }}
         >
-          Forhåndsvis
+          <Icon name="eye" /> Forhåndsvis
         </button>
         {onRemove !== undefined && (
           <button
@@ -372,7 +396,7 @@ export function DoorForm({
               void run(onRemove);
             }}
           >
-            Slett
+            <Icon name="trash" /> Slett
           </button>
         )}
         {saved && <span className="door-form__saved">Lagret ✓</span>}
