@@ -31,6 +31,7 @@ describe('the recipient’s calendar over HTTP', () => {
       calendarId: calendar.id,
       draft: {
         number: 1,
+        featured: false,
         opensAt: new Date(Date.now() - HOUR),
         content: { ...content, title: 'Badetøy' },
         notification,
@@ -40,6 +41,7 @@ describe('the recipient’s calendar over HTTP', () => {
       calendarId: calendar.id,
       draft: {
         number: 2,
+        featured: true,
         opensAt: new Date(Date.now() + HOUR),
         content: { ...content, title: 'Hemmelig' },
         notification,
@@ -58,6 +60,7 @@ describe('the recipient’s calendar over HTTP', () => {
     expect(response.headers['cache-control']).toBe('no-store');
     const body = response.json<RecipientCalendarResponseDto>();
     expect(body.doors.map((door) => door.state)).toEqual(['ready', 'locked']);
+    expect(body.doors.map((door) => door.featured)).toEqual([false, true]);
     expect(response.body).not.toContain('Hemmelig');
   });
 

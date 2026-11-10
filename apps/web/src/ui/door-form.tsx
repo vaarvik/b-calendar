@@ -26,6 +26,7 @@ interface DoorFormProps {
 export function DoorForm({ initial, door, onSave, onRemove, onUpload, onPreview }: DoorFormProps) {
   const [number, setNumber] = useState(String(initial.number));
   const [opensAt, setOpensAt] = useState(toLocalInput(initial.opensAt));
+  const [featured, setFeatured] = useState(initial.featured);
   const [title, setTitle] = useState(initial.content.title);
   const [message, setMessage] = useState(initial.content.message);
   const [imageUrl, setImageUrl] = useState(initial.content.imageUrl ?? '');
@@ -44,6 +45,7 @@ export function DoorForm({ initial, door, onSave, onRemove, onUpload, onPreview 
   const draft = (): DoorDraftDto => ({
     number: Number(number),
     opensAt: fromLocalInput(opensAt),
+    featured,
     content: {
       title: title.trim(),
       message,
@@ -207,6 +209,16 @@ export function DoorForm({ initial, door, onSave, onRemove, onUpload, onPreview 
           }}
         />
         Konfetti når luken åpnes 🎉
+      </label>
+      <label className="field field--check">
+        <input
+          type="checkbox"
+          checked={featured}
+          onChange={(e) => {
+            setFeatured(e.target.checked);
+          }}
+        />
+        Spesiell luke 🎀 (stor og innpakket som en gave, synlig før den åpner)
       </label>
       <div className="form__grid">
         <label className="field">

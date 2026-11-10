@@ -72,6 +72,7 @@ export class TestData {
       calendarId,
       number: 1,
       opensAt: T0,
+      featured: false,
       content: this.content(),
       notification: { title: 'Luke 1 er åpen', body: 'Et nytt hint venter.' },
       notifiedAt: null,

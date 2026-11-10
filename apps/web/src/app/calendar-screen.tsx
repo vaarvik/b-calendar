@@ -178,6 +178,7 @@ export function CalendarScreen({ slug }: { readonly slug: string }) {
                   candidate.number === number
                     ? {
                         state: 'opened',
+                        featured: candidate.featured,
                         number,
                         opensAt: candidate.opensAt,
                         content: opened.content,
@@ -266,15 +267,15 @@ export function CalendarScreen({ slug }: { readonly slug: string }) {
 
       <section className="doors" aria-label={calendar.title}>
         {calendar.doors.map((door) => (
-          <div key={door.number} className={shaking === door.number ? 'shake' : undefined}>
-            <DoorTile
-              door={door}
-              opening={opening === door.number}
-              when={format.format(Date.parse(door.opensAt))}
-              copy={copy}
-              onTap={() => void openDoor(door.number)}
-            />
-          </div>
+          <DoorTile
+            key={door.number}
+            door={door}
+            opening={opening === door.number}
+            shaking={shaking === door.number}
+            when={format.format(Date.parse(door.opensAt))}
+            copy={copy}
+            onTap={() => void openDoor(door.number)}
+          />
         ))}
       </section>
       {problem === 'offline' && <p className="calendar__offline">{copy.offline}</p>}

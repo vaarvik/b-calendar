@@ -44,21 +44,38 @@ export const OpenDoorContentDtoSchema: z.ZodType<OpenDoorContentDto> = z.object(
 });
 
 export type RecipientDoorDto =
-  | { readonly state: 'locked' | 'ready'; readonly number: number; readonly opensAt: string }
+  | {
+      readonly state: 'locked' | 'ready';
+      readonly number: number;
+      readonly opensAt: string;
+      readonly featured: boolean;
+    }
   | {
       readonly state: 'opened';
       readonly number: number;
       readonly opensAt: string;
+      readonly featured: boolean;
       readonly content: OpenDoorContentDto;
     };
 
 export const RecipientDoorDtoSchema: z.ZodType<RecipientDoorDto> = z.discriminatedUnion('state', [
-  z.object({ state: z.literal('locked'), number: z.int(), opensAt: z.string() }),
-  z.object({ state: z.literal('ready'), number: z.int(), opensAt: z.string() }),
+  z.object({
+    state: z.literal('locked'),
+    number: z.int(),
+    opensAt: z.string(),
+    featured: z.boolean(),
+  }),
+  z.object({
+    state: z.literal('ready'),
+    number: z.int(),
+    opensAt: z.string(),
+    featured: z.boolean(),
+  }),
   z.object({
     state: z.literal('opened'),
     number: z.int(),
     opensAt: z.string(),
+    featured: z.boolean(),
     content: OpenDoorContentDtoSchema,
   }),
 ]);
@@ -80,6 +97,7 @@ export interface DoorPreviewDto {
   readonly id: string;
   readonly number: number;
   readonly opensAt: string;
+  readonly featured: boolean;
   readonly content: {
     readonly title: string;
     readonly message: string;
@@ -98,6 +116,7 @@ export const DoorPreviewDtoSchema: z.ZodType<DoorPreviewDto> = z.object({
   id: z.string(),
   number: z.int(),
   opensAt: z.string(),
+  featured: z.boolean(),
   content: z.object({
     title: z.string(),
     message: z.string(),

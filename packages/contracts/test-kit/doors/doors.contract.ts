@@ -29,6 +29,7 @@ export function describeDoorRepositoryContract(
     it('reads back a created door with every field', async () => {
       const data = new TestData();
       const door = data.door(await calendar(data), {
+        featured: true,
         content: data.content({
           imageUrl: '/media/a.jpg',
           linkUrl: 'https://open.spotify.com/track/abc',

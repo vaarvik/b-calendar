@@ -15,6 +15,7 @@ export const BIRTHDAY_WEEK: {
   doors: [
     {
       number: 1,
+      featured: false,
       opensAt: new Date('2026-11-15T09:00:00+01:00'),
       content: {
         title: 'Ta med badetøy 👙',
@@ -28,6 +29,7 @@ export const BIRTHDAY_WEEK: {
     },
     {
       number: 2,
+      featured: false,
       opensAt: new Date('2026-11-16T09:00:00+01:00'),
       content: {
         title: 'Dagens hint er en sang 🎶',
@@ -41,6 +43,7 @@ export const BIRTHDAY_WEEK: {
     },
     {
       number: 3,
+      featured: false,
       opensAt: new Date('2026-11-17T09:00:00+01:00'),
       content: {
         title: 'Hint 3',
@@ -54,6 +57,7 @@ export const BIRTHDAY_WEEK: {
     },
     {
       number: 4,
+      featured: false,
       opensAt: new Date('2026-11-18T09:00:00+01:00'),
       content: {
         title: 'Hint 4',
@@ -67,6 +71,7 @@ export const BIRTHDAY_WEEK: {
     },
     {
       number: 5,
+      featured: true,
       opensAt: new Date('2026-11-19T08:00:00+01:00'),
       content: {
         title: 'Gratulerer med dagen! 🎂',
@@ -80,6 +85,7 @@ export const BIRTHDAY_WEEK: {
     },
     {
       number: 6,
+      featured: true,
       opensAt: new Date('2026-11-20T12:00:00+01:00'),
       content: {
         title: 'Snart drar vi!',

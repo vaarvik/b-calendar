@@ -12,14 +12,14 @@ export class OpensAtRecipientDoorPresenter implements RecipientDoorPresenter {
   public constructor(private readonly links: DoorLinkClassifier) {}
 
   public present(door: Door, now: Date): RecipientDoor {
-    const { number, opensAt } = door;
+    const { number, opensAt, featured } = door;
     if (opensAt.getTime() > now.getTime()) {
-      return { state: 'locked', number, opensAt };
+      return { state: 'locked', number, opensAt, featured };
     }
     if (door.firstOpenedAt === null) {
-      return { state: 'ready', number, opensAt };
+      return { state: 'ready', number, opensAt, featured };
     }
-    return { state: 'opened', number, opensAt, content: this.content(door.content) };
+    return { state: 'opened', number, opensAt, featured, content: this.content(door.content) };
   }
 
   public content(content: DoorContent): OpenDoorContent {

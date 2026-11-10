@@ -57,6 +57,7 @@ function draft(overrides: Partial<DoorDraft> = {}): DoorDraft {
   return {
     number: 1,
     opensAt: T0,
+    featured: false,
     content: new TestData().content(),
     notification: { title: 'Luke 1', body: 'Åpne meg' },
     ...overrides,

@@ -14,6 +14,7 @@ describe('OpensAtRecipientDoorPresenter', () => {
       state: 'locked',
       number: 2,
       opensAt: door.opensAt,
+      featured: false,
     });
   });
 
@@ -26,7 +27,18 @@ describe('OpensAtRecipientDoorPresenter', () => {
   it('shows a door that has opened but was never looked behind as ready, still with no content', () => {
     const door = data.door(calendarId, { number: 3, opensAt: T0 });
 
-    expect(presenter.present(door, T0)).toEqual({ state: 'ready', number: 3, opensAt: T0 });
+    expect(presenter.present(door, T0)).toEqual({
+      state: 'ready',
+      number: 3,
+      opensAt: T0,
+      featured: false,
+    });
+  });
+
+  it('shows that a door is featured even while it is locked', () => {
+    const door = data.door(calendarId, { opensAt: hoursAfter(T0, 1), featured: true });
+
+    expect(presenter.present(door, T0)).toMatchObject({ state: 'locked', featured: true });
   });
 
   it('keeps a door open, with its content, once she has opened it', () => {
@@ -40,6 +52,7 @@ describe('OpensAtRecipientDoorPresenter', () => {
       state: 'opened',
       number: 1,
       opensAt: T0,
+      featured: false,
       content: {
         title: 'Ta med badetøy',
         message: 'Du trenger det snart.',

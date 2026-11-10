@@ -10,6 +10,7 @@ import type {
 export interface DoorDraftDto {
   readonly number: number;
   readonly opensAt: string;
+  readonly featured: boolean;
   readonly content: {
     readonly title: string;
     readonly message: string;

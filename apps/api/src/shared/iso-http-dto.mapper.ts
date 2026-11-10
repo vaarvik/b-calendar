@@ -52,6 +52,7 @@ export class IsoHttpDtoMapper implements HttpDtoMapper {
       id: door.id,
       number: door.number,
       opensAt: door.opensAt.toISOString(),
+      featured: door.featured,
       content: { ...door.content, countdown: this.countdown(door.content.countdown) },
       link: door.link,
       notification: door.notification,
@@ -64,7 +65,12 @@ export class IsoHttpDtoMapper implements HttpDtoMapper {
     if (door.state === 'opened') {
       return { ...door, opensAt: door.opensAt.toISOString(), content: this.content(door.content) };
     }
-    return { state: door.state, number: door.number, opensAt: door.opensAt.toISOString() };
+    return {
+      state: door.state,
+      number: door.number,
+      opensAt: door.opensAt.toISOString(),
+      featured: door.featured,
+    };
   }
 
   private content(content: OpenDoorContent): OpenDoorContentDto {

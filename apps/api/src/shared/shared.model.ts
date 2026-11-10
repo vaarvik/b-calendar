@@ -22,6 +22,7 @@ export interface DoorsTable {
   calendar_id: string;
   number: number;
   opens_at: Date;
+  featured: boolean;
   title: string;
   message: string;
   image_url: string | null;

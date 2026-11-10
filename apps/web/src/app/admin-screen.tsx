@@ -10,6 +10,7 @@ import { ApiError } from '../shared/shared.model';
 import { RECIPIENT_COPY } from '../shared/shared.model';
 import { DoorForm } from '../ui/door-form';
 import { DoorSheet } from '../ui/door-sheet';
+import { CalendarPreviewScreen } from './calendar-preview-screen';
 import { useServices } from './services';
 
 const DAY = 86_400_000;
@@ -42,10 +43,15 @@ export function AdminScreen() {
   const [signedIn, setSignedIn] = useState(admin.signedIn());
   const path = usePath();
   const calendarId = /^\/admin\/([0-9a-f-]{36})$/.exec(path)?.[1];
+  const previewId = /^\/admin\/([0-9a-f-]{36})\/preview$/.exec(path)?.[1];
+  const loadCalendar = useCallback((id: string) => admin.calendar(id), [admin]);
 
   useEffect(() => {
     document.title = 'Kalender · admin';
-  }, []);
+    if (previewId === undefined) {
+      delete document.documentElement.dataset.theme;
+    }
+  }, [previewId]);
 
   const onUnauthenticated = useCallback(
     (error: unknown) => {
@@ -64,6 +70,18 @@ export function AdminScreen() {
       <LogIn
         onDone={() => {
           setSignedIn(true);
+        }}
+      />
+    );
+  }
+  if (previewId !== undefined) {
+    return (
+      <CalendarPreviewScreen
+        calendarId={previewId}
+        load={loadCalendar}
+        onError={onUnauthenticated}
+        onBack={() => {
+          navigate(`/admin/${previewId}`);
         }}
       />
     );
@@ -329,6 +347,7 @@ function CalendarEditor({
     opensAt: new Date(
       last === undefined ? now + DAY : Date.parse(last.opensAt) + DAY,
     ).toISOString(),
+    featured: false,
     content: {
       title: '',
       message: '',
@@ -374,6 +393,14 @@ function CalendarEditor({
             }}
           >
             Kopier lenke
+          </button>
+          <button
+            className="button button--ghost"
+            onClick={() => {
+              navigate(`/admin/${calendar.id}/preview`);
+            }}
+          >
+            Forhåndsvis kalenderen
           </button>
           <button
             className="button button--ghost"

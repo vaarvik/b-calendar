@@ -46,6 +46,8 @@ export interface Door {
   /** 1, 2, 3 …; unique within the calendar. */
   readonly number: number;
   readonly opensAt: Date;
+  /** A special hatch (the birthday, the last day): it looks grander, even while locked. */
+  readonly featured: boolean;
   readonly content: DoorContent;
   readonly notification: DoorNotification;
   /** When the notification went out (or was skipped as too late); null until then. */
@@ -62,6 +64,7 @@ const mediaUrl = z.union([z.string().regex(/^\/media\/[A-Za-z0-9._-]+$/), httpUr
 export interface DoorDraft {
   readonly number: number;
   readonly opensAt: Date;
+  readonly featured: boolean;
   readonly content: DoorContent;
   readonly notification: DoorNotification;
 }
@@ -69,6 +72,7 @@ export interface DoorDraft {
 export const DoorDraftSchema: z.ZodType<DoorDraft> = z.object({
   number: z.int().min(1).max(366),
   opensAt: z.union([z.date(), InstantSchema]),
+  featured: z.boolean().default(false),
   content: z.object({
     title: z.string().trim().min(1).max(120),
     message: z.string().max(5000),
@@ -105,10 +109,16 @@ export interface OpenDoorContent extends Omit<DoorContent, 'linkUrl'> {
  * the first look.
  */
 export type RecipientDoor =
-  | { readonly state: 'locked' | 'ready'; readonly number: number; readonly opensAt: Date }
+  | {
+      readonly state: 'locked' | 'ready';
+      readonly number: number;
+      readonly opensAt: Date;
+      readonly featured: boolean;
+    }
   | {
       readonly state: 'opened';
       readonly number: number;
       readonly opensAt: Date;
+      readonly featured: boolean;
       readonly content: OpenDoorContent;
     };
