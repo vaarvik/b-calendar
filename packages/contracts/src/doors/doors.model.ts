@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { CalendarId, DoorId } from '../shared/shared.model.js';
-import { InstantSchema } from '../shared/shared.model.js';
+import { InstantSchema, LocalDateSchema, TimeOfDaySchema } from '../shared/shared.model.js';
 
 /** What a link in a door points to, so the app can embed it. */
 export const DOOR_LINK_KINDS = ['spotify', 'youtube', 'web'] as const;
@@ -45,6 +45,14 @@ export interface Door {
   readonly calendarId: CalendarId;
   /** 1, 2, 3 …; unique within the calendar. */
   readonly number: number;
+  /** The day it opens, `YYYY-MM-DD`, in the calendar's time zone. */
+  readonly opensOn: string;
+  /** Its own time of day, `HH:MM`; null uses the calendar's default. */
+  readonly openTime: string | null;
+  /**
+   * The instant it opens and its notification goes out: `opensOn` at `openTime` (or the default)
+   * in the calendar's time zone. Derived; kept in step by the use cases.
+   */
   readonly opensAt: Date;
   /** A special hatch (the birthday, the last day): it looks grander, even while locked. */
   readonly featured: boolean;
@@ -63,7 +71,8 @@ const mediaUrl = z.union([z.string().regex(/^\/media\/[A-Za-z0-9._-]+$/), httpUr
 /** What the admin writes into a door. */
 export interface DoorDraft {
   readonly number: number;
-  readonly opensAt: Date;
+  readonly opensOn: string;
+  readonly openTime: string | null;
   readonly featured: boolean;
   readonly content: DoorContent;
   readonly notification: DoorNotification;
@@ -71,7 +80,8 @@ export interface DoorDraft {
 
 export const DoorDraftSchema: z.ZodType<DoorDraft> = z.object({
   number: z.int().min(1).max(366),
-  opensAt: z.union([z.date(), InstantSchema]),
+  opensOn: LocalDateSchema,
+  openTime: TimeOfDaySchema.nullable().default(null),
   featured: z.boolean().default(false),
   content: z.object({
     title: z.string().trim().min(1).max(120),

@@ -12,11 +12,14 @@ const SETTINGS = {
   recipientName: 'Ida',
   theme: 'birthday',
   locale: 'nb',
+  timeZone: 'Europe/Oslo',
+  defaultOpenTime: '08:00',
 };
 
 const DRAFT = {
   number: 1,
-  opensAt: '2026-11-15T08:00:00+01:00',
+  opensOn: '2026-11-15',
+  openTime: null,
   content: {
     title: 'Ta med badetøy',
     message: '',

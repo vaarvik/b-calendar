@@ -13,6 +13,8 @@ export interface CalendarsTable {
   recipient_name: string;
   theme: string;
   locale: string;
+  time_zone: string;
+  default_open_time: string;
   access_key: string;
   created_at: Date;
 }
@@ -21,6 +23,8 @@ export interface DoorsTable {
   id: string;
   calendar_id: string;
   number: number;
+  opens_on: string;
+  open_time: string | null;
   opens_at: Date;
   featured: boolean;
   title: string;

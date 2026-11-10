@@ -30,6 +30,8 @@ export function describeDoorRepositoryContract(
       const data = new TestData();
       const door = data.door(await calendar(data), {
         featured: true,
+        opensOn: '2026-12-24',
+        openTime: '17:30',
         content: data.content({
           imageUrl: '/media/a.jpg',
           linkUrl: 'https://open.spotify.com/track/abc',

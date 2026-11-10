@@ -6,6 +6,7 @@ import type {
   Door,
   DoorPreview,
   DoorPreviewPresenter,
+  DoorScheduleCalculator,
   DoorWriter,
   IdGenerator,
   InputValidator,
@@ -16,6 +17,7 @@ export class AddDoorUseCase implements AddDoor {
     private readonly calendars: CalendarReader,
     private readonly doors: DoorWriter,
     private readonly previews: DoorPreviewPresenter,
+    private readonly schedule: DoorScheduleCalculator,
     private readonly ids: IdGenerator,
     private readonly validator: InputValidator,
   ) {}
@@ -27,6 +29,11 @@ export class AddDoorUseCase implements AddDoor {
       ...draft,
       id: this.ids.doorId(),
       calendarId: calendar.id,
+      opensAt: this.schedule.opensAt(
+        draft.opensOn,
+        draft.openTime ?? calendar.defaultOpenTime,
+        calendar.timeZone,
+      ),
       notifiedAt: null,
       firstOpenedAt: null,
     };

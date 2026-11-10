@@ -112,7 +112,10 @@ UI copy uses the Norwegian in brackets.
 - **Calendar** (kalender): a series of doors for one recipient. Has a `slug` (its address,
   `/c/<slug>`), a `theme` (`birthday`, `christmas`), a `locale` for the fixed UI copy and an
   **access key**, the secret in her link.
-- **Door** (luke): numbered 1, 2, 3 …; `opensAt` a time; holds **content** (title, message, an
+- **Door** (luke): numbered 1, 2, 3 …; opens on a day (`opensOn`) at the calendar's **default
+  open time** (`defaultOpenTime`, e.g. 08:00, in the calendar's `timeZone`) or at its own
+  `openTime`. `opensAt` is that instant, derived by `DoorScheduleCalculator` and kept in step by
+  the use cases (changing the default moves every door without its own time). Holds **content** (title, message, an
   image, a link — Spotify and YouTube are embedded —, a countdown, confetti) and the
   **notification** sent when it opens.
 - **Door state**, as the recipient sees it, like a paper calendar: `locked` before `opensAt`,
@@ -130,7 +133,8 @@ UI copy uses the Norwegian in brackets.
 - A door is marked notified **before** its push goes out: at most one notification per door. A
   notification later than `NOTIFY_GRACE_MINUTES` after `opensAt` is skipped, not sent. Moving a
   door into the future makes it notify again.
-- Times are stored as instants (UTC); the admin form uses the admin's browser time zone. The app
+- A door opens and notifies at the same moment, `opensAt`. Days and times of day are wall-clock
+  time in the calendar's time zone, daylight saving included. The app
   counts down with the server's clock, corrected for the phone's.
 - iOS: web push only works in the Home Screen app, which does not share storage with Safari. The
   per-calendar manifest (`/c/<slug>/manifest.webmanifest?k=…`) keeps the key in the start URL.

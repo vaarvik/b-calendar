@@ -16,6 +16,7 @@ import {
   LinkDoorPreviewPresenter,
   OpensAtRecipientDoorPresenter,
   UrlDoorLinkClassifier,
+  ZonedDoorScheduleCalculator,
 } from '@b-calendar/domain';
 import {
   InMemoryCalendarRepository,
@@ -31,6 +32,8 @@ const SETTINGS: CalendarSettings = {
   recipientName: 'Ida',
   theme: 'birthday',
   locale: 'nb',
+  timeZone: 'Europe/Oslo',
+  defaultOpenTime: '08:00',
 };
 
 function setup() {
@@ -48,7 +51,15 @@ function setup() {
     subscriptions,
     clock,
     create: new CreateCalendarUseCase(calendars, new RandomIds(), secrets, clock, validator),
-    update: new UpdateCalendarUseCase(calendars, calendars, validator),
+    update: new UpdateCalendarUseCase(
+      calendars,
+      calendars,
+      doors,
+      doors,
+      new ZonedDoorScheduleCalculator(),
+      clock,
+      validator,
+    ),
     rotate: new RotateCalendarKeyUseCase(calendars, calendars, secrets),
     list: new ListCalendarsUseCase(calendars),
     details: new GetCalendarDetailsUseCase(
@@ -96,6 +107,44 @@ describe('UpdateCalendar and RotateCalendarKey', () => {
     });
 
     expect(updated).toEqual({ ...calendar, title: 'Jul', theme: 'christmas' });
+  });
+
+  it('moves the doors without their own time to a new default time, and notifies again', async () => {
+    const { create, update, doors } = setup();
+    const calendar = await create.execute(SETTINGS);
+    const data = new TestData();
+    // T0 is 08:00 in Oslo on 15 November.
+    const today = data.door(calendar.id, { number: 1, notifiedAt: T0 });
+    const ownTime = data.door(calendar.id, {
+      number: 2,
+      opensOn: '2026-11-16',
+      openTime: '18:30',
+      opensAt: new Date('2026-11-16T17:30:00.000Z'),
+    });
+    const past = data.door(calendar.id, {
+      number: 3,
+      opensOn: '2026-11-14',
+      opensAt: hoursAfter(T0, -24),
+      notifiedAt: hoursAfter(T0, -24),
+    });
+    for (const door of [today, ownTime, past]) {
+      await doors.create(door);
+    }
+
+    await update.execute({
+      calendarId: calendar.id,
+      settings: { ...SETTINGS, defaultOpenTime: '10:15' },
+    });
+
+    await expect(doors.getById(today.id)).resolves.toMatchObject({
+      opensAt: new Date('2026-11-15T09:15:00.000Z'),
+      notifiedAt: null,
+    });
+    await expect(doors.getById(ownTime.id)).resolves.toEqual(ownTime);
+    await expect(doors.getById(past.id)).resolves.toMatchObject({
+      opensAt: new Date('2026-11-14T09:15:00.000Z'),
+      notifiedAt: hoursAfter(T0, -24),
+    });
   });
 
   it('refuses invalid settings', async () => {

@@ -11,6 +11,8 @@ export interface CalendarDto {
   readonly recipientName: string;
   readonly theme: CalendarTheme;
   readonly locale: CalendarLocale;
+  readonly timeZone: string;
+  readonly defaultOpenTime: string;
   readonly accessKey: string;
   readonly createdAt: string;
 }
@@ -22,6 +24,8 @@ export const CalendarDtoSchema: z.ZodType<CalendarDto> = z.object({
   recipientName: z.string(),
   theme: z.enum(CALENDAR_THEMES),
   locale: z.enum(CALENDAR_LOCALES),
+  timeZone: z.string(),
+  defaultOpenTime: z.string(),
   accessKey: z.string(),
   createdAt: z.string(),
 });

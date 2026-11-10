@@ -37,6 +37,7 @@ import {
   OpensAtRecipientDoorPresenter,
   PathPushMessageFactory,
   UrlDoorLinkClassifier,
+  ZonedDoorScheduleCalculator,
 } from '@b-calendar/domain';
 import {
   InMemoryCalendarRepository,
@@ -174,6 +175,7 @@ export class CompositionRoot {
     const previews = new LinkDoorPreviewPresenter(links);
     const messages = new PathPushMessageFactory();
     const dtos = new IsoHttpDtoMapper();
+    const schedule = new ZonedDoorScheduleCalculator();
 
     this.db =
       config.storage === 'postgres'
@@ -199,7 +201,7 @@ export class CompositionRoot {
     const admin = new BearerAdminAuthenticator(sessions);
 
     this.createCalendar = new CreateCalendarUseCase(calendars, ids, secrets, clock, validator);
-    this.addDoor = new AddDoorUseCase(calendars, doors, previews, ids, validator);
+    this.addDoor = new AddDoorUseCase(calendars, doors, previews, schedule, ids, validator);
     this.notifyOpenedDoors = new NotifyOpenedDoorsUseCase(
       doors,
       doors,
@@ -240,10 +242,26 @@ export class CompositionRoot {
               subscriptions,
               previews,
             ),
-            updateCalendar: new UpdateCalendarUseCase(calendars, calendars, validator),
+            updateCalendar: new UpdateCalendarUseCase(
+              calendars,
+              calendars,
+              doors,
+              doors,
+              schedule,
+              clock,
+              validator,
+            ),
             rotateCalendarKey: new RotateCalendarKeyUseCase(calendars, calendars, secrets),
             addDoor: this.addDoor,
-            editDoor: new EditDoorUseCase(doors, doors, previews, clock, validator),
+            editDoor: new EditDoorUseCase(
+              calendars,
+              doors,
+              doors,
+              previews,
+              schedule,
+              clock,
+              validator,
+            ),
             removeDoor: new RemoveDoorUseCase(doors),
             sendTestNotification: new SendTestNotificationUseCase(
               calendars,

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { CalendarId } from '../shared/shared.model.js';
+import { TimeOfDaySchema, TimeZoneSchema } from '../shared/shared.model.js';
 
 /** Look and feel of a calendar. */
 export const CALENDAR_THEMES = ['birthday', 'christmas'] as const;
@@ -24,6 +25,10 @@ export interface CalendarSettings {
   readonly recipientName: string;
   readonly theme: CalendarTheme;
   readonly locale: CalendarLocale;
+  /** Where the doors' times of day are meant, e.g. `Europe/Oslo`. */
+  readonly timeZone: string;
+  /** When a door opens, and its notification goes out, unless the door sets its own time. `HH:MM`. */
+  readonly defaultOpenTime: string;
 }
 
 export const CalendarSettingsSchema: z.ZodType<CalendarSettings> = z.object({
@@ -32,6 +37,8 @@ export const CalendarSettingsSchema: z.ZodType<CalendarSettings> = z.object({
   recipientName: z.string().trim().min(1).max(40),
   theme: z.enum(CALENDAR_THEMES),
   locale: z.enum(CALENDAR_LOCALES),
+  timeZone: TimeZoneSchema,
+  defaultOpenTime: TimeOfDaySchema,
 });
 
 /** A series of doors for one recipient. Aggregate root; doors refer to it by id. */

@@ -4,3 +4,4 @@ export * from './notifications/grace-window-notification.decider.js';
 export * from './notifications/path-push-message.factory.js';
 export * from './shared/constant-time-secret.matcher.js';
 export * from './doors/link-door-preview.presenter.js';
+export * from './doors/zoned-door-schedule.calculator.js';

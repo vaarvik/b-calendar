@@ -9,7 +9,10 @@ import type {
 /** A door as the admin's form sends it: times as ISO strings. */
 export interface DoorDraftDto {
   readonly number: number;
-  readonly opensAt: string;
+  /** `YYYY-MM-DD` in the calendar's time zone. */
+  readonly opensOn: string;
+  /** `HH:MM`; null uses the calendar's default time. */
+  readonly openTime: string | null;
   readonly featured: boolean;
   readonly content: {
     readonly title: string;

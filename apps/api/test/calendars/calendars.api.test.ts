@@ -4,6 +4,12 @@ import { TestApi } from '../shared/test-api.js';
 
 const HOUR = 3_600_000;
 
+/** A door's day and own time for an instant, in UTC (the test calendar's time zone). */
+function at(instant: Date): { opensOn: string; openTime: string } {
+  const iso = instant.toISOString();
+  return { opensOn: iso.slice(0, 10), openTime: iso.slice(11, 16) };
+}
+
 describe('the recipient’s calendar over HTTP', () => {
   let api: TestApi;
   let calendar: Calendar;
@@ -18,6 +24,8 @@ describe('the recipient’s calendar over HTTP', () => {
       recipientName: 'Ida',
       theme: 'birthday',
       locale: 'nb',
+      timeZone: 'UTC',
+      defaultOpenTime: '08:00',
     });
     const content = {
       message: 'Hemmelig',
@@ -32,7 +40,7 @@ describe('the recipient’s calendar over HTTP', () => {
       draft: {
         number: 1,
         featured: false,
-        opensAt: new Date(Date.now() - HOUR),
+        ...at(new Date(Date.now() - HOUR)),
         content: { ...content, title: 'Badetøy' },
         notification,
       },
@@ -42,7 +50,7 @@ describe('the recipient’s calendar over HTTP', () => {
       draft: {
         number: 2,
         featured: true,
-        opensAt: new Date(Date.now() + HOUR),
+        ...at(new Date(Date.now() + HOUR)),
         content: { ...content, title: 'Hemmelig' },
         notification,
       },

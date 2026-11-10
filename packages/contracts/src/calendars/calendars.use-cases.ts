@@ -22,7 +22,10 @@ export interface UpdateCalendarInput {
   readonly settings: CalendarSettings;
 }
 
-/** An admin changes a calendar's settings. The access key stays. */
+/**
+ * An admin changes a calendar's settings. The access key stays. A new default time or time zone
+ * moves every door without its own time; a door moved into the future notifies again.
+ */
 export interface UpdateCalendar {
   /**
    * @throws ValidationError when the settings are invalid.

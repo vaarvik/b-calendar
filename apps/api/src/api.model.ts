@@ -1,6 +1,7 @@
 import type { CalendarSettings, DoorDraft } from '@b-calendar/contracts';
 
-/** The first calendar: a birthday week, Sunday 15 to Thursday 19 November 2026 (Oslo, UTC+1). */
+/** The first calendar: a birthday week, Sunday 15 to Thursday 19 November 2026; every door
+ * opens at 08:00 Oslo time unless it says otherwise. */
 export const BIRTHDAY_WEEK: {
   readonly settings: CalendarSettings;
   readonly doors: readonly DoorDraft[];
@@ -11,12 +12,15 @@ export const BIRTHDAY_WEEK: {
     recipientName: 'deg',
     theme: 'birthday',
     locale: 'nb',
+    timeZone: 'Europe/Oslo',
+    defaultOpenTime: '08:00',
   },
   doors: [
     {
       number: 1,
       featured: false,
-      opensAt: new Date('2026-11-15T09:00:00+01:00'),
+      opensOn: '2026-11-15',
+      openTime: null,
       content: {
         title: 'Ta med badetøy 👙',
         message: 'Første hint: pakk badetøy. Mer får du ikke vite ennå …',
@@ -30,7 +34,8 @@ export const BIRTHDAY_WEEK: {
     {
       number: 2,
       featured: false,
-      opensAt: new Date('2026-11-16T09:00:00+01:00'),
+      opensOn: '2026-11-16',
+      openTime: null,
       content: {
         title: 'Dagens hint er en sang 🎶',
         message: 'Hør godt etter.',
@@ -44,7 +49,8 @@ export const BIRTHDAY_WEEK: {
     {
       number: 3,
       featured: false,
-      opensAt: new Date('2026-11-17T09:00:00+01:00'),
+      opensOn: '2026-11-17',
+      openTime: null,
       content: {
         title: 'Hint 3',
         message: 'Kommer …',
@@ -58,7 +64,8 @@ export const BIRTHDAY_WEEK: {
     {
       number: 4,
       featured: false,
-      opensAt: new Date('2026-11-18T09:00:00+01:00'),
+      opensOn: '2026-11-18',
+      openTime: null,
       content: {
         title: 'Hint 4',
         message: 'Kommer …',
@@ -72,7 +79,8 @@ export const BIRTHDAY_WEEK: {
     {
       number: 5,
       featured: true,
-      opensAt: new Date('2026-11-19T08:00:00+01:00'),
+      opensOn: '2026-11-19',
+      openTime: null,
       content: {
         title: 'Gratulerer med dagen! 🎂',
         message: 'Hipp hipp hurra! I dag skal vi ut på tur. Pakk det siste – vi drar snart.',

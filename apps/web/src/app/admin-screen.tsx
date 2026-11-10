@@ -241,6 +241,28 @@ function SettingsForm({
             <option value="en">English</option>
           </select>
         </label>
+        <label className="field">
+          Standard tidspunkt for luker og varsler
+          <input
+            type="time"
+            value={settings.defaultOpenTime}
+            onChange={(e) => {
+              set({ defaultOpenTime: e.target.value });
+            }}
+            required
+          />
+        </label>
+        <label className="field">
+          Tidssone
+          <input
+            value={settings.timeZone}
+            onChange={(e) => {
+              set({ timeZone: e.target.value });
+            }}
+            placeholder="Europe/Oslo"
+            required
+          />
+        </label>
       </div>
       {error !== null && <p className="error">{error}</p>}
       <div>
@@ -289,7 +311,15 @@ function CalendarList({ onUnauthenticated }: Guarded) {
       <section className="card">
         <h2>Ny kalender</h2>
         <SettingsForm
-          initial={{ slug: '', title: '', recipientName: '', theme: 'birthday', locale: 'nb' }}
+          initial={{
+            slug: '',
+            title: '',
+            recipientName: '',
+            theme: 'birthday',
+            locale: 'nb',
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            defaultOpenTime: '08:00',
+          }}
           submitLabel="Opprett"
           onSubmit={async (settings) => {
             const calendar = await admin.createCalendar(settings);
@@ -344,9 +374,12 @@ function CalendarEditor({
   const last = doors.at(-1);
   const nextDraft: DoorDraftDto = {
     number: (last?.number ?? 0) + 1,
-    opensAt: new Date(
-      last === undefined ? now + DAY : Date.parse(last.opensAt) + DAY,
-    ).toISOString(),
+    opensOn: new Date(
+      last === undefined ? now + DAY : Date.parse(`${last.opensOn}T12:00:00Z`) + DAY,
+    )
+      .toISOString()
+      .slice(0, 10),
+    openTime: null,
     featured: false,
     content: {
       title: '',
@@ -454,6 +487,7 @@ function CalendarEditor({
           key={door.id}
           door={door}
           initial={door}
+          defaultOpenTime={calendar.defaultOpenTime}
           onSave={async (draft) => {
             await admin.editDoor(door.id, draft);
             load();
@@ -472,6 +506,7 @@ function CalendarEditor({
       <DoorForm
         key={`new-${String(nextDraft.number)}`}
         initial={nextDraft}
+        defaultOpenTime={calendar.defaultOpenTime}
         onSave={async (draft) => {
           await admin.addDoor(calendar.id, draft);
           load();

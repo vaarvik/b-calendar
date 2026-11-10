@@ -79,6 +79,8 @@ export class PgCalendarRepository implements CalendarReader, CalendarWriter {
       recipient_name: calendar.recipientName,
       theme: calendar.theme,
       locale: calendar.locale,
+      time_zone: calendar.timeZone,
+      default_open_time: calendar.defaultOpenTime,
       access_key: calendar.accessKey,
       created_at: calendar.createdAt,
     };
@@ -93,6 +95,8 @@ export class PgCalendarRepository implements CalendarReader, CalendarWriter {
       recipientName: row.recipient_name,
       theme,
       locale,
+      timeZone: row.time_zone,
+      defaultOpenTime: row.default_open_time,
       accessKey: row.access_key,
       createdAt: row.created_at,
     };

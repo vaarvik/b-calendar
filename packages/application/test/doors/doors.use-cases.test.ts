@@ -20,6 +20,7 @@ import {
   LinkDoorPreviewPresenter,
   OpensAtRecipientDoorPresenter,
   UrlDoorLinkClassifier,
+  ZonedDoorScheduleCalculator,
 } from '@b-calendar/domain';
 import { InMemoryCalendarRepository, InMemoryDoorRepository } from '@b-calendar/in-memory';
 import { describe, expect, it } from 'vitest';
@@ -33,6 +34,7 @@ async function setup() {
   const validator = new ZodInputValidator();
   const links = new UrlDoorLinkClassifier();
   const previews = new LinkDoorPreviewPresenter(links);
+  const schedule = new ZonedDoorScheduleCalculator();
   const calendar = data.calendar();
   await calendars.create(calendar);
   return {
@@ -40,8 +42,8 @@ async function setup() {
     calendar,
     doors,
     clock,
-    add: new AddDoorUseCase(calendars, doors, previews, new RandomIds(), validator),
-    edit: new EditDoorUseCase(doors, doors, previews, clock, validator),
+    add: new AddDoorUseCase(calendars, doors, previews, schedule, new RandomIds(), validator),
+    edit: new EditDoorUseCase(calendars, doors, doors, previews, schedule, clock, validator),
     remove: new RemoveDoorUseCase(doors),
     open: new OpenDoorUseCase(
       new KeyCalendarAccessAuthenticator(calendars, new ConstantTimeSecretMatcher()),
@@ -56,7 +58,8 @@ async function setup() {
 function draft(overrides: Partial<DoorDraft> = {}): DoorDraft {
   return {
     number: 1,
-    opensAt: T0,
+    opensOn: '2026-11-15',
+    openTime: null,
     featured: false,
     content: new TestData().content(),
     notification: { title: 'Luke 1', body: 'Åpne meg' },
@@ -72,6 +75,7 @@ describe('AddDoor', () => {
 
     expect(door).toMatchObject({
       ...draft(),
+      opensAt: T0,
       calendarId: calendar.id,
       notifiedAt: null,
       firstOpenedAt: null,
@@ -80,13 +84,17 @@ describe('AddDoor', () => {
     await expect(doors.getById(door.id)).resolves.toMatchObject({ number: 1 });
   });
 
-  it('accepts times as ISO strings, as they come over HTTP', async () => {
+  it('opens at the calendar’s default time unless the door has its own', async () => {
     const { add, calendar } = await setup();
-    const fromWire = { ...draft(), opensAt: '2026-11-15T08:00:00+01:00' } as unknown as DoorDraft;
 
-    const door = await add.execute({ calendarId: calendar.id, draft: fromWire });
+    const byDefault = await add.execute({ calendarId: calendar.id, draft: draft() });
+    const ownTime = await add.execute({
+      calendarId: calendar.id,
+      draft: draft({ number: 2, opensOn: '2026-11-16', openTime: '18:30' }),
+    });
 
-    expect(door.opensAt).toEqual(new Date('2026-11-15T07:00:00.000Z'));
+    expect(byDefault.opensAt).toEqual(new Date('2026-11-15T07:00:00.000Z'));
+    expect(ownTime.opensAt).toEqual(new Date('2026-11-16T17:30:00.000Z'));
   });
 
   it('refuses an invalid draft, an unknown calendar and a taken number', async () => {
@@ -117,10 +125,12 @@ describe('EditDoor', () => {
 
     const edited = await edit.execute({
       doorId: door.id,
-      draft: draft({ opensAt: hoursAfter(T0, -1), content: data.content({ title: 'Ny tittel' }) }),
+      draft: draft({ openTime: '07:00', content: data.content({ title: 'Ny tittel' }) }),
     });
 
     expect(edited).toMatchObject({
+      opensAt: hoursAfter(T0, -1),
+      openTime: '07:00',
       notifiedAt: T0,
       firstOpenedAt: T0,
       content: { title: 'Ny tittel' },
@@ -134,7 +144,7 @@ describe('EditDoor', () => {
 
     const edited = await edit.execute({
       doorId: door.id,
-      draft: draft({ opensAt: hoursAfter(T0, 5) }),
+      draft: draft({ openTime: '13:00' }),
     });
 
     expect(edited.notifiedAt).toBeNull();

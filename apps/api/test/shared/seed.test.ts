@@ -8,8 +8,8 @@ describe('BIRTHDAY_WEEK', () => {
     for (const draft of BIRTHDAY_WEEK.doors) {
       expect(DoorDraftSchema.safeParse(draft).success).toBe(true);
     }
-    const times = BIRTHDAY_WEEK.doors.map((door) => door.opensAt.getTime());
-    expect(times).toEqual([...times].sort((a, b) => a - b));
-    expect(BIRTHDAY_WEEK.doors[0]?.opensAt.toISOString()).toBe('2026-11-15T08:00:00.000Z');
+    const days = BIRTHDAY_WEEK.doors.map((door) => door.opensOn);
+    expect(days).toEqual(['2026-11-15', '2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19']);
+    expect(BIRTHDAY_WEEK.settings.defaultOpenTime).toBe('08:00');
   });
 });

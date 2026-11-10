@@ -81,6 +81,8 @@ export class PgDoorRepository implements DoorReader, DoorWriter {
       id: door.id,
       calendar_id: door.calendarId,
       number: door.number,
+      opens_on: door.opensOn,
+      open_time: door.openTime,
       opens_at: door.opensAt,
       featured: door.featured,
       title: content.title,
@@ -102,6 +104,8 @@ export class PgDoorRepository implements DoorReader, DoorWriter {
       id: row.id as DoorId,
       calendarId: row.calendar_id as CalendarId,
       number: row.number,
+      opensOn: row.opens_on,
+      openTime: row.open_time,
       opensAt: row.opens_at,
       featured: row.featured,
       content: {

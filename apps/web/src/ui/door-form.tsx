@@ -16,6 +16,8 @@ export function fromLocalInput(value: string): string {
 interface DoorFormProps {
   readonly initial: DoorDraftDto;
   readonly door?: DoorPreviewDto;
+  /** The calendar's default time of day, `HH:MM`. */
+  readonly defaultOpenTime: string;
   readonly onSave: (draft: DoorDraftDto) => Promise<void>;
   readonly onRemove?: () => Promise<void>;
   readonly onUpload: (file: File) => Promise<string>;
@@ -23,9 +25,19 @@ interface DoorFormProps {
 }
 
 /** One door's fields. Empty optional fields become null. */
-export function DoorForm({ initial, door, onSave, onRemove, onUpload, onPreview }: DoorFormProps) {
+export function DoorForm({
+  initial,
+  door,
+  defaultOpenTime,
+  onSave,
+  onRemove,
+  onUpload,
+  onPreview,
+}: DoorFormProps) {
   const [number, setNumber] = useState(String(initial.number));
-  const [opensAt, setOpensAt] = useState(toLocalInput(initial.opensAt));
+  const [opensOn, setOpensOn] = useState(initial.opensOn);
+  const [ownTime, setOwnTime] = useState(initial.openTime !== null);
+  const [openTime, setOpenTime] = useState(initial.openTime ?? defaultOpenTime);
   const [featured, setFeatured] = useState(initial.featured);
   const [title, setTitle] = useState(initial.content.title);
   const [message, setMessage] = useState(initial.content.message);
@@ -44,7 +56,8 @@ export function DoorForm({ initial, door, onSave, onRemove, onUpload, onPreview 
 
   const draft = (): DoorDraftDto => ({
     number: Number(number),
-    opensAt: fromLocalInput(opensAt),
+    opensOn,
+    openTime: ownTime ? openTime : null,
     featured,
     content: {
       title: title.trim(),
@@ -86,6 +99,16 @@ export function DoorForm({ initial, door, onSave, onRemove, onUpload, onPreview 
         <h3>Luke {number}</h3>
         {door !== undefined && (
           <span className="admin__row">
+            <span className="badge">
+              Åpner{' '}
+              {new Date(door.opensAt).toLocaleString('nb-NO', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
             <span className={`badge${door.notifiedAt === null ? '' : ' badge--good'}`}>
               {door.notifiedAt === null ? 'Ikke varslet' : 'Varslet'}
             </span>
@@ -111,16 +134,39 @@ export function DoorForm({ initial, door, onSave, onRemove, onUpload, onPreview 
           />
         </label>
         <label className="field">
-          Åpner
+          Dag
           <input
-            type="datetime-local"
-            value={opensAt}
+            type="date"
+            value={opensOn}
             onChange={(e) => {
-              setOpensAt(e.target.value);
+              setOpensOn(e.target.value);
             }}
             required
           />
         </label>
+        <div className="field">
+          Tidspunkt (luken åpner og varselet sendes)
+          <label className="field--check">
+            <input
+              type="checkbox"
+              checked={ownTime}
+              onChange={(e) => {
+                setOwnTime(e.target.checked);
+              }}
+            />
+            {ownTime ? 'Eget tidspunkt' : `Standard (${defaultOpenTime})`}
+          </label>
+          {ownTime && (
+            <input
+              type="time"
+              value={openTime}
+              onChange={(e) => {
+                setOpenTime(e.target.value);
+              }}
+              required
+            />
+          )}
+        </div>
       </div>
       <label className="field">
         Tittel

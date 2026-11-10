@@ -49,6 +49,16 @@ export interface RecipientDoorPresenter {
   content(content: DoorContent): OpenDoorContent;
 }
 
+/** Turns a door's day and time of day into the instant it opens. */
+export interface DoorScheduleCalculator {
+  /**
+   * @param opensOn `YYYY-MM-DD`
+   * @param time `HH:MM`, wall-clock time in `timeZone` (daylight saving included)
+   * @returns the instant; a time skipped by a daylight saving change counts as the hour after.
+   */
+  opensAt(opensOn: string, time: string, timeZone: string): Date;
+}
+
 /** A door as the admin sees it, with its link classified. */
 export interface DoorPreviewPresenter {
   preview(door: Door): DoorPreview;

@@ -31,6 +31,22 @@ export const InstantSchema: z.ZodType<Date, string> = z.iso
   .datetime({ offset: true })
   .transform((value) => new Date(value));
 
+/** A wall-clock time of day, `HH:MM`, 24 h. */
+export const TimeOfDaySchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'HH:MM, 24 h');
+
+/** A calendar date, `YYYY-MM-DD`. */
+export const LocalDateSchema = z.iso.date();
+
+/** An IANA time zone the runtime knows, e.g. `Europe/Oslo`. */
+export const TimeZoneSchema = z.string().refine((zone) => {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: zone });
+    return true;
+  } catch {
+    return false;
+  }
+}, 'an IANA time zone, e.g. Europe/Oslo');
+
 /** The error body of every failed HTTP request. */
 export interface ErrorResponseDto {
   readonly error: {
