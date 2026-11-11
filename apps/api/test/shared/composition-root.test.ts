@@ -20,6 +20,19 @@ describe('ApiConfigSchema', () => {
     expect(config.webRoot !== undefined && isAbsolute(config.webRoot)).toBe(true);
   });
 
+  it('reads sslmode in a database URL as libpq does: require encrypts without checking the certificate', () => {
+    const parse = (databaseUrl: string) =>
+      ApiConfigSchema.parse({ ...BASE, storage: 'postgres', databaseUrl }).databaseUrl;
+
+    expect(parse('postgresql://u:p@db:5432/app?sslmode=require')).toBe(
+      'postgresql://u:p@db:5432/app?sslmode=require&uselibpqcompat=true',
+    );
+    expect(parse('postgresql://u:p@db:5432/app?sslmode=require&uselibpqcompat=false')).toBe(
+      'postgresql://u:p@db:5432/app?sslmode=require&uselibpqcompat=false',
+    );
+    expect(parse('postgres://u:p@localhost:5433/app')).toBe('postgres://u:p@localhost:5433/app');
+  });
+
   it('requires a database URL for Postgres and a long enough password', () => {
     expect(ApiConfigSchema.safeParse({ ...BASE, storage: 'postgres' }).success).toBe(false);
     expect(ApiConfigSchema.safeParse({ ...BASE, adminPassword: 'short' }).success).toBe(false);

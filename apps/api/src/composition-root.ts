@@ -107,7 +107,16 @@ export interface ApiConfig {
 export const ApiConfigSchema: z.ZodType<ApiConfig> = z
   .object({
     storage: z.enum(['postgres', 'memory']).default('postgres'),
-    databaseUrl: z.url({ protocol: /^postgres(ql)?$/ }).exactOptional(),
+    // node-postgres reads sslmode=require as verify-full, which rejects a cluster database's
+    // self-signed certificate. libpq (and whoever wrote the URL) means "encrypt, don't verify".
+    databaseUrl: z
+      .url({ protocol: /^postgres(ql)?$/ })
+      .transform((url) =>
+        /[?&]sslmode=/.test(url) && !/[?&]uselibpqcompat=/.test(url)
+          ? `${url}&uselibpqcompat=true`
+          : url,
+      )
+      .exactOptional(),
     adminPassword: z.string().min(12, 'ADMIN_PASSWORD needs at least 12 characters'),
     sessionSecret: z.string().min(32, 'SESSION_SECRET needs at least 32 characters'),
     push: z
