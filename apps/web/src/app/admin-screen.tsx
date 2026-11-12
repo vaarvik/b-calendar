@@ -160,6 +160,26 @@ interface Guarded {
   readonly onUnauthenticated: (error: unknown) => boolean;
 }
 
+/** `Karoline Ø` → `karoline-o`: a link-safe address from a name. */
+function slugOf(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/æ/g, 'ae')
+    .replace(/ø/g, 'o')
+    .replace(/å/g, 'a')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/** Keeps password managers off fields that are not logins. */
+const NOT_A_LOGIN = {
+  autoComplete: 'off',
+  'data-1p-ignore': true,
+  'data-lpignore': 'true',
+} as const;
+
 function SettingsForm({
   initial,
   submitLabel,
@@ -171,6 +191,8 @@ function SettingsForm({
 }) {
   const [settings, setSettings] = useState(initial);
   const [error, setError] = useState<string | null>(null);
+  // A new calendar's address follows the recipient's name until it is typed in.
+  const [slugTyped, setSlugTyped] = useState(initial.slug !== '');
   const set = (patch: Partial<CalendarSettings>) => {
     setSettings((current) => ({ ...current, ...patch }));
   };
@@ -189,32 +211,41 @@ function SettingsForm({
         <label className="field">
           Tittel
           <input
+            {...NOT_A_LOGIN}
             value={settings.title}
             onChange={(e) => {
               set({ title: e.target.value });
             }}
             required
+            placeholder="Karolines bursdag"
           />
         </label>
         <label className="field">
           Mottaker
           <input
+            {...NOT_A_LOGIN}
             value={settings.recipientName}
             onChange={(e) => {
-              set({ recipientName: e.target.value });
+              const recipientName = e.target.value;
+              set(slugTyped ? { recipientName } : { recipientName, slug: slugOf(recipientName) });
             }}
             required
+            placeholder="Navnet som står øverst i kalenderen"
           />
         </label>
         <label className="field">
           Adresse (/c/…)
           <input
+            {...NOT_A_LOGIN}
             value={settings.slug}
             onChange={(e) => {
+              setSlugTyped(true);
               set({ slug: e.target.value.toLowerCase() });
             }}
             required
             pattern="[a-z0-9]+(-[a-z0-9]+)*"
+            placeholder="karoline"
+            title="Små bokstaver, tall og bindestrek. Blir slutten av lenken hennes."
           />
         </label>
         <label className="field">
@@ -255,6 +286,7 @@ function SettingsForm({
         <label className="field">
           Tidssone
           <input
+            {...NOT_A_LOGIN}
             value={settings.timeZone}
             onChange={(e) => {
               set({ timeZone: e.target.value });
