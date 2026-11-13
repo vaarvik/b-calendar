@@ -4,6 +4,11 @@ import { CompositionRoot } from './composition-root.js';
 
 // Usage: migrate [latest | down | reset]. `down` reverts one migration, `reset` reverts all.
 const command = process.argv[2] ?? 'latest';
+// The image migrates before it serves; with STORAGE=memory there is nothing to migrate.
+if (CompositionRoot.configFromEnv(process.env).storage === 'memory') {
+  console.log('Nothing to migrate: STORAGE=memory.');
+  process.exit(0);
+}
 const root = CompositionRoot.fromEnv(process.env);
 const migrator = root.migrator();
 
