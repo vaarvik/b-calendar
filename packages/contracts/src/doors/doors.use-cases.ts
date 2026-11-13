@@ -14,7 +14,8 @@ export interface OpenDoorOutput {
 
 /**
  * The recipient opens a door, or looks behind one she opened before. The first time is recorded:
- * the door then stays open, and the admin sees she opened it.
+ * the door then stays open, and the admin sees she opened it. A follower's link shows the content
+ * and records nothing.
  */
 export interface OpenDoor {
   /**

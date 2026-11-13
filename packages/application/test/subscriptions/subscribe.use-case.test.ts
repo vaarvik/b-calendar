@@ -38,6 +38,14 @@ describe('Subscribe', () => {
     ]);
   });
 
+  it('lets a follower’s phone get the notifications too', async () => {
+    const { calendar, subscriptions, subscribe } = await setup();
+
+    await subscribe.execute({ slug: calendar.slug, accessKey: calendar.followerKey, endpoint });
+
+    await expect(subscriptions.listByCalendar(calendar.id)).resolves.toHaveLength(1);
+  });
+
   it('refuses a wrong key and a malformed endpoint', async () => {
     const { calendar, subscribe } = await setup();
 

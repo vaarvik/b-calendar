@@ -1,6 +1,7 @@
 import type {
   CalendarDetailsResponseDto,
   CalendarDto,
+  CalendarRole,
   CalendarSettings,
   CalendarVersionDto,
   DoorPreviewDto,
@@ -39,7 +40,8 @@ export interface AdminClient {
   listCalendars(): Promise<readonly CalendarDto[]>;
   createCalendar(settings: CalendarSettings): Promise<CalendarDto>;
   updateCalendar(calendarId: string, settings: CalendarSettings): Promise<CalendarDto>;
-  rotateKey(calendarId: string): Promise<CalendarDto>;
+  /** A new key for her link or the followers' link; the other keeps working. */
+  rotateKey(calendarId: string, role: CalendarRole): Promise<CalendarDto>;
   calendar(calendarId: string): Promise<CalendarDetailsResponseDto>;
   addDoor(calendarId: string, draft: DoorDraftDto): Promise<DoorPreviewDto>;
   editDoor(doorId: string, draft: DoorDraftDto): Promise<DoorPreviewDto>;

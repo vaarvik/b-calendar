@@ -99,6 +99,24 @@ describe('the recipient’s calendar over HTTP', () => {
     });
   });
 
+  it('lets a follower look behind a ready door without opening it for her', async () => {
+    const follower = { 'x-access-key': calendar.followerKey };
+    const looked = await api.app.inject({
+      method: 'POST',
+      url: '/v1/calendars/ida-30/doors/1/open',
+      headers: follower,
+    });
+    const hers = await api.app.inject({ url: '/v1/calendars/ida-30', headers: headers() });
+    const theirs = await api.app.inject({ url: '/v1/calendars/ida-30', headers: follower });
+
+    expect(looked.json()).toMatchObject({ content: { title: 'Badetøy' } });
+    expect(hers.json<RecipientCalendarResponseDto>()).toMatchObject({
+      role: 'recipient',
+      doors: [{ state: 'ready' }, { state: 'locked' }],
+    });
+    expect(theirs.json<RecipientCalendarResponseDto>().role).toBe('follower');
+  });
+
   it('refuses to open a locked door, and unknown doors', async () => {
     const locked = await api.app.inject({
       method: 'POST',

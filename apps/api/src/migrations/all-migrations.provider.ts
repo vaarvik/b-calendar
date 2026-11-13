@@ -5,6 +5,7 @@ import { M0003DoorTimesOfDayMigration } from './m0003-door-times-of-day.migratio
 import { M0004DraftsAndVersionsMigration } from './m0004-drafts-and-versions.migration.js';
 import { M0005HiddenDoorsMigration } from './m0005-hidden-doors.migration.js';
 import { M0006DoorVideoAndAudioMigration } from './m0006-door-video-and-audio.migration.js';
+import { M0007FollowerLinksMigration } from './m0007-follower-links.migration.js';
 
 /**
  * Every migration, keyed so that string order is execution order. Add new ones at the end.
@@ -20,6 +21,7 @@ export class AllMigrationsProvider implements MigrationProvider {
       '0004_drafts_and_versions': new M0004DraftsAndVersionsMigration(),
       '0005_hidden_doors': new M0005HiddenDoorsMigration(),
       '0006_door_video_and_audio': new M0006DoorVideoAndAudioMigration(),
+      '0007_follower_links': new M0007FollowerLinksMigration(),
     };
     return Promise.resolve(
       Object.fromEntries(

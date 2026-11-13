@@ -10,6 +10,7 @@ import {
   DoorIdSchema,
   DoorPreviewDtoSchema,
   LogInResponseDtoSchema,
+  RotateCalendarKeyRequestDtoSchema,
   SendTestNotificationResponseDtoSchema,
 } from '@b-calendar/contracts';
 import type { InputValidator } from '@b-calendar/contracts';
@@ -76,7 +77,11 @@ export class AdminController implements HttpController {
 
     app.post('/v1/admin/calendars/:calendarId/key', async (request) => {
       const calendarId = this.calendarId(request);
-      const calendar = await useCases.rotateCalendarKey.execute({ calendarId });
+      const { role } = this.validator.validate(
+        RotateCalendarKeyRequestDtoSchema,
+        request.body ?? {},
+      );
+      const calendar = await useCases.rotateCalendarKey.execute({ calendarId, role });
       return CalendarDtoSchema.parse(this.dtos.calendar(calendar));
     });
 

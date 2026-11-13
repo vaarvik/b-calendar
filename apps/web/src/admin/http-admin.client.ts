@@ -11,6 +11,7 @@ import {
 import type {
   CalendarDetailsResponseDto,
   CalendarDto,
+  CalendarRole,
   CalendarSettings,
   CalendarVersionDto,
   DoorPreviewDto,
@@ -72,10 +73,11 @@ export class HttpAdminClient implements AdminClient {
     });
   }
 
-  public rotateKey(calendarId: string): Promise<CalendarDto> {
+  public rotateKey(calendarId: string, role: CalendarRole): Promise<CalendarDto> {
     return this.send({
       method: 'POST',
       path: `/v1/admin/calendars/${calendarId}/key`,
+      body: { role },
       schema: CalendarDtoSchema,
     });
   }

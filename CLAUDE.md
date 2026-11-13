@@ -111,7 +111,9 @@ UI copy uses the Norwegian in brackets.
 
 - **Calendar** (kalender): a series of doors for one recipient. Has a `slug` (its address,
   `/c/<slug>`), a `theme` (`birthday`, `christmas`), a `locale` for the fixed UI copy and an
-  **access key**, the secret in her link.
+  **access key**, the secret in her link, and a **follower key** for the follower link
+  (følgerlenke): followers see what she sees and get the same notifications, but opening a door
+  with their link records nothing.
 - **Draft** (utkast) and **version** (versjon): the admin edits a draft, which saves as she types;
   **Publiser** turns it into the calendar's next numbered version (`CalendarVersion`). The
   recipient and the notifications only see the published doors. Her progress (`notifiedAt`,

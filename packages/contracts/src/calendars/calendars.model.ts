@@ -47,7 +47,19 @@ export interface Calendar extends CalendarSettings {
   readonly id: CalendarId;
   /** The recipient's secret. Part of her link; whoever has it can open the calendar. */
   readonly accessKey: string;
+  /** The followers' secret: their link shows what she sees, but opening a door records nothing. */
+  readonly followerKey: string;
   readonly createdAt: Date;
+}
+
+/** Who a link belongs to: the recipient herself, or someone following along. */
+export const CALENDAR_ROLES = ['recipient', 'follower'] as const;
+export type CalendarRole = (typeof CALENDAR_ROLES)[number];
+
+/** A calendar opened with a link, and whose link it was. */
+export interface CalendarViewer {
+  readonly calendar: Calendar;
+  readonly role: CalendarRole;
 }
 
 /** Proof of access a recipient sends: the calendar's address and its key. */

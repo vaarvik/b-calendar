@@ -235,6 +235,21 @@ describe('OpenDoor', () => {
     await expect(doors.getById(door.id)).resolves.toMatchObject({ firstOpenedAt: null });
   });
 
+  it('shows a follower the content of a ready door without recording that it was opened', async () => {
+    const { open, doors, data, calendar } = await setup();
+    const door = data.door(calendar.id, { opensAt: hoursAfter(T0, -1) });
+    await doors.create(door);
+
+    const shown = await open.execute({
+      slug: calendar.slug,
+      accessKey: calendar.followerKey,
+      number: 1,
+    });
+
+    expect(shown.content.title).toBe(door.content.title);
+    await expect(doors.getById(door.id)).resolves.toMatchObject({ firstOpenedAt: null });
+  });
+
   it('answers a secret door that has not opened as if it did not exist', async () => {
     const { open, doors, data, calendar } = await setup();
     await doors.create(data.door(calendar.id, { opensAt: hoursAfter(T0, 1), hidden: true }));

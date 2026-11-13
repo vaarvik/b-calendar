@@ -59,6 +59,7 @@ export class TestData {
       timeZone: 'Europe/Oslo',
       defaultOpenTime: '08:00',
       accessKey: `key-${randomUUID()}`,
+      followerKey: `follow-${randomUUID()}`,
       createdAt: T0,
       ...overrides,
     };

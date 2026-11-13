@@ -1,9 +1,9 @@
 import type {
   Calendar,
-  CalendarId,
   CalendarReader,
   CalendarWriter,
   RotateCalendarKey,
+  RotateCalendarKeyInput,
   SecretGenerator,
 } from '@b-calendar/contracts';
 
@@ -14,11 +14,12 @@ export class RotateCalendarKeyUseCase implements RotateCalendarKey {
     private readonly secrets: SecretGenerator,
   ) {}
 
-  public async execute(input: { readonly calendarId: CalendarId }): Promise<Calendar> {
-    const calendar = {
-      ...(await this.reader.getById(input.calendarId)),
-      accessKey: this.secrets.generate(),
-    };
+  public async execute(input: RotateCalendarKeyInput): Promise<Calendar> {
+    const current = await this.reader.getById(input.calendarId);
+    const calendar =
+      input.role === 'recipient'
+        ? { ...current, accessKey: this.secrets.generate() }
+        : { ...current, followerKey: this.secrets.generate() };
     await this.writer.save(calendar);
     return calendar;
   }

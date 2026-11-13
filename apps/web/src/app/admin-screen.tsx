@@ -464,6 +464,7 @@ function CalendarEditor({
   const following = steps[index + 1];
 
   const link = `${location.origin}/c/${calendar.slug}?k=${encodeURIComponent(calendar.accessKey)}`;
+  const followerLink = `${location.origin}/c/${calendar.slug}?k=${encodeURIComponent(calendar.followerKey)}`;
   const last = doors.at(-1);
   const nextDraft: DoorDraftDto = {
     opensOn: new Date(
@@ -699,13 +700,51 @@ function CalendarEditor({
                     if (
                       confirm('Ny lenke? Den gamle slutter å virke, også på Hjem-skjermen hennes.')
                     ) {
-                      admin.rotateKey(calendar.id).then(load, (caught: unknown) => {
+                      admin.rotateKey(calendar.id, 'recipient').then(load, (caught: unknown) => {
                         setNotice(message(caught));
                       });
                     }
                   }}
                 >
                   🔄 Ny lenke
+                </button>
+              </div>
+            </fieldset>
+            <fieldset className="door-form__section">
+              <legend>👀 Følgerlenke (for deg og andre som vil følge med)</legend>
+              <p className="admin__muted">
+                Viser det {calendar.recipientName} ser, med de samme varslene. Åpner du en luke her,
+                teller det ikke for henne.
+              </p>
+              <a className="admin__link" href={followerLink} target="_blank" rel="noreferrer">
+                {followerLink}
+              </a>
+              <div className="door-form__actions">
+                <button
+                  className="button"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(followerLink).then(() => {
+                      setNotice('Følgerlenke kopiert ✓');
+                    });
+                  }}
+                >
+                  📋 Kopier følgerlenke
+                </button>
+                <button
+                  className="button button--danger"
+                  onClick={() => {
+                    if (
+                      confirm(
+                        'Ny følgerlenke? Den gamle slutter å virke. Hennes lenke virker fortsatt.',
+                      )
+                    ) {
+                      admin.rotateKey(calendar.id, 'follower').then(load, (caught: unknown) => {
+                        setNotice(message(caught));
+                      });
+                    }
+                  }}
+                >
+                  🔄 Ny følgerlenke
                 </button>
               </div>
             </fieldset>

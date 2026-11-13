@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { CALENDAR_LOCALES, CALENDAR_THEMES } from './calendars.model.js';
-import type { CalendarLocale, CalendarTheme } from './calendars.model.js';
+import { CALENDAR_LOCALES, CALENDAR_ROLES, CALENDAR_THEMES } from './calendars.model.js';
+import type { CalendarLocale, CalendarRole, CalendarTheme } from './calendars.model.js';
 import { DoorPreviewDtoSchema, RecipientDoorDtoSchema } from '../doors/doors.dtos.js';
 import type { DoorPreviewDto, RecipientDoorDto } from '../doors/doors.dtos.js';
 
@@ -14,6 +14,7 @@ export interface CalendarDto {
   readonly timeZone: string;
   readonly defaultOpenTime: string;
   readonly accessKey: string;
+  readonly followerKey: string;
   readonly createdAt: string;
 }
 
@@ -27,6 +28,7 @@ export const CalendarDtoSchema: z.ZodType<CalendarDto> = z.object({
   timeZone: z.string(),
   defaultOpenTime: z.string(),
   accessKey: z.string(),
+  followerKey: z.string(),
   createdAt: z.string(),
 });
 
@@ -67,6 +69,7 @@ export const CalendarDetailsResponseDtoSchema: z.ZodType<CalendarDetailsResponse
 });
 
 export interface RecipientCalendarResponseDto {
+  readonly role: CalendarRole;
   readonly slug: string;
   readonly title: string;
   readonly recipientName: string;
@@ -78,6 +81,7 @@ export interface RecipientCalendarResponseDto {
 
 export const RecipientCalendarResponseDtoSchema: z.ZodType<RecipientCalendarResponseDto> = z.object(
   {
+    role: z.enum(CALENDAR_ROLES),
     slug: z.string(),
     title: z.string(),
     recipientName: z.string(),
@@ -87,3 +91,12 @@ export const RecipientCalendarResponseDtoSchema: z.ZodType<RecipientCalendarResp
     doors: z.array(RecipientDoorDtoSchema),
   },
 );
+
+/** Which link a new key is for; her link when left out. */
+export interface RotateCalendarKeyRequestDto {
+  readonly role: CalendarRole;
+}
+
+export const RotateCalendarKeyRequestDtoSchema: z.ZodType<RotateCalendarKeyRequestDto> = z.object({
+  role: z.enum(CALENDAR_ROLES).default('recipient'),
+});

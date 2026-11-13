@@ -20,7 +20,7 @@ export class OpenDoorUseCase implements OpenDoor {
   ) {}
 
   public async execute(input: OpenDoorInput): Promise<OpenDoorOutput> {
-    const calendar = await this.access.authenticate(input);
+    const { calendar, role } = await this.access.authenticate(input);
     const doors = await this.reader.listByCalendar(calendar.id);
     const door = doors.find((candidate) => candidate.number === input.number);
     const now = this.clock.now();
@@ -31,7 +31,8 @@ export class OpenDoorUseCase implements OpenDoor {
     if (shown.state === 'locked') {
       throw new DoorLockedError(door.number, door.opensAt);
     }
-    if (door.firstOpenedAt === null) {
+    // Only she opens doors for real; a follower looks without leaving a trace.
+    if (door.firstOpenedAt === null && role === 'recipient') {
       await this.writer.save({ ...door, firstOpenedAt: now });
     }
     return {

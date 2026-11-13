@@ -1,5 +1,10 @@
 import type { CalendarId } from '../shared/shared.model.js';
-import type { Calendar, CalendarAccess, CalendarVersion } from './calendars.model.js';
+import type {
+  Calendar,
+  CalendarAccess,
+  CalendarVersion,
+  CalendarViewer,
+} from './calendars.model.js';
 
 /** Reads calendars. */
 export interface CalendarReader {
@@ -26,11 +31,11 @@ export interface CalendarWriter {
 /** Checks a recipient's link. Shared by everything she does. */
 export interface CalendarAccessAuthenticator {
   /**
-   * @returns the calendar the slug and key open.
+   * @returns the calendar the slug and key open, and whether the key is hers or a follower's.
    * @throws UnauthenticatedError when the slug is unknown or the key is wrong (one error for both,
    * so a wrong guess does not tell which calendars exist).
    */
-  authenticate(access: CalendarAccess): Promise<Calendar>;
+  authenticate(access: CalendarAccess): Promise<CalendarViewer>;
 }
 
 /** Reads a calendar's published versions. */

@@ -4,6 +4,7 @@ import type {
   Calendar,
   CalendarAccess,
   CalendarLocale,
+  CalendarRole,
   CalendarSettings,
   CalendarTheme,
   CalendarVersionSummary,
@@ -36,10 +37,16 @@ export interface UpdateCalendar {
   execute(input: UpdateCalendarInput): Promise<Calendar>;
 }
 
-/** A new access key, which signs out every device that used the old link. */
+export interface RotateCalendarKeyInput {
+  readonly calendarId: CalendarId;
+  /** Her link or the followers' link; the other keeps working. */
+  readonly role: CalendarRole;
+}
+
+/** A new key for one link, which signs out every device that used the old one. */
 export interface RotateCalendarKey {
   /** @throws NotFoundError when the calendar does not exist. */
-  execute(input: { readonly calendarId: CalendarId }): Promise<Calendar>;
+  execute(input: RotateCalendarKeyInput): Promise<Calendar>;
 }
 
 /** Every calendar, newest first. */
@@ -77,6 +84,8 @@ export interface PublishCalendar {
 
 /** The calendar as the recipient sees it: open doors with content, locked ones without. */
 export interface RecipientCalendar {
+  /** Whose link opened it: a follower's opens doors without recording them. */
+  readonly role: CalendarRole;
   readonly slug: string;
   readonly title: string;
   readonly recipientName: string;

@@ -246,7 +246,11 @@ export function CalendarScreen({ slug }: { readonly slug: string }) {
   return (
     <main className="calendar">
       <header className="calendar__header">
-        <p className="calendar__hello">{copy.hello(calendar.recipientName)}</p>
+        {calendar.role === 'follower' ? (
+          <p className="calendar__following">{copy.following(calendar.recipientName)}</p>
+        ) : (
+          <p className="calendar__hello">{copy.hello(calendar.recipientName)}</p>
+        )}
         <h1 className="calendar__title">{calendar.title}</h1>
         {calendar.doors.length === 0 ? (
           <p className="calendar__next">{copy.comingSoon}</p>

@@ -96,12 +96,17 @@ function setup() {
 }
 
 describe('CreateCalendar', () => {
-  it('creates a calendar with a fresh access key', async () => {
+  it('creates a calendar with fresh keys for her link and the followers’ link', async () => {
     const { create, calendars } = setup();
 
     const calendar = await create.execute(SETTINGS);
 
-    expect(calendar).toMatchObject({ ...SETTINGS, accessKey: 'secret-1', createdAt: T0 });
+    expect(calendar).toMatchObject({
+      ...SETTINGS,
+      accessKey: 'secret-1',
+      followerKey: 'secret-2',
+      createdAt: T0,
+    });
     await expect(calendars.getById(calendar.id)).resolves.toEqual(calendar);
   });
 
@@ -141,13 +146,18 @@ describe('UpdateCalendar and RotateCalendarKey', () => {
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
-  it('gives a new key', async () => {
+  it('gives one link a new key and leaves the other working', async () => {
     const { create, rotate } = setup();
     const calendar = await create.execute(SETTINGS);
 
-    await expect(rotate.execute({ calendarId: calendar.id })).resolves.toEqual({
+    await expect(rotate.execute({ calendarId: calendar.id, role: 'recipient' })).resolves.toEqual({
       ...calendar,
-      accessKey: 'secret-2',
+      accessKey: 'secret-3',
+    });
+    await expect(rotate.execute({ calendarId: calendar.id, role: 'follower' })).resolves.toEqual({
+      ...calendar,
+      accessKey: 'secret-3',
+      followerKey: 'secret-4',
     });
   });
 });
@@ -336,6 +346,7 @@ describe('ViewCalendar', () => {
     const shown = await view.execute({ slug: 'ida-30', accessKey: calendar.accessKey });
 
     expect(shown).toMatchObject({
+      role: 'recipient',
       slug: 'ida-30',
       title: 'Bursdagsuka',
       recipientName: 'Ida',
@@ -343,6 +354,21 @@ describe('ViewCalendar', () => {
     });
     expect(shown.doors.map((door) => door.state)).toEqual(['opened', 'ready', 'locked']);
     expect(shown.doors[2]).not.toHaveProperty('content');
+  });
+
+  it('shows a follower what she sees, her opened doors included', async () => {
+    const { create, view, doors } = setup();
+    const calendar = await create.execute(SETTINGS);
+    const data = new TestData();
+    await doors.create(
+      data.door(calendar.id, { number: 1, opensAt: hoursAfter(T0, -48), firstOpenedAt: T0 }),
+    );
+    await doors.create(data.door(calendar.id, { number: 2, opensAt: hoursAfter(T0, 1) }));
+
+    const shown = await view.execute({ slug: 'ida-30', accessKey: calendar.followerKey });
+
+    expect(shown.role).toBe('follower');
+    expect(shown.doors.map((door) => door.state)).toEqual(['opened', 'locked']);
   });
 
   it('leaves a secret door out until it opens, also from the countdown', async () => {

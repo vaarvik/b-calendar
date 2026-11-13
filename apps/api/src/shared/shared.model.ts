@@ -17,6 +17,7 @@ export interface CalendarsTable {
   time_zone: string;
   default_open_time: string;
   access_key: string;
+  follower_key: string;
   created_at: Date;
 }
 

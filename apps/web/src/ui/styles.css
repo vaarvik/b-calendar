@@ -1413,3 +1413,14 @@ button {
   border-color: var(--accent);
   background: var(--surface-strong);
 }
+
+/* A follower's link: says so, quietly. */
+.calendar__following {
+  margin: 0 auto 8px;
+  max-width: 36rem;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}

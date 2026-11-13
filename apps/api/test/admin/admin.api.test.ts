@@ -92,6 +92,19 @@ describe('the admin over HTTP', () => {
     expect(rotated.json<CalendarDto>().accessKey).not.toBe(calendar.accessKey);
   });
 
+  it('gives the followers’ link a new key and keeps hers', async () => {
+    const calendar = await createCalendar();
+    const rotated = await api.app.inject({
+      method: 'POST',
+      url: `/v1/admin/calendars/${calendar.id}/key`,
+      headers: auth,
+      payload: { role: 'follower' },
+    });
+
+    expect(rotated.json<CalendarDto>()).toMatchObject({ accessKey: calendar.accessKey });
+    expect(rotated.json<CalendarDto>().followerKey).not.toBe(calendar.followerKey);
+  });
+
   it('refuses invalid settings and a taken slug', async () => {
     await createCalendar();
     const invalid = await api.app.inject({

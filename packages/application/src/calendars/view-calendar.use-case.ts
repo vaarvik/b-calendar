@@ -17,10 +17,11 @@ export class ViewCalendarUseCase implements ViewCalendar {
   ) {}
 
   public async execute(input: CalendarAccess): Promise<RecipientCalendar> {
-    const calendar = await this.access.authenticate(input);
+    const { calendar, role } = await this.access.authenticate(input);
     const now = this.clock.now();
     const doors = await this.doors.listByCalendar(calendar.id);
     return {
+      role,
       slug: calendar.slug,
       title: calendar.title,
       recipientName: calendar.recipientName,

@@ -82,6 +82,7 @@ export class PgCalendarRepository implements CalendarReader, CalendarWriter {
       time_zone: calendar.timeZone,
       default_open_time: calendar.defaultOpenTime,
       access_key: calendar.accessKey,
+      follower_key: calendar.followerKey,
       created_at: calendar.createdAt,
     };
   }
@@ -98,6 +99,7 @@ export class PgCalendarRepository implements CalendarReader, CalendarWriter {
       timeZone: row.time_zone,
       defaultOpenTime: row.default_open_time,
       accessKey: row.access_key,
+      followerKey: row.follower_key,
       createdAt: row.created_at,
     };
   }
