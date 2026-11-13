@@ -800,6 +800,16 @@ function CalendarEditor({
       </section>
 
       <footer className="wizard__nav">
+        {details.unpublishedChanges && (
+          <div className="unpublished" role="status">
+            <span>
+              ✏️ Upubliserte endringer – {calendar.recipientName} ser dem ikke før du publiserer.
+            </span>
+            <button className="button" disabled={publishing} onClick={publish}>
+              {publishing ? 'Publiserer …' : 'Publiser'}
+            </button>
+          </div>
+        )}
         <button
           className="button button--ghost"
           disabled={previous === undefined}
