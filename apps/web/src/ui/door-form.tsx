@@ -51,7 +51,8 @@ export function DoorForm({
   const [videoUrl, setVideoUrl] = useState(initial.content.videoUrl ?? '');
   const [audioUrl, setAudioUrl] = useState(initial.content.audioUrl ?? '');
   const [uploading, setUploading] = useState<'image' | 'clip' | null>(null);
-  const [linkUrl, setLinkUrl] = useState(initial.content.linkUrl ?? '');
+  // No field for it any more; a link a door already has is kept.
+  const linkUrl = initial.content.linkUrl ?? '';
   const [countdownTo, setCountdownTo] = useState(
     initial.content.countdown === null ? '' : toLocalInput(initial.content.countdown.to),
   );
@@ -288,7 +289,10 @@ export function DoorForm({
       </fieldset>
 
       <fieldset className="door-form__section">
-        <legend>📸 Bilde og lenke</legend>
+        <legend>📸 Bilde, video og sang</legend>
+        <p className="admin__muted">
+          Alt er valgfritt: bare bilde, bilde og sang, bilde og video …
+        </p>
         <div className="form__grid">
           <div className="field">
             Bilde (vises i ramme)
@@ -324,39 +328,30 @@ export function DoorForm({
               </button>
             )}
           </div>
-          <label className="field">
-            Lenke (Spotify, YouTube eller annet)
-            <input
-              value={linkUrl}
-              onChange={(e) => {
-                setLinkUrl(e.target.value);
-              }}
-              placeholder="https://open.spotify.com/track/…"
-            />
-          </label>
-        </div>
-      </fieldset>
-
-      <fieldset className="door-form__section">
-        <legend>🎬 Video og sang</legend>
-        <div className="field">
-          Last opp en video (MP4/MOV, opptil 95 MB) eller en sang (MP3/M4A, opptil 25 MB)
-          <label className="upload upload--clip">
-            <span className="upload__empty">
-              {uploading === 'clip' ? 'Laster opp … (kan ta litt tid)' : '＋ Velg video eller sang'}
-            </span>
-            <input
-              type="file"
-              accept="video/*,audio/*,.mov,.mp4,.m4a,.mp3,.aac"
-              disabled={uploading !== null}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file !== undefined) {
-                  uploadInto('clip', file);
-                }
-              }}
-            />
-          </label>
+          <div className="field">
+            Video eller sang
+            <label className="upload">
+              <span className="upload__empty">
+                {uploading === 'clip'
+                  ? 'Laster opp … (kan ta litt tid)'
+                  : '＋ Velg video eller sang'}
+              </span>
+              <input
+                type="file"
+                accept="video/*,audio/*,.mov,.mp4,.m4a,.mp3,.aac"
+                disabled={uploading !== null}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file !== undefined) {
+                    uploadInto('clip', file);
+                  }
+                }}
+              />
+            </label>
+            <small className="admin__muted">
+              Video: MP4/MOV opptil 95 MB · sang: MP3/M4A opptil 25 MB
+            </small>
+          </div>
         </div>
         {videoUrl !== '' && (
           <div className="field">
