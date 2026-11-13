@@ -18,19 +18,27 @@ export function DoorContent({ content, now, copy }: DoorContentProps) {
       {content.audioUrl !== null && (
         <audio className="door-content__audio" src={content.audioUrl} controls preload="none" />
       )}
-      {content.imageUrl !== null && (
-        <figure className="photo-frame">
-          <img className="photo-frame__image" src={content.imageUrl} alt="" loading="lazy" />
-        </figure>
-      )}
-      {content.videoUrl !== null && (
-        <video
-          className="door-content__video"
-          src={content.videoUrl}
-          controls
-          playsInline
-          preload="metadata"
-        />
+      {(content.imageUrl !== null || content.videoUrl !== null) && (
+        <div
+          className={`photo-pair${content.imageUrl !== null && content.videoUrl !== null ? ' photo-pair--two' : ''}`}
+        >
+          {content.imageUrl !== null && (
+            <figure className="photo-frame">
+              <img className="photo-frame__image" src={content.imageUrl} alt="" loading="lazy" />
+            </figure>
+          )}
+          {content.videoUrl !== null && (
+            <figure className="photo-frame photo-frame--video">
+              <video
+                className="photo-frame__image"
+                src={content.videoUrl}
+                controls
+                playsInline
+                preload="metadata"
+              />
+            </figure>
+          )}
+        </div>
       )}
       {countdown !== null && (
         <div className="door-content__countdown">

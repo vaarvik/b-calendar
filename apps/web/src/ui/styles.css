@@ -1359,6 +1359,31 @@ button {
   background: #000;
 }
 
+/* A photo and a video side by side, like two polaroids; one alone stays centred. */
+.photo-pair {
+  display: grid;
+  justify-items: center;
+}
+
+.photo-pair--two {
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.photo-pair--two .photo-frame {
+  padding: 8px 8px 30px;
+}
+
+.photo-pair--two .photo-frame--video {
+  transform: rotate(2deg);
+  margin-top: 14px;
+}
+
+.photo-frame--video .photo-frame__image {
+  background: #000;
+}
+
 .door-content__audio {
   width: 100%;
 }
