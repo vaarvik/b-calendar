@@ -15,6 +15,9 @@ export function DoorContent({ content, now, copy }: DoorContentProps) {
     <div className="door-content">
       <h2 className="door-content__title">{content.title}</h2>
       {content.message !== '' && <p className="door-content__message">{content.message}</p>}
+      {content.audioUrl !== null && (
+        <audio className="door-content__audio" src={content.audioUrl} controls preload="none" />
+      )}
       {content.imageUrl !== null && (
         <figure className="photo-frame">
           <img className="photo-frame__image" src={content.imageUrl} alt="" loading="lazy" />
@@ -28,9 +31,6 @@ export function DoorContent({ content, now, copy }: DoorContentProps) {
           playsInline
           preload="metadata"
         />
-      )}
-      {content.audioUrl !== null && (
-        <audio className="door-content__audio" src={content.audioUrl} controls preload="none" />
       )}
       {countdown !== null && (
         <div className="door-content__countdown">

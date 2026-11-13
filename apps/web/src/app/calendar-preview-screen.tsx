@@ -91,7 +91,8 @@ export function CalendarPreviewScreen({
   }
 
   const { calendar, doors } = details;
-  const nextLocked = doors.find((door) => Date.parse(door.opensAt) > now);
+  // Her countdown skips secret doors, so this one does too.
+  const nextLocked = doors.find((door) => !door.hidden && Date.parse(door.opensAt) > now);
 
   const reveal = (door: DoorPreviewDto) => {
     if (revealed.has(door.number) || asRecipient(door, now, false).state === 'opened') {
@@ -158,6 +159,7 @@ export function CalendarPreviewScreen({
             onTap={() => {
               reveal(door);
             }}
+            secret={door.hidden && Date.parse(door.opensAt) > now && !revealed.has(door.number)}
           />
         ))}
       </section>

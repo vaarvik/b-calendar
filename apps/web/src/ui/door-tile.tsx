@@ -10,13 +10,23 @@ interface DoorTileProps {
   readonly when: string;
   readonly copy: RecipientCopy;
   readonly onTap: () => void;
+  /** Admin preview only: a secret door she cannot see yet. */
+  readonly secret?: boolean;
 }
 
 /**
  * One hatch: closed with its number, glowing when ready, open once opened. A featured hatch is a
  * wide wrapped present whose lid flies off; the others swing open like a door.
  */
-export function DoorTile({ door, opening, shaking, when, copy, onTap }: DoorTileProps) {
+export function DoorTile({
+  door,
+  opening,
+  shaking,
+  when,
+  copy,
+  onTap,
+  secret = false,
+}: DoorTileProps) {
   const inside = door.state === 'opened' ? door.content : null;
   const classes = [
     'door',
@@ -25,6 +35,7 @@ export function DoorTile({ door, opening, shaking, when, copy, onTap }: DoorTile
     opening ? 'door--opening' : '',
     door.state === 'opened' || opening ? 'door--open' : '',
     shaking ? 'shake' : '',
+    secret ? 'door--secret' : '',
   ].filter((name) => name !== '');
   return (
     <button
@@ -44,6 +55,7 @@ export function DoorTile({ door, opening, shaking, when, copy, onTap }: DoorTile
         )}
         {inside !== null && <span className="door__caption">{inside.title}</span>}
       </span>
+      {secret && <span className="door__secret">🤫 Hemmelig – hun ser den ikke ennå</span>}
       <span className="door__panel">
         {door.featured && (
           <>
