@@ -47,16 +47,19 @@ export class GetCalendarDetailsUseCase implements GetCalendarDetails {
   /** What the recipient gets of these doors, comparable as text. */
   private published(doors: readonly (Door | DoorPreview)[]): string {
     return JSON.stringify(
-      doors.map(({ id, number, opensOn, openTime, opensAt, featured, content, notification }) => ({
-        id,
-        number,
-        opensOn,
-        openTime,
-        opensAt,
-        featured,
-        content,
-        notification,
-      })),
+      doors.map(
+        ({ id, number, opensOn, openTime, opensAt, featured, hidden, content, notification }) => ({
+          id,
+          number,
+          opensOn,
+          openTime,
+          opensAt,
+          featured,
+          hidden,
+          content,
+          notification,
+        }),
+      ),
     );
   }
 }

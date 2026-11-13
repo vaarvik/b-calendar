@@ -19,7 +19,8 @@ export interface OpenDoorOutput {
 export interface OpenDoor {
   /**
    * @throws UnauthenticatedError when the slug or the key is wrong.
-   * @throws NotFoundError when the calendar has no door with this number.
+   * @throws NotFoundError when the calendar has no door with this number, or it is hidden and
+   * has not opened (the same answer, so a secret door cannot be guessed).
    * @throws DoorLockedError when the door has not opened yet.
    */
   execute(input: OpenDoorInput): Promise<OpenDoorOutput>;

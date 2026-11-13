@@ -130,6 +130,9 @@ UI copy uses the Norwegian in brackets.
 
 ### Rules that keep the surprise
 
+- A **secret door** (`hidden`, hemmelig luke) does not exist for her until it opens: no tile, no
+  number, not in the countdown, and OpenDoor answers it with the same NotFoundError as a door
+  that does not exist.
 - A locked door's content never leaves the server: `RecipientDoorPresenter` strips it, and
   `OpenDoor` refuses with `DoorLockedError`. A ready door's content is only sent by `OpenDoor`,
   which records the first look.

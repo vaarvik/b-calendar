@@ -27,7 +27,7 @@ export class ViewCalendarUseCase implements ViewCalendar {
       theme: calendar.theme,
       locale: calendar.locale,
       now,
-      doors: doors.map((door) => this.presenter.present(door, now)),
+      doors: doors.flatMap((door) => this.presenter.present(door, now) ?? []),
     };
   }
 }

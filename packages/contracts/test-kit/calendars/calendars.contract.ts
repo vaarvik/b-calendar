@@ -133,6 +133,7 @@ export function describeCalendarVersionRepositoryContract(
         number: 2,
         openTime: '17:30',
         featured: true,
+        hidden: true,
         content: data.content({ countdown: { to: hoursAfter(T0, 5), label: 'nå' } }),
       });
       const version = data.version(calendarId, { doors: [door] });

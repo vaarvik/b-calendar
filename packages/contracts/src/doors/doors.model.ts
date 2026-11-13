@@ -60,6 +60,8 @@ export interface Door {
   readonly opensAt: Date;
   /** A special hatch (the birthday, the last day): it looks grander, even while locked. */
   readonly featured: boolean;
+  /** A secret door: the recipient does not know it exists until it opens. */
+  readonly hidden: boolean;
   readonly content: DoorContent;
   readonly notification: DoorNotification;
   /** When the notification went out (or was skipped as too late); null until then. */
@@ -83,6 +85,8 @@ export interface DoorDraft {
   readonly opensOn: string;
   readonly openTime: string | null;
   readonly featured: boolean;
+  /** Not shown to her at all until it opens. */
+  readonly hidden: boolean;
   readonly content: DoorContent;
   readonly notification: DoorNotification;
 }
@@ -91,6 +95,7 @@ export const DoorDraftSchema: z.ZodType<DoorDraft> = z.object({
   opensOn: LocalDateSchema,
   openTime: TimeOfDaySchema.nullable().default(null),
   featured: z.boolean().default(false),
+  hidden: z.boolean().default(false),
   content: z.object({
     title: z.string().trim().min(1).max(120),
     message: z.string().max(5000),

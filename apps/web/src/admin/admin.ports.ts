@@ -14,6 +14,8 @@ export interface DoorDraftDto {
   /** `HH:MM`; null uses the calendar's default time. */
   readonly openTime: string | null;
   readonly featured: boolean;
+  /** Not shown to her until it opens. */
+  readonly hidden: boolean;
   readonly content: {
     readonly title: string;
     readonly message: string;

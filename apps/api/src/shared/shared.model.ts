@@ -28,6 +28,7 @@ export interface DoorsTable {
   open_time: string | null;
   opens_at: Date;
   featured: boolean;
+  hidden: boolean;
   title: string;
   message: string;
   image_url: string | null;

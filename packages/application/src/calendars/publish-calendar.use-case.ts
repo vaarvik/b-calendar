@@ -39,7 +39,8 @@ export class PublishCalendarUseCase implements PublishCalendar {
     const liveById = new Map(live.map((door) => [door.id, door]));
     const doors: PublishedDoor[] = [];
     for (const preview of this.presenter.present(calendar, drafts, live)) {
-      const { id, number, opensOn, openTime, opensAt, featured, content, notification } = preview;
+      const { id, number, opensOn, openTime, opensAt, featured, hidden, content, notification } =
+        preview;
       const door: PublishedDoor = {
         id,
         number,
@@ -47,6 +48,7 @@ export class PublishCalendarUseCase implements PublishCalendar {
         openTime,
         opensAt,
         featured,
+        hidden,
         content,
         notification,
       };

@@ -454,6 +454,7 @@ function CalendarEditor({
       .slice(0, 10),
     openTime: null,
     featured: false,
+    hidden: false,
     content: {
       title: 'Ny luke',
       message: '',
@@ -583,9 +584,12 @@ function CalendarEditor({
                     : `Luke ${String(railDoor?.number ?? '')}`}
               </span>
               {done && <span className="rail__done">✓</span>}
-              {railDoor?.featured === true && (
-                <span className="rail__bow" aria-label="Spesiell luke">
-                  🎀
+              {(railDoor?.featured === true || railDoor?.hidden === true) && (
+                <span
+                  className="rail__bow"
+                  aria-label={railDoor.hidden ? 'Hemmelig luke' : 'Spesiell luke'}
+                >
+                  {railDoor.hidden ? '🤫' : '🎀'}
                 </span>
               )}
             </button>

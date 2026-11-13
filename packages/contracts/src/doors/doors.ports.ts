@@ -41,11 +41,13 @@ export interface DoorLinkClassifier {
 
 /**
  * The one rule that keeps the surprise: what the recipient may see of a door at a time.
- * Invariants: a door whose `opensAt` is after `now` is `locked` and carries no content; a door
- * with `firstOpenedAt` set and `opensAt` passed is `opened` with its content; otherwise `ready`.
+ * Invariants: a door whose `opensAt` is after `now` is `locked` and carries no content, and a
+ * hidden one is not shown at all (null); a door with `firstOpenedAt` set and `opensAt` passed is
+ * `opened` with its content; otherwise `ready`.
  */
 export interface RecipientDoorPresenter {
-  present(door: Door, now: Date): RecipientDoor;
+  /** @returns null when she must not know the door exists yet. */
+  present(door: Door, now: Date): RecipientDoor | null;
   /** @returns the content of an open door. */
   content(content: DoorContent): OpenDoorContent;
 }

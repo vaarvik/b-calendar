@@ -10,6 +10,8 @@ export const DoorDraftRowSchema: z.ZodType<DoorDraft> = z.object({
   opensOn: LocalDateSchema,
   openTime: TimeOfDaySchema.nullable(),
   featured: z.boolean(),
+  // Drafts saved before secret doors existed have no `hidden`.
+  hidden: z.boolean().default(false),
   content: z.object({
     title: z.string(),
     message: z.string(),

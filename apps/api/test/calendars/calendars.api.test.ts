@@ -39,6 +39,7 @@ describe('the recipient’s calendar over HTTP', () => {
       calendarId: calendar.id,
       draft: {
         featured: false,
+        hidden: false,
         ...at(new Date(Date.now() - HOUR)),
         content: { ...content, title: 'Badetøy' },
         notification,
@@ -48,6 +49,7 @@ describe('the recipient’s calendar over HTTP', () => {
       calendarId: calendar.id,
       draft: {
         featured: true,
+        hidden: false,
         ...at(new Date(Date.now() + HOUR)),
         content: { ...content, title: 'Hemmelig' },
         notification,

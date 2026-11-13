@@ -208,7 +208,11 @@ describe('PublishCalendar', () => {
     const calendar = await create.execute(SETTINGS);
     const data = new TestData();
     const later = data.draftDoor(calendar.id, { opensOn: '2026-11-17' });
-    const first = data.draftDoor(calendar.id, { opensOn: '2026-11-15', featured: true });
+    const first = data.draftDoor(calendar.id, {
+      opensOn: '2026-11-15',
+      featured: true,
+      hidden: true,
+    });
     await drafts.create(later);
     await drafts.create(first);
 
@@ -219,7 +223,13 @@ describe('PublishCalendar', () => {
     });
 
     await expect(doors.listByCalendar(calendar.id)).resolves.toEqual([
-      expect.objectContaining({ id: first.id, number: 1, opensAt: T0, featured: true }),
+      expect.objectContaining({
+        id: first.id,
+        number: 1,
+        opensAt: T0,
+        featured: true,
+        hidden: true,
+      }),
       expect.objectContaining({
         id: later.id,
         number: 2,
@@ -333,6 +343,23 @@ describe('ViewCalendar', () => {
     });
     expect(shown.doors.map((door) => door.state)).toEqual(['opened', 'ready', 'locked']);
     expect(shown.doors[2]).not.toHaveProperty('content');
+  });
+
+  it('leaves a secret door out until it opens, also from the countdown', async () => {
+    const { create, view, doors, clock } = setup();
+    const calendar = await create.execute(SETTINGS);
+    const data = new TestData();
+    await doors.create(data.door(calendar.id, { number: 1, opensAt: hoursAfter(T0, -1) }));
+    await doors.create(
+      data.door(calendar.id, { number: 2, opensAt: hoursAfter(T0, 24), hidden: true }),
+    );
+    const access = { slug: calendar.slug, accessKey: calendar.accessKey };
+
+    await expect(view.execute(access)).resolves.toMatchObject({ doors: [{ number: 1 }] });
+    clock.set(hoursAfter(T0, 24));
+    await expect(view.execute(access)).resolves.toMatchObject({
+      doors: [{ number: 1 }, { number: 2, state: 'ready' }],
+    });
   });
 
   it('refuses a wrong key and an unknown slug alike', async () => {

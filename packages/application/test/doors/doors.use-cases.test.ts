@@ -79,6 +79,7 @@ function draft(overrides: Partial<DoorDraft> = {}): DoorDraft {
     opensOn: '2026-11-15',
     openTime: null,
     featured: false,
+    hidden: false,
     content: new TestData().content(),
     notification: { title: 'Luke 1', body: 'Åpne meg' },
     ...overrides,
@@ -232,6 +233,15 @@ describe('OpenDoor', () => {
       open.execute({ slug: calendar.slug, accessKey: calendar.accessKey, number: 1 }),
     ).rejects.toBeInstanceOf(DoorLockedError);
     await expect(doors.getById(door.id)).resolves.toMatchObject({ firstOpenedAt: null });
+  });
+
+  it('answers a secret door that has not opened as if it did not exist', async () => {
+    const { open, doors, data, calendar } = await setup();
+    await doors.create(data.door(calendar.id, { opensAt: hoursAfter(T0, 1), hidden: true }));
+
+    await expect(
+      open.execute({ slug: calendar.slug, accessKey: calendar.accessKey, number: 1 }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it('refuses a wrong key and a door number the calendar does not have', async () => {

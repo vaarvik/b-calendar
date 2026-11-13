@@ -100,6 +100,7 @@ export interface DoorPreviewDto {
   readonly opensOn: string;
   readonly openTime: string | null;
   readonly featured: boolean;
+  readonly hidden: boolean;
   readonly content: {
     readonly title: string;
     readonly message: string;
@@ -121,6 +122,7 @@ export const DoorPreviewDtoSchema: z.ZodType<DoorPreviewDto> = z.object({
   opensOn: z.string(),
   openTime: z.string().nullable(),
   featured: z.boolean(),
+  hidden: z.boolean(),
   content: z.object({
     title: z.string(),
     message: z.string(),

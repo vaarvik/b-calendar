@@ -85,6 +85,7 @@ export class PgDoorRepository implements DoorReader, DoorWriter {
       open_time: door.openTime,
       opens_at: door.opensAt,
       featured: door.featured,
+      hidden: door.hidden,
       title: content.title,
       message: content.message,
       image_url: content.imageUrl,
@@ -108,6 +109,7 @@ export class PgDoorRepository implements DoorReader, DoorWriter {
       openTime: row.open_time,
       opensAt: row.opens_at,
       featured: row.featured,
+      hidden: row.hidden,
       content: {
         title: row.title,
         message: row.message,

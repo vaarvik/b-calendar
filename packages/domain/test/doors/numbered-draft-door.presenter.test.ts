@@ -38,7 +38,7 @@ describe('NumberedDraftDoorPresenter', () => {
       content: data.content({ linkUrl: 'https://example.com/x' }),
     });
 
-    const { id, calendarId, opensOn, openTime, featured, content, notification } = draft;
+    const { id, calendarId, opensOn, openTime, featured, hidden, content, notification } = draft;
     expect(presenter.present(calendar, [draft], [])).toEqual([
       {
         id,
@@ -46,6 +46,7 @@ describe('NumberedDraftDoorPresenter', () => {
         opensOn,
         openTime,
         featured,
+        hidden,
         content,
         notification,
         number: 1,

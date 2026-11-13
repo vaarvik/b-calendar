@@ -21,7 +21,7 @@ describe('OpensAtRecipientDoorPresenter', () => {
   it('keeps a door locked before its time even if it was opened before (moved by the admin)', () => {
     const door = data.door(calendarId, { opensAt: hoursAfter(T0, 1), firstOpenedAt: T0 });
 
-    expect(presenter.present(door, T0).state).toBe('locked');
+    expect(presenter.present(door, T0)).toMatchObject({ state: 'locked' });
   });
 
   it('shows a door that has opened but was never looked behind as ready, still with no content', () => {
@@ -70,5 +70,17 @@ describe('OpensAtRecipientDoorPresenter', () => {
 
   it('gives content without a link when there is none', () => {
     expect(presenter.content(data.content()).link).toBeNull();
+  });
+
+  it('hides a secret door completely until it opens, then shows it like any other', () => {
+    const door = data.door(calendarId, { number: 6, opensAt: hoursAfter(T0, 1), hidden: true });
+
+    expect(presenter.present(door, T0)).toBeNull();
+    expect(presenter.present(door, hoursAfter(T0, 1))).toEqual({
+      state: 'ready',
+      number: 6,
+      opensAt: door.opensAt,
+      featured: false,
+    });
   });
 });

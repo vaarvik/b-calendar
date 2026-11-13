@@ -36,6 +36,7 @@ export function describeDoorRepositoryContract(
       const data = new TestData();
       const door = data.door(await calendar(data), {
         featured: true,
+        hidden: true,
         opensOn: '2026-12-24',
         openTime: '17:30',
         content: data.content({
@@ -169,6 +170,7 @@ export function describeDraftDoorRepositoryContract(
       const data = new TestData();
       const door = data.draftDoor(await calendar(data), {
         featured: true,
+        hidden: true,
         opensOn: '2026-12-24',
         openTime: '17:30',
         content: data.content({

@@ -44,6 +44,7 @@ export function DoorForm({
   const [ownTime, setOwnTime] = useState(initial.openTime !== null);
   const [openTime, setOpenTime] = useState(initial.openTime ?? defaultOpenTime);
   const [featured, setFeatured] = useState(initial.featured);
+  const [hidden, setHidden] = useState(initial.hidden);
   const [title, setTitle] = useState(initial.content.title);
   const [message, setMessage] = useState(initial.content.message);
   const [imageUrl, setImageUrl] = useState(initial.content.imageUrl ?? '');
@@ -63,6 +64,7 @@ export function DoorForm({
     opensOn,
     openTime: ownTime ? openTime : null,
     featured,
+    hidden,
     content: {
       title: title.trim(),
       message,
@@ -173,6 +175,7 @@ export function DoorForm({
         <h2 className="door-form__title">
           {`Luke ${String(door.number)}`}
           {featured && ' 🎀'}
+          {hidden && ' 🤫'}
           <span
             className={`door-form__status${problem === null && !dirty ? ' door-form__status--saved' : ''}`}
             aria-live="polite"
@@ -356,6 +359,16 @@ export function DoorForm({
             }}
           />
           <span>🎀 Spesiell luke – stor og innpakket som en gave</span>
+        </label>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={hidden}
+            onChange={(e) => {
+              setHidden(e.target.checked);
+            }}
+          />
+          <span>🤫 Hemmelig luke – hun ser den ikke før den åpner</span>
         </label>
       </fieldset>
 

@@ -18,6 +18,7 @@ export const BIRTHDAY_WEEK: {
   doors: [
     {
       featured: false,
+      hidden: false,
       opensOn: '2026-11-15',
       openTime: null,
       content: {
@@ -32,6 +33,7 @@ export const BIRTHDAY_WEEK: {
     },
     {
       featured: false,
+      hidden: false,
       opensOn: '2026-11-16',
       openTime: null,
       content: {
@@ -46,6 +48,7 @@ export const BIRTHDAY_WEEK: {
     },
     {
       featured: false,
+      hidden: false,
       opensOn: '2026-11-17',
       openTime: null,
       content: {
@@ -60,6 +63,7 @@ export const BIRTHDAY_WEEK: {
     },
     {
       featured: false,
+      hidden: false,
       opensOn: '2026-11-18',
       openTime: null,
       content: {
@@ -74,6 +78,7 @@ export const BIRTHDAY_WEEK: {
     },
     {
       featured: true,
+      hidden: false,
       opensOn: '2026-11-19',
       openTime: null,
       content: {

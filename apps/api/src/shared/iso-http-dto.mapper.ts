@@ -63,6 +63,7 @@ export class IsoHttpDtoMapper implements HttpDtoMapper {
       opensOn: door.opensOn,
       openTime: door.openTime,
       featured: door.featured,
+      hidden: door.hidden,
       content: { ...door.content, countdown: this.countdown(door.content.countdown) },
       link: door.link,
       notification: door.notification,

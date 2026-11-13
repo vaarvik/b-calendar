@@ -23,11 +23,12 @@ export class OpenDoorUseCase implements OpenDoor {
     const calendar = await this.access.authenticate(input);
     const doors = await this.reader.listByCalendar(calendar.id);
     const door = doors.find((candidate) => candidate.number === input.number);
-    if (door === undefined) {
+    const now = this.clock.now();
+    const shown = door === undefined ? null : this.presenter.present(door, now);
+    if (door === undefined || shown === null) {
       throw new NotFoundError('Door', String(input.number));
     }
-    const now = this.clock.now();
-    if (this.presenter.present(door, now).state === 'locked') {
+    if (shown.state === 'locked') {
       throw new DoorLockedError(door.number, door.opensAt);
     }
     if (door.firstOpenedAt === null) {
