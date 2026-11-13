@@ -5,6 +5,8 @@ export interface RecipientCopy {
   readonly hello: (name: string) => string;
   readonly nextDoorIn: string;
   readonly allOpen: string;
+  /** Before the first door is published. */
+  readonly comingSoon: string;
   readonly open: string;
   readonly opensAt: (when: string) => string;
   readonly close: string;
@@ -32,6 +34,7 @@ export const RECIPIENT_COPY: Readonly<Record<CalendarLocale, RecipientCopy>> = {
     hello: (name) => `Hei, ${name}`,
     nextDoorIn: 'Neste luke åpner om',
     allOpen: 'Alle lukene er åpne 💛',
+    comingSoon: 'Kommer snart … 🎁',
     open: 'Åpne',
     opensAt: (when) => `Åpner ${when}`,
     close: 'Lukk',
@@ -61,6 +64,7 @@ export const RECIPIENT_COPY: Readonly<Record<CalendarLocale, RecipientCopy>> = {
     hello: (name) => `Hi, ${name}`,
     nextDoorIn: 'Next door opens in',
     allOpen: 'Every door is open 💛',
+    comingSoon: 'Coming soon … 🎁',
     open: 'Open',
     opensAt: (when) => `Opens ${when}`,
     close: 'Close',

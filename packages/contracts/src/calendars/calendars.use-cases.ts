@@ -6,6 +6,7 @@ import type {
   CalendarLocale,
   CalendarSettings,
   CalendarTheme,
+  CalendarVersionSummary,
 } from './calendars.model.js';
 
 /** An admin creates a calendar. It gets a fresh access key. */
@@ -24,7 +25,7 @@ export interface UpdateCalendarInput {
 
 /**
  * An admin changes a calendar's settings. The access key stays. A new default time or time zone
- * moves every door without its own time; a door moved into the future notifies again.
+ * moves the draft's doors without their own time; the recipient gets them with the next publish.
  */
 export interface UpdateCalendar {
   /**
@@ -46,10 +47,15 @@ export interface ListCalendars {
   execute(): Promise<Calendar[]>;
 }
 
-/** A calendar with every door in full, for the admin. */
+/** A calendar with its draft in full, for the admin. */
 export interface CalendarDetails {
   readonly calendar: Calendar;
+  /** The draft's doors, in order, with the recipient's progress. */
   readonly doors: DoorPreview[];
+  /** Whether publishing would change what the recipient has. */
+  readonly unpublishedChanges: boolean;
+  /** Newest first. */
+  readonly versions: CalendarVersionSummary[];
   /** Browsers that will get notifications. */
   readonly subscriberCount: number;
 }
@@ -57,6 +63,16 @@ export interface CalendarDetails {
 export interface GetCalendarDetails {
   /** @throws NotFoundError when the calendar does not exist. */
   execute(input: { readonly calendarId: CalendarId }): Promise<CalendarDetails>;
+}
+
+/**
+ * An admin publishes the draft as the calendar's next version. The recipient's doors become the
+ * draft's, numbered by date; her progress stays with each door, a door moved into the future
+ * notifies again, and doors no longer in the draft leave her calendar.
+ */
+export interface PublishCalendar {
+  /** @throws NotFoundError when the calendar does not exist. */
+  execute(input: { readonly calendarId: CalendarId }): Promise<CalendarVersionSummary>;
 }
 
 /** The calendar as the recipient sees it: open doors with content, locked ones without. */

@@ -112,7 +112,11 @@ UI copy uses the Norwegian in brackets.
 - **Calendar** (kalender): a series of doors for one recipient. Has a `slug` (its address,
   `/c/<slug>`), a `theme` (`birthday`, `christmas`), a `locale` for the fixed UI copy and an
   **access key**, the secret in her link.
-- **Door** (luke): numbered 1, 2, 3 …; opens on a day (`opensOn`) at the calendar's **default
+- **Draft** (utkast) and **version** (versjon): the admin edits a draft, which saves as she types;
+  **Publiser** turns it into the calendar's next numbered version (`CalendarVersion`). The
+  recipient and the notifications only see the published doors. Her progress (`notifiedAt`,
+  `firstOpenedAt`) stays with each door across versions.
+- **Door** (luke): numbered 1, 2, 3 … by when it opens (`DoorNumberCalculator`), never by hand; opens on a day (`opensOn`) at the calendar's **default
   open time** (`defaultOpenTime`, e.g. 08:00, in the calendar's `timeZone`) or at its own
   `openTime`. `opensAt` is that instant, derived by `DoorScheduleCalculator` and kept in step by
   the use cases (changing the default moves every door without its own time). Holds **content** (title, message, an

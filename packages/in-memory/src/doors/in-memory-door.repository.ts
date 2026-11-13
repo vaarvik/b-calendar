@@ -29,8 +29,8 @@ export class InMemoryDoorRepository implements DoorReader, DoorWriter {
   }
 
   public create(door: Door): Promise<void> {
-    if (this.rows.has(door.id) || this.numberTaken(door)) {
-      return Promise.reject(new ConflictError(`Door ${String(door.number)} exists.`));
+    if (this.rows.has(door.id)) {
+      return Promise.reject(new ConflictError(`Door ${door.id} exists.`));
     }
     this.rows.set(door.id, structuredClone(door));
     return Promise.resolve();
@@ -39,9 +39,6 @@ export class InMemoryDoorRepository implements DoorReader, DoorWriter {
   public save(door: Door): Promise<void> {
     if (!this.rows.has(door.id)) {
       return Promise.reject(new NotFoundError('Door', door.id));
-    }
-    if (this.numberTaken(door)) {
-      return Promise.reject(new ConflictError(`Door ${String(door.number)} exists.`));
     }
     this.rows.set(door.id, structuredClone(door));
     return Promise.resolve();
@@ -56,12 +53,5 @@ export class InMemoryDoorRepository implements DoorReader, DoorWriter {
 
   private all(): Door[] {
     return [...this.rows.values()].map((row) => structuredClone(row));
-  }
-
-  private numberTaken(door: Door): boolean {
-    return [...this.rows.values()].some(
-      (row) =>
-        row.calendarId === door.calendarId && row.number === door.number && row.id !== door.id,
-    );
   }
 }

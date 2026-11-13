@@ -363,32 +363,31 @@ function CalendarList({ onUnauthenticated }: Guarded) {
   );
 }
 
-type Step = 'setup' | 'share' | 'new' | number;
+/** A step of the wizard: the setup, one door (by id, since numbers follow the dates) or sharing. */
+type Step = 'setup' | 'share' | { readonly door: string };
 
 function parseStep(search: string): Step | null {
   const value = new URLSearchParams(search).get('steg');
-  if (value === 'oppsett') {
-    return 'setup';
+  if (value === null || value === '') {
+    return null;
   }
-  if (value === 'del') {
-    return 'share';
-  }
-  if (value === 'ny') {
-    return 'new';
-  }
-  const number = Number(value);
-  return value !== null && Number.isInteger(number) && number > 0 ? number : null;
+  return value === 'oppsett' ? 'setup' : value === 'del' ? 'share' : { door: value };
 }
 
 function stepParam(step: Step): string {
-  return step === 'setup'
-    ? 'oppsett'
-    : step === 'share'
-      ? 'del'
-      : step === 'new'
-        ? 'ny'
-        : String(step);
+  return step === 'setup' ? 'oppsett' : step === 'share' ? 'del' : step.door;
 }
+
+function sameStep(a: Step, b: Step): boolean {
+  return typeof a === 'string' || typeof b === 'string' ? a === b : a.door === b.door;
+}
+
+const PUBLISHED_AT = new Intl.DateTimeFormat('nb-NO', {
+  day: 'numeric',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+});
 
 function CalendarEditor({
   calendarId,
@@ -403,6 +402,7 @@ function CalendarEditor({
   );
   const [now, setNow] = useState(() => Date.now());
   const [chosen, setChosen] = useState<Step | null>(() => parseStep(location.search));
+  const [publishing, setPublishing] = useState(false);
 
   const load = useCallback(() => {
     admin.calendar(calendarId).then(setDetails, (caught: unknown) => {
@@ -430,10 +430,11 @@ function CalendarEditor({
     );
   }
   const { calendar, doors } = details;
-  const steps: Step[] = ['setup', ...doors.map((door) => door.number), 'new', 'share'];
-  const fallback: Step = doors[0]?.number ?? 'setup';
-  const step: Step = chosen !== null && steps.includes(chosen) ? chosen : fallback;
-  const index = steps.indexOf(step);
+  const steps: Step[] = ['setup', ...doors.map((door) => ({ door: door.id })), 'share'];
+  const fallback: Step = doors[0] === undefined ? 'setup' : { door: doors[0].id };
+  const step: Step =
+    chosen !== null && steps.some((candidate) => sameStep(candidate, chosen)) ? chosen : fallback;
+  const index = steps.findIndex((candidate) => sameStep(candidate, step));
   const go = (next: Step) => {
     history.replaceState(null, '', `/admin/${calendar.id}?steg=${stepParam(next)}`);
     setChosen(next);
@@ -445,9 +446,7 @@ function CalendarEditor({
 
   const link = `${location.origin}/c/${calendar.slug}?k=${encodeURIComponent(calendar.accessKey)}`;
   const last = doors.at(-1);
-  const nextNumber = (last?.number ?? 0) + 1;
   const nextDraft: DoorDraftDto = {
-    number: nextNumber,
     opensOn: new Date(
       last === undefined ? now + DAY : Date.parse(`${last.opensOn}T12:00:00Z`) + DAY,
     )
@@ -456,7 +455,7 @@ function CalendarEditor({
     openTime: null,
     featured: false,
     content: {
-      title: '',
+      title: 'Ny luke',
       message: '',
       imageUrl: null,
       linkUrl: null,
@@ -464,14 +463,43 @@ function CalendarEditor({
       confetti: false,
     },
     notification: {
-      title: `Luke ${String(nextNumber)} er åpen 🎁`,
+      title: 'En ny luke er åpen 🎁',
       body: 'Noe nytt venter på deg.',
     },
   };
+  const addDoor = () => {
+    admin.addDoor(calendar.id, nextDraft).then(
+      (added) => {
+        load();
+        go({ door: added.id });
+      },
+      (caught: unknown) => {
+        setError(message(caught));
+      },
+    );
+  };
+  const publish = () => {
+    setPublishing(true);
+    admin
+      .publish(calendar.id)
+      .then(
+        (version) => {
+          setNotice(`Publisert som versjon ${String(version.version)} ✓`);
+          load();
+        },
+        (caught: unknown) => {
+          setError(message(caught));
+        },
+      )
+      .finally(() => {
+        setPublishing(false);
+      });
+  };
+  const live = details.versions[0];
   const upload = async (file: File) => admin.uploadImage(await images.resize(file, 2000));
-  const showPreview = (draft: DoorDraftDto) => {
+  const showPreview = (number: number, draft: DoorDraftDto) => {
     setPreview({
-      number: draft.number,
+      number,
       content: {
         ...draft.content,
         link:
@@ -482,7 +510,7 @@ function CalendarEditor({
     });
   };
   const door =
-    typeof step === 'number' ? doors.find((candidate) => candidate.number === step) : undefined;
+    typeof step === 'string' ? undefined : doors.find((candidate) => candidate.id === step.door);
 
   return (
     <div className="wizard">
@@ -498,13 +526,30 @@ function CalendarEditor({
         </button>
       </header>
 
+      <div className={`publish${details.unpublishedChanges ? ' publish--pending' : ''}`}>
+        <span className="publish__state">
+          {live === undefined
+            ? `Ikke publisert – ${calendar.recipientName} ser ingen luker ennå.`
+            : `Versjon ${String(live.version)} · publisert ${PUBLISHED_AT.format(Date.parse(live.publishedAt))}`}
+          {details.unpublishedChanges && live !== undefined && ' · upubliserte endringer'}
+        </span>
+        <button
+          className="button"
+          disabled={publishing || !details.unpublishedChanges}
+          onClick={publish}
+        >
+          {publishing ? 'Publiserer …' : 'Publiser'}
+        </button>
+      </div>
+      {error !== null && <p className="error">{error}</p>}
+
       <nav className="rail" aria-label="Steg">
         {steps.map((candidate) => {
-          const active = candidate === step;
+          const active = sameStep(candidate, step);
           const railDoor =
-            typeof candidate === 'number'
-              ? doors.find((item) => item.number === candidate)
-              : undefined;
+            typeof candidate === 'string'
+              ? undefined
+              : doors.find((item) => item.id === candidate.door);
           // Ready: a hatch with a title and a photo; sharing once her phone gets notifications.
           const missing =
             railDoor === undefined
@@ -519,7 +564,7 @@ function CalendarEditor({
             (candidate === 'share' && details.subscriberCount > 0);
           return (
             <button
-              key={String(candidate)}
+              key={stepParam(candidate)}
               className={`rail__tile${active ? ' rail__tile--active' : ''}${done ? ' rail__tile--done' : ''}${railDoor?.content.imageUrl != null ? ' rail__tile--photo' : ''}`}
               title={missing ?? undefined}
               onClick={() => {
@@ -535,9 +580,7 @@ function CalendarEditor({
                   ? 'Oppsett'
                   : candidate === 'share'
                     ? 'Del'
-                    : candidate === 'new'
-                      ? '＋ Ny'
-                      : `Luke ${String(candidate)}`}
+                    : `Luke ${String(railDoor?.number ?? '')}`}
               </span>
               {done && <span className="rail__done">✓</span>}
               {railDoor?.featured === true && (
@@ -548,9 +591,12 @@ function CalendarEditor({
             </button>
           );
         })}
+        <button className="rail__tile rail__tile--add" onClick={addDoor}>
+          <span className="rail__label">＋ Ny luke</span>
+        </button>
       </nav>
 
-      <section className="wizard__stage" key={String(step)}>
+      <section className="wizard__stage" key={stepParam(step)}>
         {step === 'setup' && (
           <div className="door-form">
             <h2 className="door-form__title">⚙️ Oppsett</h2>
@@ -571,7 +617,6 @@ function CalendarEditor({
           <DoorForm
             key={door.id}
             door={door}
-            initial={door}
             defaultOpenTime={calendar.defaultOpenTime}
             onSave={async (draft) => {
               await admin.editDoor(door.id, draft);
@@ -585,7 +630,9 @@ function CalendarEditor({
               }
             }}
             onUpload={upload}
-            onPreview={showPreview}
+            onPreview={(draft) => {
+              showPreview(door.number, draft);
+            }}
             {...(following === undefined
               ? {}
               : {
@@ -593,21 +640,6 @@ function CalendarEditor({
                     go(following);
                   },
                 })}
-          />
-        )}
-
-        {step === 'new' && (
-          <DoorForm
-            key={`new-${String(nextNumber)}`}
-            initial={nextDraft}
-            defaultOpenTime={calendar.defaultOpenTime}
-            onSave={async (draft) => {
-              const added = await admin.addDoor(calendar.id, draft);
-              load();
-              go(added.number);
-            }}
-            onUpload={upload}
-            onPreview={showPreview}
           />
         )}
 
@@ -645,6 +677,22 @@ function CalendarEditor({
                   🔄 Ny lenke
                 </button>
               </div>
+            </fieldset>
+            <fieldset className="door-form__section">
+              <legend>🗂 Versjoner</legend>
+              {details.versions.length === 0 ? (
+                <p className="admin__muted">Ingenting publisert ennå.</p>
+              ) : (
+                <ul className="versions">
+                  {details.versions.map((version) => (
+                    <li key={version.version}>
+                      Versjon {version.version} ·{' '}
+                      {PUBLISHED_AT.format(Date.parse(version.publishedAt))} · {version.doorCount}{' '}
+                      luker
+                    </li>
+                  ))}
+                </ul>
+              )}
             </fieldset>
             <fieldset className="door-form__section">
               <legend>🔔 Varsler</legend>

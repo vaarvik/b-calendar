@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { DoorPreviewDto } from '@b-calendar/contracts';
 import type { DoorDraftDto } from '../admin/admin.ports';
 
@@ -13,22 +13,24 @@ export function fromLocalInput(value: string): string {
   return new Date(value).toISOString();
 }
 
+/** How long typing must pause before the draft saves itself. */
+const AUTOSAVE_MS = 700;
+
 interface DoorFormProps {
-  readonly initial: DoorDraftDto;
-  readonly door?: DoorPreviewDto;
+  readonly door: DoorPreviewDto;
   /** The calendar's default time of day, `HH:MM`. */
   readonly defaultOpenTime: string;
+  /** Saves the draft door; called by itself while she types. */
   readonly onSave: (draft: DoorDraftDto) => Promise<void>;
-  readonly onRemove?: () => Promise<void>;
+  readonly onRemove: () => Promise<void>;
   readonly onUpload: (file: File) => Promise<string>;
   readonly onPreview: (draft: DoorDraftDto) => void;
-  /** Shown as "Lagre og neste": save, then go to the next step. */
+  /** Shown as "Neste": saves what is pending, then goes to the next step. */
   readonly onNext?: () => void;
 }
 
-/** One door's fields. Empty optional fields become null. */
+/** One door's fields. Saves itself as she types; empty optional fields become null. */
 export function DoorForm({
-  initial,
   door,
   defaultOpenTime,
   onSave,
@@ -37,7 +39,7 @@ export function DoorForm({
   onPreview,
   onNext,
 }: DoorFormProps) {
-  const [number, setNumber] = useState(String(initial.number));
+  const initial = door;
   const [opensOn, setOpensOn] = useState(initial.opensOn);
   const [ownTime, setOwnTime] = useState(initial.openTime !== null);
   const [openTime, setOpenTime] = useState(initial.openTime ?? defaultOpenTime);
@@ -54,11 +56,10 @@ export function DoorForm({
   const [notificationTitle, setNotificationTitle] = useState(initial.notification.title);
   const [notificationBody, setNotificationBody] = useState(initial.notification.body);
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   const draft = (): DoorDraftDto => ({
-    number: Number(number),
     opensOn,
     openTime: ownTime ? openTime : null,
     featured,
@@ -79,10 +80,8 @@ export function DoorForm({
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
     setError(null);
-    setSaved(false);
     try {
       await action();
-      setSaved(true);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Noe gikk galt.');
     } finally {
@@ -90,62 +89,115 @@ export function DoorForm({
     }
   };
 
-  const opens =
-    door === undefined
-      ? null
-      : new Date(door.opensAt).toLocaleString('nb-NO', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+  // Autosave: what the form holds, against what was last saved.
+  const serialized = JSON.stringify(draft());
+  const [savedAs, setSavedAs] = useState(serialized);
+  // A save that failed is not retried until the form changes again.
+  const [failedAs, setFailedAs] = useState<string | null>(null);
+  const problem =
+    title.trim() === ''
+      ? 'Skriv en tittel, så lagres luken.'
+      : notificationTitle.trim() === ''
+        ? 'Varselet trenger en tittel.'
+        : opensOn === ''
+          ? 'Velg en dag.'
+          : null;
+  const dirty = serialized !== savedAs;
+  const save = useRef(onSave);
+  useEffect(() => {
+    save.current = onSave;
+  });
+  const flush = async () => {
+    if (dirty && problem === null) {
+      setSaving(true);
+      try {
+        await save.current(JSON.parse(serialized) as DoorDraftDto);
+        setSavedAs(serialized);
+        setFailedAs(null);
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
+  useEffect(() => {
+    if (!dirty || problem !== null || saving || serialized === failedAs) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setSaving(true);
+      setError(null);
+      save.current(JSON.parse(serialized) as DoorDraftDto).then(
+        () => {
+          setSavedAs(serialized);
+          setFailedAs(null);
+          setSaving(false);
+        },
+        (caught: unknown) => {
+          setError(caught instanceof Error ? caught.message : 'Kunne ikke lagre.');
+          setFailedAs(serialized);
+          setSaving(false);
+        },
+      );
+    }, AUTOSAVE_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [serialized, dirty, problem, saving, failedAs]);
+  const status =
+    problem ??
+    (saving
+      ? 'Lagrer …'
+      : failedAs === serialized
+        ? 'Ikke lagret – se feilen nederst'
+        : dirty
+          ? 'Ikke lagret ennå'
+          : 'Lagret ✓');
+
+  const opens = new Date(door.opensAt).toLocaleString('nb-NO', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
   return (
     <form
       className="door-form"
       onSubmit={(event) => {
         event.preventDefault();
-        void run(() => onSave(draft()));
+        void run(flush);
       }}
     >
       <header className="door-form__head">
         <h2 className="door-form__title">
-          {door === undefined ? 'Ny luke' : `Luke ${number}`}
+          {`Luke ${String(door.number)}`}
           {featured && ' 🎀'}
+          <span
+            className={`door-form__status${problem === null && !dirty ? ' door-form__status--saved' : ''}`}
+            aria-live="polite"
+          >
+            {status}
+          </span>
         </h2>
-        {door !== undefined && (
-          <div className="door-form__badges">
-            <span className="chip">🗓 {opens}</span>
-            <span className={`chip${door.notifiedAt === null ? '' : ' chip--good'}`}>
-              {door.notifiedAt === null ? '🔕 Ikke varslet' : '🔔 Varslet'}
-            </span>
-            <span className={`chip${door.firstOpenedAt === null ? '' : ' chip--good'}`}>
-              {door.firstOpenedAt === null
-                ? '🙈 Ikke åpnet'
-                : `👀 Åpnet ${new Date(door.firstOpenedAt).toLocaleString('nb-NO')}`}
-            </span>
-          </div>
-        )}
+        <div className="door-form__badges">
+          <span className="chip">🗓 {opens}</span>
+          <span className={`chip${door.notifiedAt === null ? '' : ' chip--good'}`}>
+            {door.notifiedAt === null ? '🔕 Ikke varslet' : '🔔 Varslet'}
+          </span>
+          <span className={`chip${door.firstOpenedAt === null ? '' : ' chip--good'}`}>
+            {door.firstOpenedAt === null
+              ? '🙈 Ikke åpnet'
+              : `👀 Åpnet ${new Date(door.firstOpenedAt).toLocaleString('nb-NO')}`}
+          </span>
+        </div>
       </header>
 
       <fieldset className="door-form__section">
         <legend>📅 Når</legend>
         <div className="form__grid">
           <label className="field">
-            Lukenummer
-            <input
-              type="number"
-              min={1}
-              value={number}
-              onChange={(e) => {
-                setNumber(e.target.value);
-              }}
-              required
-            />
-          </label>
-          <label className="field">
-            Dag
+            Dag (bestemmer lukenummeret)
             <input
               type="date"
               value={opensOn}
@@ -336,22 +388,19 @@ export function DoorForm({
 
       {error !== null && <p className="error">{error}</p>}
       <div className="door-form__actions">
-        <button className="button" type="submit" disabled={busy}>
-          {door === undefined ? 'Legg til luke' : 'Lagre'}
-        </button>
-        {onNext !== undefined && door !== undefined && (
+        {onNext !== undefined && (
           <button
-            className="button button--ghost"
+            className="button"
             type="button"
-            disabled={busy}
+            disabled={busy || problem !== null}
             onClick={() => {
               void run(async () => {
-                await onSave(draft());
+                await flush();
                 onNext();
               });
             }}
           >
-            Lagre og neste ▶
+            Neste ▶
           </button>
         )}
         <button
@@ -363,19 +412,16 @@ export function DoorForm({
         >
           Forhåndsvis
         </button>
-        {onRemove !== undefined && (
-          <button
-            className="button button--danger"
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              void run(onRemove);
-            }}
-          >
-            Slett
-          </button>
-        )}
-        {saved && <span className="door-form__saved">Lagret ✓</span>}
+        <button
+          className="button button--danger"
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            void run(onRemove);
+          }}
+        >
+          Slett
+        </button>
       </div>
     </form>
   );

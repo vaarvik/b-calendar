@@ -1,5 +1,6 @@
 import type {
   CalendarDetailsResponseDto,
+  RecipientCalendarResponseDto,
   CalendarDto,
   DoorPreviewDto,
 } from '@b-calendar/contracts';
@@ -17,7 +18,6 @@ const SETTINGS = {
 };
 
 const DRAFT = {
-  number: 1,
   opensOn: '2026-11-15',
   openTime: null,
   content: {
@@ -158,10 +158,48 @@ describe('the admin over HTTP', () => {
     });
     expect(details.json<CalendarDetailsResponseDto>()).toMatchObject({
       subscriberCount: 0,
-      doors: [{ id: door.id }],
+      unpublishedChanges: true,
+      versions: [],
+      doors: [{ id: door.id, number: 1 }],
     });
     expect(removed.statusCode).toBe(204);
     expect(after.json<CalendarDetailsResponseDto>().doors).toEqual([]);
+  });
+
+  it('publishes the draft as numbered versions', async () => {
+    const calendar = await createCalendar();
+    await api.app.inject({
+      method: 'POST',
+      url: `/v1/admin/calendars/${calendar.id}/doors`,
+      headers: auth,
+      payload: DRAFT,
+    });
+    const publish = () =>
+      api.app.inject({
+        method: 'POST',
+        url: `/v1/admin/calendars/${calendar.id}/publish`,
+        headers: auth,
+      });
+
+    const first = await publish();
+    const second = await publish();
+    const details = await api.app.inject({
+      url: `/v1/admin/calendars/${calendar.id}`,
+      headers: auth,
+    });
+    const recipient = await api.app.inject({
+      url: `/v1/calendars/${calendar.slug}`,
+      headers: { 'x-access-key': calendar.accessKey },
+    });
+
+    expect(first.statusCode).toBe(200);
+    expect(first.json()).toMatchObject({ version: 1, doorCount: 1 });
+    expect(second.json()).toMatchObject({ version: 2, doorCount: 1 });
+    expect(details.json<CalendarDetailsResponseDto>()).toMatchObject({
+      unpublishedChanges: false,
+      versions: [{ version: 2 }, { version: 1 }],
+    });
+    expect(recipient.json<RecipientCalendarResponseDto>().doors).toHaveLength(1);
   });
 
   it('refuses an invalid door and unknown ids', async () => {
@@ -170,7 +208,7 @@ describe('the admin over HTTP', () => {
       method: 'POST',
       url: `/v1/admin/calendars/${calendar.id}/doors`,
       headers: auth,
-      payload: { ...DRAFT, number: -1 },
+      payload: { ...DRAFT, opensOn: '15.11.2026' },
     });
     const notUuid = await api.app.inject({ url: '/v1/admin/calendars/nope', headers: auth });
     const unknown = await api.app.inject({

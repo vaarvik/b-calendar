@@ -5,6 +5,7 @@ import type {
   GetCalendarDetails,
   ListCalendars,
   LogIn,
+  PublishCalendar,
   RemoveDoor,
   RotateCalendarKey,
   SendTestNotification,
@@ -18,6 +19,7 @@ export interface AdminUseCases {
   readonly createCalendar: CreateCalendar;
   readonly getCalendarDetails: GetCalendarDetails;
   readonly updateCalendar: UpdateCalendar;
+  readonly publishCalendar: PublishCalendar;
   readonly rotateCalendarKey: RotateCalendarKey;
   readonly addDoor: AddDoor;
   readonly editDoor: EditDoor;

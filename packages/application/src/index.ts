@@ -3,6 +3,7 @@ export * from './calendars/create-calendar.use-case.js';
 export * from './calendars/get-calendar-details.use-case.js';
 export * from './calendars/key-calendar-access.authenticator.js';
 export * from './calendars/list-calendars.use-case.js';
+export * from './calendars/publish-calendar.use-case.js';
 export * from './calendars/rotate-calendar-key.use-case.js';
 export * from './calendars/update-calendar.use-case.js';
 export * from './calendars/view-calendar.use-case.js';

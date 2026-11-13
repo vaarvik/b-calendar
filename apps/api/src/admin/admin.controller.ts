@@ -5,6 +5,7 @@ import {
   CalendarIdSchema,
   CalendarListResponseDtoSchema,
   CalendarSettingsSchema,
+  CalendarVersionDtoSchema,
   DoorDraftSchema,
   DoorIdSchema,
   DoorPreviewDtoSchema,
@@ -77,6 +78,12 @@ export class AdminController implements HttpController {
       const calendarId = this.calendarId(request);
       const calendar = await useCases.rotateCalendarKey.execute({ calendarId });
       return CalendarDtoSchema.parse(this.dtos.calendar(calendar));
+    });
+
+    app.post('/v1/admin/calendars/:calendarId/publish', async (request) => {
+      const calendarId = this.calendarId(request);
+      const version = await useCases.publishCalendar.execute({ calendarId });
+      return CalendarVersionDtoSchema.parse(this.dtos.calendarVersion(version));
     });
 
     app.post('/v1/admin/calendars/:calendarId/test-notification', async (request) => {

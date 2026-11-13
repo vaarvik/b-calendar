@@ -1,7 +1,9 @@
 import type { CalendarId, DoorId } from '../shared/shared.model.js';
+import type { Calendar } from '../calendars/calendars.model.js';
 import type {
   Door,
   DoorContent,
+  DraftDoor,
   DoorLink,
   DoorPreview,
   OpenDoorContent,
@@ -18,15 +20,14 @@ export interface DoorReader {
   listUnnotified(at: Date): Promise<Door[]>;
 }
 
-/** Stores doors. */
+/** Stores published doors. Numbers are not unique while a publish renumbers. */
 export interface DoorWriter {
-  /** @throws ConflictError when the id, or the number within the calendar, is taken. */
+  /** @throws ConflictError when the id is taken. */
   create(door: Door): Promise<void>;
   /**
    * Replaces a door.
    *
    * @throws NotFoundError when no door has this id.
-   * @throws ConflictError when another door of the calendar has the number.
    */
   save(door: Door): Promise<void>;
   /** @throws NotFoundError when no door has this id. */
@@ -62,4 +63,61 @@ export interface DoorScheduleCalculator {
 /** A door as the admin sees it, with its link classified. */
 export interface DoorPreviewPresenter {
   preview(door: Door): DoorPreview;
+}
+
+/** Reads the doors the admin is writing. */
+export interface DraftDoorReader {
+  /** @throws NotFoundError when no draft door has this id. */
+  getById(id: DoorId): Promise<DraftDoor>;
+  /** The calendar's draft doors, by `opensOn`, then `addedAt`. */
+  listByCalendar(calendarId: CalendarId): Promise<DraftDoor[]>;
+}
+
+/** Stores the doors the admin is writing. */
+export interface DraftDoorWriter {
+  /** @throws ConflictError when the id is taken. */
+  create(door: DraftDoor): Promise<void>;
+  /** Replaces a draft door. @throws NotFoundError when no draft door has this id. */
+  save(door: DraftDoor): Promise<void>;
+  /** @throws NotFoundError when no draft door has this id. */
+  remove(id: DoorId): Promise<void>;
+}
+
+/** A door's place in its calendar: what numbering needs to know. */
+export interface DoorOrderKey {
+  readonly id: DoorId;
+  readonly opensAt: Date;
+  readonly addedAt: Date;
+}
+
+/** Numbers doors by when they open: door 1 is the earliest. */
+export interface DoorNumberCalculator {
+  /**
+   * @returns the doors in number order (door n at index n − 1): by `opensAt`, then `addedAt`, then
+   * id, so the same doors always get the same numbers.
+   */
+  ordered<T extends DoorOrderKey>(doors: readonly T[]): T[];
+}
+
+/**
+ * A calendar's draft as the admin sees it: each draft door scheduled in the calendar's time zone,
+ * numbered by date, with the recipient's progress from the published door of the same id.
+ */
+export interface DraftDoorPresenter {
+  /** @returns the previews in door order. */
+  present(
+    calendar: Calendar,
+    drafts: readonly DraftDoor[],
+    published: readonly Door[],
+  ): DoorPreview[];
+  /**
+   * @returns one draft door's preview, numbered among the others.
+   * @throws NotFoundError when `id` is not among the drafts.
+   */
+  presentOne(
+    calendar: Calendar,
+    drafts: readonly DraftDoor[],
+    published: readonly Door[],
+    id: DoorId,
+  ): DoorPreview;
 }

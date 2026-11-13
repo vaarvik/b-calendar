@@ -5,3 +5,5 @@ export * from './notifications/path-push-message.factory.js';
 export * from './shared/constant-time-secret.matcher.js';
 export * from './doors/link-door-preview.presenter.js';
 export * from './doors/zoned-door-schedule.calculator.js';
+export * from './doors/numbered-draft-door.presenter.js';
+export * from './doors/opens-at-door-number.calculator.js';

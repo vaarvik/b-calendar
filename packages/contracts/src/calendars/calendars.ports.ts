@@ -1,5 +1,5 @@
 import type { CalendarId } from '../shared/shared.model.js';
-import type { Calendar, CalendarAccess } from './calendars.model.js';
+import type { Calendar, CalendarAccess, CalendarVersion } from './calendars.model.js';
 
 /** Reads calendars. */
 export interface CalendarReader {
@@ -31,4 +31,16 @@ export interface CalendarAccessAuthenticator {
    * so a wrong guess does not tell which calendars exist).
    */
   authenticate(access: CalendarAccess): Promise<Calendar>;
+}
+
+/** Reads a calendar's published versions. */
+export interface CalendarVersionReader {
+  /** Newest first; `[]` before the first publish. */
+  listByCalendar(calendarId: CalendarId): Promise<CalendarVersion[]>;
+}
+
+/** Stores published versions. Versions are never changed. */
+export interface CalendarVersionWriter {
+  /** @throws ConflictError when the calendar already has this version number. */
+  create(version: CalendarVersion): Promise<void>;
 }

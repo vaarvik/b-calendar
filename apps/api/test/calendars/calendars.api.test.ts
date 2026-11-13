@@ -38,7 +38,6 @@ describe('the recipient’s calendar over HTTP', () => {
     await api.root.addDoor.execute({
       calendarId: calendar.id,
       draft: {
-        number: 1,
         featured: false,
         ...at(new Date(Date.now() - HOUR)),
         content: { ...content, title: 'Badetøy' },
@@ -48,13 +47,13 @@ describe('the recipient’s calendar over HTTP', () => {
     await api.root.addDoor.execute({
       calendarId: calendar.id,
       draft: {
-        number: 2,
         featured: true,
         ...at(new Date(Date.now() + HOUR)),
         content: { ...content, title: 'Hemmelig' },
         notification,
       },
     });
+    await api.root.publishCalendar.execute({ calendarId: calendar.id });
   });
 
   afterEach(() => api.close());

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Door } from '../doors/doors.model.js';
 import type { CalendarId } from '../shared/shared.model.js';
 import { TimeOfDaySchema, TimeZoneSchema } from '../shared/shared.model.js';
 
@@ -59,3 +60,23 @@ export const CalendarAccessSchema: z.ZodType<CalendarAccess> = z.object({
   slug: SlugSchema,
   accessKey: z.string().min(1).max(200),
 });
+
+/** A door as one version published it: what the recipient got, without her progress. */
+export type PublishedDoor = Omit<Door, 'calendarId' | 'notifiedAt' | 'firstOpenedAt'>;
+
+/** One publish of a calendar: the doors the recipient got, as they were. */
+export interface CalendarVersion {
+  readonly calendarId: CalendarId;
+  /** 1, 2, 3 … within the calendar. */
+  readonly version: number;
+  readonly publishedAt: Date;
+  /** By number. */
+  readonly doors: readonly PublishedDoor[];
+}
+
+/** A version without its doors, for a list. */
+export interface CalendarVersionSummary {
+  readonly version: number;
+  readonly publishedAt: Date;
+  readonly doorCount: number;
+}

@@ -2,6 +2,7 @@ import {
   CalendarDetailsResponseDtoSchema,
   CalendarDtoSchema,
   CalendarListResponseDtoSchema,
+  CalendarVersionDtoSchema,
   DoorPreviewDtoSchema,
   LogInResponseDtoSchema,
   SendTestNotificationResponseDtoSchema,
@@ -11,6 +12,7 @@ import type {
   CalendarDetailsResponseDto,
   CalendarDto,
   CalendarSettings,
+  CalendarVersionDto,
   DoorPreviewDto,
   SendTestNotificationResponseDto,
 } from '@b-calendar/contracts';
@@ -104,6 +106,14 @@ export class HttpAdminClient implements AdminClient {
 
   public removeDoor(doorId: string): Promise<void> {
     return this.send({ method: 'DELETE', path: `/v1/admin/doors/${doorId}` });
+  }
+
+  public publish(calendarId: string): Promise<CalendarVersionDto> {
+    return this.send({
+      method: 'POST',
+      path: `/v1/admin/calendars/${calendarId}/publish`,
+      schema: CalendarVersionDtoSchema,
+    });
   }
 
   public sendTestNotification(calendarId: string): Promise<SendTestNotificationResponseDto> {

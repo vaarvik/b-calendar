@@ -2,6 +2,7 @@ import type { Migration, MigrationProvider } from 'kysely/migration';
 import { M0001CalendarsMigration } from './m0001-calendars.migration.js';
 import { M0002FeaturedDoorsMigration } from './m0002-featured-doors.migration.js';
 import { M0003DoorTimesOfDayMigration } from './m0003-door-times-of-day.migration.js';
+import { M0004DraftsAndVersionsMigration } from './m0004-drafts-and-versions.migration.js';
 
 /**
  * Every migration, keyed so that string order is execution order. Add new ones at the end.
@@ -14,6 +15,7 @@ export class AllMigrationsProvider implements MigrationProvider {
       '0001_calendars': new M0001CalendarsMigration(),
       '0002_featured_doors': new M0002FeaturedDoorsMigration(),
       '0003_door_times_of_day': new M0003DoorTimesOfDayMigration(),
+      '0004_drafts_and_versions': new M0004DraftsAndVersionsMigration(),
     };
     return Promise.resolve(
       Object.fromEntries(

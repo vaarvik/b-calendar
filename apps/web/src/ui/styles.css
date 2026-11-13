@@ -1301,3 +1301,52 @@ button {
 .form__grid {
   align-items: start;
 }
+
+/* Publishing: what she has, and whether the draft differs. */
+.publish {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.publish--pending {
+  border-color: var(--accent);
+}
+
+.publish__state {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.publish--pending .publish__state {
+  color: var(--text);
+}
+
+.door-form__status {
+  margin-left: 12px;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.door-form__status--saved {
+  color: var(--accent);
+}
+
+.rail__tile--add {
+  border-style: dashed;
+}
+
+.versions {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  line-height: 1.8;
+}

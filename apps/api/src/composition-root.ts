@@ -5,6 +5,7 @@ import {
   GetCalendarDetailsUseCase,
   KeyCalendarAccessAuthenticator,
   ListCalendarsUseCase,
+  PublishCalendarUseCase,
   LogInUseCase,
   NotifyOpenedDoorsUseCase,
   OpenDoorUseCase,
@@ -18,6 +19,11 @@ import {
   ZodInputValidator,
 } from '@b-calendar/application';
 import type {
+  CalendarVersionReader,
+  CalendarVersionWriter,
+  DraftDoorReader,
+  DraftDoorWriter,
+  PublishCalendar,
   CalendarReader,
   CalendarWriter,
   CreateCalendar,
@@ -31,6 +37,8 @@ import type {
   SubscriptionWriter,
 } from '@b-calendar/contracts';
 import {
+  NumberedDraftDoorPresenter,
+  OpensAtDoorNumberCalculator,
   ConstantTimeSecretMatcher,
   GraceWindowNotificationDecider,
   LinkDoorPreviewPresenter,
@@ -41,6 +49,8 @@ import {
 } from '@b-calendar/domain';
 import {
   InMemoryCalendarRepository,
+  InMemoryCalendarVersionRepository,
+  InMemoryDraftDoorRepository,
   InMemoryDoorRepository,
   InMemorySubscriptionRepository,
 } from '@b-calendar/in-memory';
@@ -54,8 +64,10 @@ import { AdminController } from './admin/admin.controller.js';
 import { BearerAdminAuthenticator } from './admin/bearer-admin.authenticator.js';
 import { HmacAdminSessionService } from './admin/hmac-admin-session.service.js';
 import { CalendarsController } from './calendars/calendars.controller.js';
+import { PgCalendarVersionRepository } from './calendars/pg-calendar-version.repository.js';
 import { PgCalendarRepository } from './calendars/pg-calendar.repository.js';
 import { PgDoorRepository } from './doors/pg-door.repository.js';
+import { PgDraftDoorRepository } from './doors/pg-draft-door.repository.js';
 import { DiskMediaStorage } from './media/disk-media.storage.js';
 import { MediaController } from './media/media.controller.js';
 import { AllMigrationsProvider } from './migrations/all-migrations.provider.js';
@@ -154,6 +166,8 @@ export const ApiConfigSchema: z.ZodType<ApiConfig> = z
 interface Storage {
   readonly calendars: CalendarReader & CalendarWriter;
   readonly doors: DoorReader & DoorWriter;
+  readonly drafts: DraftDoorReader & DraftDoorWriter;
+  readonly versions: CalendarVersionReader & CalendarVersionWriter;
   readonly subscriptions: SubscriptionReader & SubscriptionWriter;
 }
 
@@ -166,6 +180,7 @@ export class CompositionRoot {
   public readonly notifyOpenedDoors: NotifyOpenedDoors;
   public readonly createCalendar: CreateCalendar;
   public readonly addDoor: AddDoor;
+  public readonly publishCalendar: PublishCalendar;
   public readonly logger: Logger;
   private readonly scheduler: JobScheduler;
   private readonly db: Kysely<Database> | null;
@@ -194,7 +209,7 @@ export class CompositionRoot {
             }),
           })
         : null;
-    const { calendars, doors, subscriptions } =
+    const { calendars, doors, drafts, versions, subscriptions } =
       this.db === null ? this.inMemoryStorage() : this.postgresStorage(this.db);
 
     const push: PushSender =
@@ -210,7 +225,31 @@ export class CompositionRoot {
     const admin = new BearerAdminAuthenticator(sessions);
 
     this.createCalendar = new CreateCalendarUseCase(calendars, ids, secrets, clock, validator);
-    this.addDoor = new AddDoorUseCase(calendars, doors, previews, schedule, ids, validator);
+    const draftPresenter = new NumberedDraftDoorPresenter(
+      schedule,
+      new OpensAtDoorNumberCalculator(),
+      previews,
+    );
+    this.addDoor = new AddDoorUseCase(
+      calendars,
+      drafts,
+      drafts,
+      doors,
+      draftPresenter,
+      ids,
+      clock,
+      validator,
+    );
+    this.publishCalendar = new PublishCalendarUseCase(
+      calendars,
+      drafts,
+      doors,
+      doors,
+      versions,
+      versions,
+      draftPresenter,
+      clock,
+    );
     this.notifyOpenedDoors = new NotifyOpenedDoorsUseCase(
       doors,
       doors,
@@ -247,31 +286,25 @@ export class CompositionRoot {
             createCalendar: this.createCalendar,
             getCalendarDetails: new GetCalendarDetailsUseCase(
               calendars,
+              drafts,
               doors,
+              versions,
               subscriptions,
-              previews,
+              draftPresenter,
             ),
-            updateCalendar: new UpdateCalendarUseCase(
-              calendars,
-              calendars,
-              doors,
-              doors,
-              schedule,
-              clock,
-              validator,
-            ),
+            updateCalendar: new UpdateCalendarUseCase(calendars, calendars, validator),
+            publishCalendar: this.publishCalendar,
             rotateCalendarKey: new RotateCalendarKeyUseCase(calendars, calendars, secrets),
             addDoor: this.addDoor,
             editDoor: new EditDoorUseCase(
               calendars,
+              drafts,
+              drafts,
               doors,
-              doors,
-              previews,
-              schedule,
-              clock,
+              draftPresenter,
               validator,
             ),
-            removeDoor: new RemoveDoorUseCase(doors),
+            removeDoor: new RemoveDoorUseCase(drafts),
             sendTestNotification: new SendTestNotificationUseCase(
               calendars,
               subscriptions,
@@ -358,6 +391,8 @@ export class CompositionRoot {
     return {
       calendars: new InMemoryCalendarRepository(),
       doors: new InMemoryDoorRepository(),
+      drafts: new InMemoryDraftDoorRepository(),
+      versions: new InMemoryCalendarVersionRepository(),
       subscriptions: new InMemorySubscriptionRepository(),
     };
   }
@@ -367,6 +402,8 @@ export class CompositionRoot {
     return {
       calendars: new PgCalendarRepository(db, errors),
       doors: new PgDoorRepository(db, errors),
+      drafts: new PgDraftDoorRepository(db, errors),
+      versions: new PgCalendarVersionRepository(db, errors),
       subscriptions: new PgSubscriptionRepository(db),
     };
   }

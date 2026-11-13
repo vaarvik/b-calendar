@@ -248,7 +248,9 @@ export function CalendarScreen({ slug }: { readonly slug: string }) {
       <header className="calendar__header">
         <p className="calendar__hello">{copy.hello(calendar.recipientName)}</p>
         <h1 className="calendar__title">{calendar.title}</h1>
-        {nextOpensAt === null ? (
+        {calendar.doors.length === 0 ? (
+          <p className="calendar__next">{copy.comingSoon}</p>
+        ) : nextOpensAt === null ? (
           <p className="calendar__next">{copy.allOpen}</p>
         ) : (
           <div className="calendar__next">

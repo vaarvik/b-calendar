@@ -30,7 +30,10 @@ if (command === 'vapid-keys') {
     for (const draft of BIRTHDAY_WEEK.doors) {
       await root.addDoor.execute({ calendarId: calendar.id, draft });
     }
-    console.log(`Created ${calendar.title} with ${String(BIRTHDAY_WEEK.doors.length)} doors.`);
+    const version = await root.publishCalendar.execute({ calendarId: calendar.id });
+    console.log(
+      `Created ${calendar.title} with ${String(version.doorCount)} doors, published as version ${String(version.version)}.`,
+    );
     console.log(
       `Her link: ${values.origin}/c/${calendar.slug}?k=${encodeURIComponent(calendar.accessKey)}`,
     );

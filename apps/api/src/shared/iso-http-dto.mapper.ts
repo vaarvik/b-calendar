@@ -3,6 +3,8 @@ import type {
   CalendarDetails,
   CalendarDetailsResponseDto,
   CalendarDto,
+  CalendarVersionDto,
+  CalendarVersionSummary,
   DoorCountdown,
   DoorCountdownDto,
   DoorPreview,
@@ -27,8 +29,14 @@ export class IsoHttpDtoMapper implements HttpDtoMapper {
     return {
       calendar: this.calendar(details.calendar),
       doors: details.doors.map((door) => this.doorPreview(door)),
+      unpublishedChanges: details.unpublishedChanges,
+      versions: details.versions.map((version) => this.calendarVersion(version)),
       subscriberCount: details.subscriberCount,
     };
+  }
+
+  public calendarVersion(version: CalendarVersionSummary): CalendarVersionDto {
+    return { ...version, publishedAt: version.publishedAt.toISOString() };
   }
 
   public recipientCalendar(calendar: RecipientCalendar): RecipientCalendarResponseDto {

@@ -30,12 +30,11 @@ export interface AddDoorInput {
   readonly draft: DoorDraft;
 }
 
-/** An admin adds a door. */
+/** An admin adds a door to the draft. The recipient gets it with the next publish. */
 export interface AddDoor {
   /**
    * @throws ValidationError when the draft is invalid.
    * @throws NotFoundError when the calendar does not exist.
-   * @throws ConflictError when the number is taken.
    */
   execute(input: AddDoorInput): Promise<DoorPreview>;
 }
@@ -45,21 +44,17 @@ export interface EditDoorInput {
   readonly draft: DoorDraft;
 }
 
-/**
- * An admin changes a door. Moving `opensAt` into the future makes it notify again; the
- * recipient's first look is kept.
- */
+/** An admin changes a draft door, as she types. The recipient gets it with the next publish. */
 export interface EditDoor {
   /**
    * @throws ValidationError when the draft is invalid.
-   * @throws NotFoundError when the door does not exist.
-   * @throws ConflictError when the number is taken.
+   * @throws NotFoundError when the draft door does not exist.
    */
   execute(input: EditDoorInput): Promise<DoorPreview>;
 }
 
-/** An admin removes a door. */
+/** An admin removes a door from the draft. It leaves the recipient's calendar with the next publish. */
 export interface RemoveDoor {
-  /** @throws NotFoundError when the door does not exist. */
+  /** @throws NotFoundError when the draft door does not exist. */
   execute(input: { readonly doorId: DoorId }): Promise<void>;
 }

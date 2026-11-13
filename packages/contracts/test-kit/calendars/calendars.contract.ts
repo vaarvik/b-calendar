@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { ConflictError, NotFoundError } from '../../src/index.js';
-import type { CalendarReader, CalendarWriter } from '../../src/index.js';
+import type {
+  CalendarReader,
+  CalendarVersionReader,
+  CalendarVersionWriter,
+  CalendarWriter,
+} from '../../src/index.js';
 import { FixtureHolder } from '../fixture.js';
 import type { FixtureFactory } from '../fixture.js';
 import { T0, TestData, hoursAfter } from '../test-data.js';
@@ -80,6 +85,76 @@ export function describeCalendarRepositoryContract(
 
       await expect(
         fixture.current.writer.save({ ...second, slug: first.slug }),
+      ).rejects.toBeInstanceOf(ConflictError);
+    });
+  });
+}
+
+export interface CalendarVersionRepositoryFixture {
+  readonly writer: CalendarVersionWriter;
+  readonly reader: CalendarVersionReader;
+  /** Versions belong to a calendar that must exist. */
+  readonly calendars: CalendarWriter;
+}
+
+/** Behaviour every CalendarVersionWriter and CalendarVersionReader pair must have. */
+export function describeCalendarVersionRepositoryContract(
+  name: string,
+  factory: FixtureFactory<CalendarVersionRepositoryFixture>,
+): void {
+  describe(`${name} satisfies CalendarVersionReader and CalendarVersionWriter`, () => {
+    const fixture = new FixtureHolder(factory);
+
+    async function calendar(data: TestData) {
+      const created = data.calendar();
+      await fixture.current.calendars.create(created);
+      return created.id;
+    }
+
+    it('lists a calendar’s versions newest first, with their doors as published', async () => {
+      const data = new TestData();
+      const calendarId = await calendar(data);
+      const first = data.version(calendarId);
+      const second = data.version(calendarId, { version: 2, publishedAt: hoursAfter(T0, 1) });
+      await fixture.current.writer.create(first);
+      await fixture.current.writer.create(second);
+      await fixture.current.writer.create(data.version(await calendar(data)));
+
+      await expect(fixture.current.reader.listByCalendar(calendarId)).resolves.toEqual([
+        second,
+        first,
+      ]);
+    });
+
+    it('keeps every door field, dates included', async () => {
+      const data = new TestData();
+      const calendarId = await calendar(data);
+      const door = data.publishedDoor({
+        number: 2,
+        openTime: '17:30',
+        featured: true,
+        content: data.content({ countdown: { to: hoursAfter(T0, 5), label: 'nå' } }),
+      });
+      const version = data.version(calendarId, { doors: [door] });
+      await fixture.current.writer.create(version);
+
+      await expect(fixture.current.reader.listByCalendar(calendarId)).resolves.toEqual([version]);
+    });
+
+    it('lists nothing before the first publish', async () => {
+      const data = new TestData();
+      await expect(fixture.current.reader.listByCalendar(await calendar(data))).resolves.toEqual(
+        [],
+      );
+    });
+
+    it('throws ConflictError when the version number is taken', async () => {
+      const data = new TestData();
+      const calendarId = await calendar(data);
+      await fixture.current.writer.create(data.version(calendarId));
+
+      await expect(
+        fixture.current.writer.create(data.version(calendarId, { doors: [] })),
       ).rejects.toBeInstanceOf(ConflictError);
     });
   });

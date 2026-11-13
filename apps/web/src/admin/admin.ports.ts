@@ -2,13 +2,13 @@ import type {
   CalendarDetailsResponseDto,
   CalendarDto,
   CalendarSettings,
+  CalendarVersionDto,
   DoorPreviewDto,
   SendTestNotificationResponseDto,
 } from '@b-calendar/contracts';
 
-/** A door as the admin's form sends it: times as ISO strings. */
+/** A door as the admin's form sends it: times as ISO strings. Its number follows from the date. */
 export interface DoorDraftDto {
-  readonly number: number;
   /** `YYYY-MM-DD` in the calendar's time zone. */
   readonly opensOn: string;
   /** `HH:MM`; null uses the calendar's default time. */
@@ -39,6 +39,8 @@ export interface AdminClient {
   addDoor(calendarId: string, draft: DoorDraftDto): Promise<DoorPreviewDto>;
   editDoor(doorId: string, draft: DoorDraftDto): Promise<DoorPreviewDto>;
   removeDoor(doorId: string): Promise<void>;
+  /** Gives the recipient the draft as the calendar's next version. */
+  publish(calendarId: string): Promise<CalendarVersionDto>;
   sendTestNotification(calendarId: string): Promise<SendTestNotificationResponseDto>;
   /** @returns the uploaded image's URL. */
   uploadImage(image: Blob): Promise<string>;

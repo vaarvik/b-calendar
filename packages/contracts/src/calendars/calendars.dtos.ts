@@ -38,15 +38,31 @@ export const CalendarListResponseDtoSchema: z.ZodType<CalendarListResponseDto> =
   calendars: z.array(CalendarDtoSchema),
 });
 
+export interface CalendarVersionDto {
+  readonly version: number;
+  readonly publishedAt: string;
+  readonly doorCount: number;
+}
+
+export const CalendarVersionDtoSchema: z.ZodType<CalendarVersionDto> = z.object({
+  version: z.int().positive(),
+  publishedAt: z.string(),
+  doorCount: z.int().nonnegative(),
+});
+
 export interface CalendarDetailsResponseDto {
   readonly calendar: CalendarDto;
   readonly doors: readonly DoorPreviewDto[];
+  readonly unpublishedChanges: boolean;
+  readonly versions: readonly CalendarVersionDto[];
   readonly subscriberCount: number;
 }
 
 export const CalendarDetailsResponseDtoSchema: z.ZodType<CalendarDetailsResponseDto> = z.object({
   calendar: CalendarDtoSchema,
   doors: z.array(DoorPreviewDtoSchema),
+  unpublishedChanges: z.boolean(),
+  versions: z.array(CalendarVersionDtoSchema),
   subscriberCount: z.int().nonnegative(),
 });
 

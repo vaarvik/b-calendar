@@ -1,3 +1,4 @@
+import type { ColumnType } from 'kysely';
 /** What an error becomes on the wire. `unexpected` errors are logged; their details are hidden. */
 export interface HttpErrorResponse {
   readonly statusCode: number;
@@ -49,8 +50,30 @@ export interface SubscriptionsTable {
   created_at: Date;
 }
 
+/** jsonb: read as parsed JSON, written as JSON text (node-postgres would turn arrays into Postgres arrays). */
+export type JsonColumn = ColumnType<unknown, string, string>;
+
+export interface DoorDraftsTable {
+  id: string;
+  calendar_id: string;
+  opens_on: string;
+  added_at: Date;
+  /** The DoorDraft. */
+  draft: JsonColumn;
+}
+
+export interface CalendarVersionsTable {
+  calendar_id: string;
+  version: number;
+  published_at: Date;
+  /** The PublishedDoor list, by number. */
+  doors: JsonColumn;
+}
+
 export interface Database {
   calendars: CalendarsTable;
   doors: DoorsTable;
+  door_drafts: DoorDraftsTable;
+  calendar_versions: CalendarVersionsTable;
   subscriptions: SubscriptionsTable;
 }

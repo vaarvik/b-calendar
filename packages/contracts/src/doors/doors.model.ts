@@ -39,11 +39,15 @@ export interface DoorNotification {
   readonly body: string;
 }
 
-/** One door of a calendar. Locked until `opensAt`. */
+/**
+ * One door of a calendar as the recipient has it: the published door. Locked until `opensAt`.
+ * Written by PublishCalendar from the draft; her progress (`notifiedAt`, `firstOpenedAt`) stays
+ * with the door across versions.
+ */
 export interface Door {
   readonly id: DoorId;
   readonly calendarId: CalendarId;
-  /** 1, 2, 3 …; unique within the calendar. */
+  /** 1, 2, 3 …: its place by `opensAt`, set when published. */
   readonly number: number;
   /** The day it opens, `YYYY-MM-DD`, in the calendar's time zone. */
   readonly opensOn: string;
@@ -65,12 +69,17 @@ export interface Door {
 }
 
 const httpUrl = z.url({ protocol: /^https?$/ }).max(2000);
-/** An uploaded file, served by the API, or an absolute http(s) URL. */
-const mediaUrl = z.union([z.string().regex(/^\/media\/[A-Za-z0-9._-]+$/), httpUrl]);
+/** A file on this site (an upload at `/media/…`, an icon), or an absolute http(s) URL. */
+const mediaUrl = z.union([
+  z
+    .string()
+    .max(500)
+    .regex(/^\/(?!\/)[A-Za-z0-9._/-]+$/),
+  httpUrl,
+]);
 
-/** What the admin writes into a door. */
+/** What the admin writes into a door. Its number follows from the day and time. */
 export interface DoorDraft {
-  readonly number: number;
   readonly opensOn: string;
   readonly openTime: string | null;
   readonly featured: boolean;
@@ -79,7 +88,6 @@ export interface DoorDraft {
 }
 
 export const DoorDraftSchema: z.ZodType<DoorDraft> = z.object({
-  number: z.int().min(1).max(366),
   opensOn: LocalDateSchema,
   openTime: TimeOfDaySchema.nullable().default(null),
   featured: z.boolean().default(false),
@@ -102,7 +110,21 @@ export const DoorDraftSchema: z.ZodType<DoorDraft> = z.object({
   }),
 });
 
-/** A door as the admin sees it: everything, plus the link classified. */
+/**
+ * A door the admin is writing. Saved as she types; the recipient never sees it until the calendar
+ * is published. Shares its id with the published door it becomes.
+ */
+export interface DraftDoor extends DoorDraft {
+  readonly id: DoorId;
+  readonly calendarId: CalendarId;
+  /** Orders two doors that open at the same instant. */
+  readonly addedAt: Date;
+}
+
+/**
+ * A door as the admin sees it: the draft, numbered and scheduled, its link classified, with the
+ * recipient's progress on the published door of the same id (null when not published).
+ */
 export interface DoorPreview extends Door {
   readonly link: DoorLink | null;
 }

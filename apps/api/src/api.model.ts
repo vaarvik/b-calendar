@@ -17,7 +17,6 @@ export const BIRTHDAY_WEEK: {
   },
   doors: [
     {
-      number: 1,
       featured: false,
       opensOn: '2026-11-15',
       openTime: null,
@@ -32,7 +31,6 @@ export const BIRTHDAY_WEEK: {
       notification: { title: 'Første hint 🎁', body: 'Luke 1 er åpen.' },
     },
     {
-      number: 2,
       featured: false,
       opensOn: '2026-11-16',
       openTime: null,
@@ -47,7 +45,6 @@ export const BIRTHDAY_WEEK: {
       notification: { title: 'Hint nummer to 🎶', body: 'Luke 2 er åpen.' },
     },
     {
-      number: 3,
       featured: false,
       opensOn: '2026-11-17',
       openTime: null,
@@ -62,7 +59,6 @@ export const BIRTHDAY_WEEK: {
       notification: { title: 'Nytt hint 🎁', body: 'Luke 3 er åpen.' },
     },
     {
-      number: 4,
       featured: false,
       opensOn: '2026-11-18',
       openTime: null,
@@ -77,7 +73,6 @@ export const BIRTHDAY_WEEK: {
       notification: { title: 'Nytt hint 🎁', body: 'Luke 4 er åpen.' },
     },
     {
-      number: 5,
       featured: true,
       opensOn: '2026-11-19',
       openTime: null,

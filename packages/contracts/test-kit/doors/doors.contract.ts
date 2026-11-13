@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { ConflictError, NotFoundError } from '../../src/index.js';
-import type { CalendarWriter, DoorReader, DoorWriter } from '../../src/index.js';
+import type {
+  CalendarWriter,
+  DoorReader,
+  DoorWriter,
+  DraftDoorReader,
+  DraftDoorWriter,
+} from '../../src/index.js';
 import { FixtureHolder } from '../fixture.js';
 import type { FixtureFactory } from '../fixture.js';
 import { T0, TestData, hoursAfter } from '../test-data.js';
@@ -69,14 +75,16 @@ export function describeDoorRepositoryContract(
       ]);
     });
 
-    it('throws ConflictError when the number is taken in the calendar', async () => {
+    it('throws ConflictError for a taken id, and lets two doors share a number', async () => {
       const data = new TestData();
       const calendarId = await calendar(data);
-      await fixture.current.writer.create(data.door(calendarId, { number: 4 }));
+      const door = data.door(calendarId, { number: 4 });
+      await fixture.current.writer.create(door);
 
+      await expect(fixture.current.writer.create(door)).rejects.toBeInstanceOf(ConflictError);
       await expect(
         fixture.current.writer.create(data.door(calendarId, { number: 4 })),
-      ).rejects.toBeInstanceOf(ConflictError);
+      ).resolves.toBeUndefined();
     });
 
     it('lists opened, unnotified doors of every calendar, oldest first', async () => {
@@ -123,22 +131,107 @@ export function describeDoorRepositoryContract(
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
-    it('throws ConflictError when saving with another door’s number', async () => {
-      const data = new TestData();
-      const calendarId = await calendar(data);
-      const one = data.door(calendarId, { number: 1 });
-      const two = data.door(calendarId, { number: 2 });
-      await fixture.current.writer.create(one);
-      await fixture.current.writer.create(two);
-
-      await expect(fixture.current.writer.save({ ...two, number: 1 })).rejects.toBeInstanceOf(
-        ConflictError,
-      );
-    });
-
     it('removes a door, and throws NotFoundError when it is already gone', async () => {
       const data = new TestData();
       const door = data.door(await calendar(data));
+      await fixture.current.writer.create(door);
+
+      await fixture.current.writer.remove(door.id);
+
+      await expect(fixture.current.reader.getById(door.id)).rejects.toBeInstanceOf(NotFoundError);
+      await expect(fixture.current.writer.remove(door.id)).rejects.toBeInstanceOf(NotFoundError);
+    });
+  });
+}
+
+export interface DraftDoorRepositoryFixture {
+  readonly writer: DraftDoorWriter;
+  readonly reader: DraftDoorReader;
+  /** Draft doors belong to a calendar that must exist. */
+  readonly calendars: CalendarWriter;
+}
+
+/** Behaviour every DraftDoorWriter and DraftDoorReader pair must have. */
+export function describeDraftDoorRepositoryContract(
+  name: string,
+  factory: FixtureFactory<DraftDoorRepositoryFixture>,
+): void {
+  describe(`${name} satisfies DraftDoorReader and DraftDoorWriter`, () => {
+    const fixture = new FixtureHolder(factory);
+
+    async function calendar(data: TestData) {
+      const created = data.calendar();
+      await fixture.current.calendars.create(created);
+      return created.id;
+    }
+
+    it('reads back a created draft door with every field', async () => {
+      const data = new TestData();
+      const door = data.draftDoor(await calendar(data), {
+        featured: true,
+        opensOn: '2026-12-24',
+        openTime: '17:30',
+        content: data.content({
+          imageUrl: '/media/a.jpg',
+          linkUrl: 'https://open.spotify.com/track/abc',
+          countdown: { to: hoursAfter(T0, 1), label: 'til vi drar' },
+          confetti: true,
+        }),
+        addedAt: hoursAfter(T0, 2),
+      });
+
+      await fixture.current.writer.create(door);
+
+      await expect(fixture.current.reader.getById(door.id)).resolves.toEqual(door);
+    });
+
+    it('throws NotFoundError for an unknown draft door, and ConflictError for a taken id', async () => {
+      const data = new TestData();
+      const door = data.draftDoor(await calendar(data));
+      await fixture.current.writer.create(door);
+
+      await expect(fixture.current.reader.getById(data.doorId())).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
+      await expect(fixture.current.writer.create(door)).rejects.toBeInstanceOf(ConflictError);
+    });
+
+    it('lists a calendar’s draft doors by day, then by when they were added', async () => {
+      const data = new TestData();
+      const calendarId = await calendar(data);
+      const later = data.draftDoor(calendarId, { opensOn: '2026-11-17' });
+      const sameDaySecond = data.draftDoor(calendarId, { addedAt: hoursAfter(T0, 1) });
+      const sameDayFirst = data.draftDoor(calendarId);
+      await fixture.current.writer.create(later);
+      await fixture.current.writer.create(sameDaySecond);
+      await fixture.current.writer.create(sameDayFirst);
+      await fixture.current.writer.create(data.draftDoor(await calendar(data)));
+
+      await expect(fixture.current.reader.listByCalendar(calendarId)).resolves.toEqual([
+        sameDayFirst,
+        sameDaySecond,
+        later,
+      ]);
+    });
+
+    it('replaces a draft door, and throws NotFoundError for an unknown one', async () => {
+      const data = new TestData();
+      const calendarId = await calendar(data);
+      const door = data.draftDoor(calendarId);
+      await fixture.current.writer.create(door);
+      const changed = { ...door, opensOn: '2026-11-16', content: data.content({ title: 'Ny' }) };
+
+      await fixture.current.writer.save(changed);
+
+      await expect(fixture.current.reader.getById(door.id)).resolves.toEqual(changed);
+      await expect(fixture.current.writer.save(data.draftDoor(calendarId))).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
+    });
+
+    it('removes a draft door, and throws NotFoundError when it is already gone', async () => {
+      const data = new TestData();
+      const door = data.draftDoor(await calendar(data));
       await fixture.current.writer.create(door);
 
       await fixture.current.writer.remove(door.id);

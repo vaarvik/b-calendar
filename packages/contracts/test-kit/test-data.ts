@@ -2,9 +2,12 @@ import { randomUUID } from 'node:crypto';
 import type {
   Calendar,
   CalendarId,
+  CalendarVersion,
   Door,
   DoorContent,
   DoorId,
+  DraftDoor,
+  PublishedDoor,
   Subscription,
   SubscriptionId,
 } from '../src/index.js';
@@ -81,6 +84,47 @@ export class TestData {
       notification: { title: 'Luke 1 er åpen', body: 'Et nytt hint venter.' },
       notifiedAt: null,
       firstOpenedAt: null,
+      ...overrides,
+    };
+  }
+
+  public draftDoor(calendarId: CalendarId, overrides: Partial<DraftDoor> = {}): DraftDoor {
+    return {
+      id: this.doorId(),
+      calendarId,
+      opensOn: '2026-11-15',
+      openTime: null,
+      featured: false,
+      content: this.content(),
+      notification: { title: 'Luke 1 er åpen', body: 'Et nytt hint venter.' },
+      addedAt: T0,
+      ...overrides,
+    };
+  }
+
+  public publishedDoor(overrides: Partial<PublishedDoor> = {}): PublishedDoor {
+    return {
+      id: this.doorId(),
+      number: 1,
+      opensOn: '2026-11-15',
+      openTime: null,
+      opensAt: T0,
+      featured: false,
+      content: this.content(),
+      notification: { title: 'Luke 1 er åpen', body: 'Et nytt hint venter.' },
+      ...overrides,
+    };
+  }
+
+  public version(
+    calendarId: CalendarId,
+    overrides: Partial<CalendarVersion> = {},
+  ): CalendarVersion {
+    return {
+      calendarId,
+      version: 1,
+      publishedAt: T0,
+      doors: [this.publishedDoor()],
       ...overrides,
     };
   }

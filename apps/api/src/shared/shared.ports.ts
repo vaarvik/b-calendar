@@ -2,6 +2,8 @@ import type {
   Calendar,
   CalendarDetails,
   CalendarDetailsResponseDto,
+  CalendarVersionDto,
+  CalendarVersionSummary,
   CalendarDto,
   DoorPreview,
   DoorPreviewDto,
@@ -54,6 +56,7 @@ export interface JobScheduler {
 export interface HttpDtoMapper {
   calendar(calendar: Calendar): CalendarDto;
   calendarDetails(details: CalendarDetails): CalendarDetailsResponseDto;
+  calendarVersion(version: CalendarVersionSummary): CalendarVersionDto;
   recipientCalendar(calendar: RecipientCalendar): RecipientCalendarResponseDto;
   openDoor(output: OpenDoorOutput): OpenDoorResponseDto;
   doorPreview(door: DoorPreview): DoorPreviewDto;

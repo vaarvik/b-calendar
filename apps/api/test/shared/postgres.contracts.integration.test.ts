@@ -1,12 +1,16 @@
 import {
   describeCalendarRepositoryContract,
+  describeCalendarVersionRepositoryContract,
   describeDoorRepositoryContract,
+  describeDraftDoorRepositoryContract,
   describeSubscriptionRepositoryContract,
 } from '@b-calendar/contracts/test-kit';
 import { NO_MIGRATIONS } from 'kysely/migration';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { PgCalendarVersionRepository } from '../../src/calendars/pg-calendar-version.repository.js';
 import { PgCalendarRepository } from '../../src/calendars/pg-calendar.repository.js';
 import { PgDoorRepository } from '../../src/doors/pg-door.repository.js';
+import { PgDraftDoorRepository } from '../../src/doors/pg-draft-door.repository.js';
 import { PgDatabaseErrorTranslator } from '../../src/shared/pg-database-error.translator.js';
 import { PgSubscriptionRepository } from '../../src/subscriptions/pg-subscription.repository.js';
 import { PostgresTestDatabase } from './postgres-test.database.js';
@@ -31,6 +35,18 @@ describeDoorRepositoryContract('PgDoorRepository', async () => {
   const calendars = await fresh();
   const doors = new PgDoorRepository(database.db, errors);
   return { writer: doors, reader: doors, calendars };
+});
+
+describeDraftDoorRepositoryContract('PgDraftDoorRepository', async () => {
+  const calendars = await fresh();
+  const drafts = new PgDraftDoorRepository(database.db, errors);
+  return { writer: drafts, reader: drafts, calendars };
+});
+
+describeCalendarVersionRepositoryContract('PgCalendarVersionRepository', async () => {
+  const calendars = await fresh();
+  const versions = new PgCalendarVersionRepository(database.db, errors);
+  return { writer: versions, reader: versions, calendars };
 });
 
 describeSubscriptionRepositoryContract('PgSubscriptionRepository', async () => {
