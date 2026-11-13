@@ -1,22 +1,23 @@
 # Hosting
 
 One container (`Dockerfile`) serves the web app (`/`), the API (`/v1`) and uploaded images
-(`/media`), next to a PostgreSQL 16 database. The plan is the home simple-k8s instance, like
-amexbutikker.
+(`/media`), next to a PostgreSQL database. It runs on the home simple-k8s at
+https://calendar.johann.no (app `b-calendar-copy` on `johann-no-cluster-hetzner`).
 
-CI publishes the image on every push to main: `ghcr.io/vaarvik/b-calendar:main` and
-`:sha-<commit>`, for amd64 and arm64. GHCR packages start private: make it public, or give
-simple-k8s a pull secret.
+Deploys follow `main`: simple-k8s's workflow (`.github/workflows/simple-k8s-*.yml`, written by
+simple-k8s) builds the image on every push and simple-k8s rolls it out. `ci.yml` only checks:
+typecheck, lint, tests and that the image starts. The database is an in-cluster Postgres
+connected to the app, which sets `DATABASE_URL`.
 
-| Setting  | Value                                                              |
-| -------- | ------------------------------------------------------------------ |
-| Image    | `ghcr.io/vaarvik/b-calendar:main`                                  |
-| Port     | `3000`; health check `GET /health`                                 |
-| URL      | HTTPS is required for push and service workers, e.g. `b.johann.no` |
-| Command  | The image default: migrate, then serve. No override needed         |
-| Database | Postgres 16                                                        |
-| Volume   | `/app/data/media` (uploaded images; must survive restarts)         |
-| Copies   | 1 (the notification job runs in the process)                       |
+| Setting  | Value                                                                |
+| -------- | -------------------------------------------------------------------- |
+| Image    | Built by simple-k8s from `main` (`Dockerfile` at the root)           |
+| Port     | `3000`; health check `GET /health`                                   |
+| URL      | `calendar.johann.no`; HTTPS is required for push and service workers |
+| Command  | The image default: migrate, then serve. No override needed           |
+| Database | Postgres 16                                                          |
+| Volume   | `/app/data/media` (uploaded images; must survive restarts)           |
+| Copies   | 1 (the notification job runs in the process)                         |
 
 ## Environment
 
