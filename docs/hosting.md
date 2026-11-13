@@ -13,7 +13,7 @@ simple-k8s a pull secret.
 | Image    | `ghcr.io/vaarvik/b-calendar:main`                                  |
 | Port     | `3000`; health check `GET /health`                                 |
 | URL      | HTTPS is required for push and service workers, e.g. `b.johann.no` |
-| Command  | `sh -c "node dist/src/migrate.js && node dist/src/server.js"`      |
+| Command  | The image default: migrate, then serve. No override needed         |
 | Database | Postgres 16                                                        |
 | Volume   | `/app/data/media` (uploaded images; must survive restarts)         |
 | Copies   | 1 (the notification job runs in the process)                       |

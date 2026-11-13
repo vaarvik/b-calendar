@@ -2,3 +2,6 @@ pnpm-lock.yaml
 dist/
 coverage/
 data/
+
+# Written by simple-k8s
+.github/workflows/simple-k8s*.yml
