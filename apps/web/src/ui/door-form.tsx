@@ -117,6 +117,42 @@ export function DoorForm({
     notification: { title: notificationTitle.trim(), body: notificationBody.trim() },
   });
 
+  // Dragging a file: which box it hovers, to light it up.
+  const [dragOver, setDragOver] = useState<'image' | 'clip' | null>(null);
+  useEffect(() => {
+    // A file dropped beside a box must not open in the tab and leave the form.
+    const keep = (event: DragEvent) => {
+      if (event.dataTransfer?.types.includes('Files') === true) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener('dragover', keep);
+    window.addEventListener('drop', keep);
+    return () => {
+      window.removeEventListener('dragover', keep);
+      window.removeEventListener('drop', keep);
+    };
+  }, []);
+  /** Drag and drop on an upload box: the file goes where its type belongs. */
+  const dropTarget = (box: 'image' | 'clip') => ({
+    onDragOver: (event: React.DragEvent) => {
+      event.preventDefault();
+      setDragOver(box);
+    },
+    onDragLeave: () => {
+      setDragOver(null);
+    },
+    onDrop: (event: React.DragEvent) => {
+      event.preventDefault();
+      setDragOver(null);
+      const file = event.dataTransfer.files[0];
+      if (file !== undefined && uploading === null) {
+        const photo = file.type.startsWith('image/') || /\.(heic|heif)$/i.test(file.name);
+        uploadInto(photo ? 'image' : 'clip', file);
+      }
+    },
+  });
+
   /** Puts an upload where its kind goes: a photo, a video or a song. */
   const uploadInto = (box: 'image' | 'clip', file: File) => {
     setUploadError(null);
@@ -343,11 +379,14 @@ export function DoorForm({
         <div className="form__grid">
           <div className="field">
             Bilde (vises i ramme)
-            <label className="upload">
+            <label
+              className={`upload${dragOver === 'image' ? ' upload--over' : ''}`}
+              {...dropTarget('image')}
+            >
               {uploading === 'image' ? (
                 <span className="upload__empty">Laster opp {uploadingName} …</span>
               ) : imageUrl === '' ? (
-                <span className="upload__empty">＋ Velg bilde</span>
+                <span className="upload__empty">＋ Velg eller dra inn bilde</span>
               ) : (
                 <img className="upload__preview" src={imageUrl} alt="" />
               )}
@@ -378,11 +417,14 @@ export function DoorForm({
           </div>
           <div className="field">
             Video eller sang
-            <label className="upload">
+            <label
+              className={`upload${dragOver === 'clip' ? ' upload--over' : ''}`}
+              {...dropTarget('clip')}
+            >
               <span className="upload__empty">
                 {uploading === 'clip'
                   ? 'Laster opp … (kan ta litt tid)'
-                  : '＋ Velg video eller sang'}
+                  : '＋ Velg eller dra inn video eller sang'}
               </span>
               <input
                 type="file"

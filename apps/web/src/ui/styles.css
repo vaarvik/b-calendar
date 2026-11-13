@@ -1382,3 +1382,9 @@ button {
   font-size: 0.75rem;
   text-align: center;
 }
+
+/* A file is dragged over an upload box. */
+.upload--over {
+  border-color: var(--accent);
+  background: var(--surface-strong);
+}
