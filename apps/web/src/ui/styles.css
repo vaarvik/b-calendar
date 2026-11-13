@@ -1447,3 +1447,105 @@ button {
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+/* A door's song, wrapped like a small present. */
+.song-gift {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 6px 0 4px;
+  padding: 16px 18px;
+  overflow: hidden;
+  border-radius: 16px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.18) 0 5px, transparent 6px) 0 0 / 38px
+      38px,
+    radial-gradient(circle at 70% 75%, rgba(255, 255, 255, 0.12) 0 3px, transparent 4px) 0 0 / 38px
+      38px,
+    linear-gradient(135deg, var(--wrap-a, #c9577a), var(--wrap-b, #8e3a6b));
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.song-gift__ribbon {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 58px;
+  width: 16px;
+  background: linear-gradient(
+    90deg,
+    var(--ribbon-shade, #c99a3a),
+    var(--ribbon, #f3d27a),
+    var(--ribbon-shade, #c99a3a)
+  );
+  opacity: 0.9;
+}
+
+.song-gift__bow {
+  position: absolute;
+  top: 2px;
+  left: 45px;
+  z-index: 2;
+  font-size: 1.7rem;
+  line-height: 1;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.3));
+  transition:
+    transform 0.6s cubic-bezier(0.3, 1.4, 0.5, 1),
+    opacity 0.6s;
+}
+
+.song-gift--unwrapped .song-gift__bow {
+  transform: translate(160px, -60px) rotate(40deg);
+  opacity: 0;
+}
+
+.song-gift__play {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 58px;
+  height: 58px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff8ea;
+  color: #8e3a6b;
+  font-size: 1.35rem;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.song-gift__play:active {
+  transform: scale(0.94);
+}
+
+.song-gift__body {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+}
+
+.song-gift__label {
+  margin: 0 0 6px;
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.song-gift__progress {
+  width: 100%;
+  accent-color: var(--ribbon, #f3d27a);
+}
+
+.song-gift__time {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}

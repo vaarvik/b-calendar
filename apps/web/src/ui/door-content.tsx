@@ -1,6 +1,7 @@
 import type { OpenDoorContentDto } from '@b-calendar/contracts';
 import type { RecipientCopy } from '../shared/shared.model';
 import { Countdown } from './countdown';
+import { SongGift } from './song-gift';
 
 interface DoorContentProps {
   readonly content: OpenDoorContentDto;
@@ -20,9 +21,7 @@ export function DoorContent({ content, now, copy }: DoorContentProps) {
     <div className="door-content">
       <h2 className="door-content__title">{content.title}</h2>
       {content.message !== '' && <p className="door-content__message">{content.message}</p>}
-      {content.audioUrl !== null && (
-        <audio className="door-content__audio" src={content.audioUrl} controls preload="none" />
-      )}
+      {content.audioUrl !== null && <SongGift src={content.audioUrl} copy={copy} />}
       {cards > 0 && (
         <div className={`photo-pair photo-pair--${String(cards)}`}>
           {photos.map((url) => (
