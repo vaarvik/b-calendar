@@ -479,6 +479,7 @@ function CalendarEditor({
       title: 'Ny luke',
       message: '',
       imageUrl: null,
+      secondImageUrl: null,
       videoUrl: null,
       audioUrl: null,
       linkUrl: null,

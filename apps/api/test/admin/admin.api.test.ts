@@ -24,6 +24,7 @@ const DRAFT = {
     title: 'Ta med badetøy',
     message: '',
     imageUrl: null,
+    secondImageUrl: null,
     videoUrl: null,
     audioUrl: null,
     linkUrl: 'https://youtu.be/dQw4w9WgXcQ',

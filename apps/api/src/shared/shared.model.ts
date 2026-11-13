@@ -33,6 +33,7 @@ export interface DoorsTable {
   title: string;
   message: string;
   image_url: string | null;
+  second_image_url: string | null;
   video_url: string | null;
   audio_url: string | null;
   link_url: string | null;

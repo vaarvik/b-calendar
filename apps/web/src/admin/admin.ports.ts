@@ -22,6 +22,7 @@ export interface DoorDraftDto {
     readonly title: string;
     readonly message: string;
     readonly imageUrl: string | null;
+    readonly secondImageUrl: string | null;
     readonly videoUrl: string | null;
     readonly audioUrl: string | null;
     readonly linkUrl: string | null;

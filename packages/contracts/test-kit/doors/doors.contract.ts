@@ -41,6 +41,9 @@ export function describeDoorRepositoryContract(
         openTime: '17:30',
         content: data.content({
           imageUrl: '/media/a.jpg',
+          secondImageUrl: '/media/b.jpg',
+          videoUrl: '/media/c.mov',
+          audioUrl: '/media/d.mp3',
           linkUrl: 'https://open.spotify.com/track/abc',
           countdown: { to: hoursAfter(T0, 1), label: 'til vi drar' },
           confetti: true,
@@ -175,6 +178,9 @@ export function describeDraftDoorRepositoryContract(
         openTime: '17:30',
         content: data.content({
           imageUrl: '/media/a.jpg',
+          secondImageUrl: '/media/b.jpg',
+          videoUrl: '/media/c.mov',
+          audioUrl: '/media/d.mp3',
           linkUrl: 'https://open.spotify.com/track/abc',
           countdown: { to: hoursAfter(T0, 1), label: 'til vi drar' },
           confetti: true,

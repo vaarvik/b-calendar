@@ -57,6 +57,7 @@ describe('OpensAtRecipientDoorPresenter', () => {
         title: 'Ta med badetøy',
         message: 'Du trenger det snart.',
         imageUrl: null,
+        secondImageUrl: null,
         videoUrl: null,
         audioUrl: null,
         countdown: null,

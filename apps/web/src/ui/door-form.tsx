@@ -15,6 +15,9 @@ export function fromLocalInput(value: string): string {
   return new Date(value).toISOString();
 }
 
+/** The form's upload boxes: two photos and one for a video or song. */
+type UploadBox = 'image' | 'image2' | 'clip';
+
 const MB = 1024 * 1024;
 
 function megabytes(bytes: number): string {
@@ -75,12 +78,13 @@ export function DoorForm({
   const [title, setTitle] = useState(initial.content.title);
   const [message, setMessage] = useState(initial.content.message);
   const [imageUrl, setImageUrl] = useState(initial.content.imageUrl ?? '');
+  const [secondImageUrl, setSecondImageUrl] = useState(initial.content.secondImageUrl ?? '');
   const [videoUrl, setVideoUrl] = useState(initial.content.videoUrl ?? '');
   const [audioUrl, setAudioUrl] = useState(initial.content.audioUrl ?? '');
-  const [uploading, setUploading] = useState<'image' | 'clip' | null>(null);
+  const [uploading, setUploading] = useState<UploadBox | null>(null);
   const [uploadingName, setUploadingName] = useState('');
   const [uploadError, setUploadError] = useState<{
-    readonly box: 'image' | 'clip';
+    readonly box: UploadBox;
     readonly message: string;
   } | null>(null);
   // No field for it any more; a link a door already has is kept.
@@ -105,6 +109,7 @@ export function DoorForm({
       title: title.trim(),
       message,
       imageUrl: imageUrl.trim() === '' ? null : imageUrl.trim(),
+      secondImageUrl: secondImageUrl === '' ? null : secondImageUrl,
       videoUrl: videoUrl === '' ? null : videoUrl,
       audioUrl: audioUrl === '' ? null : audioUrl,
       linkUrl: linkUrl.trim() === '' ? null : linkUrl.trim(),
@@ -118,7 +123,7 @@ export function DoorForm({
   });
 
   // Dragging a file: which box it hovers, to light it up.
-  const [dragOver, setDragOver] = useState<'image' | 'clip' | null>(null);
+  const [dragOver, setDragOver] = useState<UploadBox | null>(null);
   useEffect(() => {
     // A file dropped beside a box must not open in the tab and leave the form.
     const keep = (event: DragEvent) => {
@@ -134,7 +139,7 @@ export function DoorForm({
     };
   }, []);
   /** Drag and drop on an upload box: the file goes where its type belongs. */
-  const dropTarget = (box: 'image' | 'clip') => ({
+  const dropTarget = (box: UploadBox) => ({
     onDragOver: (event: React.DragEvent) => {
       event.preventDefault();
       setDragOver(box);
@@ -148,13 +153,15 @@ export function DoorForm({
       const file = event.dataTransfer.files[0];
       if (file !== undefined && uploading === null) {
         const photo = file.type.startsWith('image/') || /\.(heic|heif)$/i.test(file.name);
-        uploadInto(photo ? 'image' : 'clip', file);
+        // A photo dropped on the video box takes the first free photo box.
+        const photoBox = box !== 'clip' ? box : imageUrl === '' ? 'image' : 'image2';
+        uploadInto(photo ? photoBox : 'clip', file);
       }
     },
   });
 
   /** Puts an upload where its kind goes: a photo, a video or a song. */
-  const uploadInto = (box: 'image' | 'clip', file: File) => {
+  const uploadInto = (box: UploadBox, file: File) => {
     setUploadError(null);
     if (box === 'clip') {
       const video = file.type.startsWith('video/') || /\.(mov|mp4)$/i.test(file.name);
@@ -172,7 +179,9 @@ export function DoorForm({
     onUpload(file).then(
       ({ url, kind }) => {
         if (kind === 'image') {
-          setImageUrl(url);
+          (box === 'image2' || (box === 'clip' && imageUrl !== '')
+            ? setSecondImageUrl
+            : setImageUrl)(url);
         } else if (kind === 'video') {
           setVideoUrl(url);
         } else {
@@ -186,6 +195,50 @@ export function DoorForm({
       },
     );
   };
+
+  /** One photo upload box: pick or drop, preview, remove. */
+  const photoBox = (
+    box: 'image' | 'image2',
+    label: string,
+    url: string,
+    setUrl: (url: string) => void,
+  ) => (
+    <div className="field">
+      {label}
+      <label className={`upload${dragOver === box ? ' upload--over' : ''}`} {...dropTarget(box)}>
+        {uploading === box ? (
+          <span className="upload__empty">Laster opp {uploadingName} …</span>
+        ) : url === '' ? (
+          <span className="upload__empty">＋ Velg eller dra inn bilde</span>
+        ) : (
+          <img className="upload__preview" src={url} alt="" />
+        )}
+        <input
+          type="file"
+          accept="image/*,.heic,.heif"
+          disabled={uploading !== null}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file !== undefined) {
+              uploadInto(box, file);
+            }
+          }}
+        />
+      </label>
+      {uploadError?.box === box && <p className="error">{uploadError.message}</p>}
+      {url !== '' && (
+        <button
+          type="button"
+          className="button button--ghost button--small"
+          onClick={() => {
+            setUrl('');
+          }}
+        >
+          Fjern bilde
+        </button>
+      )}
+    </div>
+  );
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
@@ -374,47 +427,16 @@ export function DoorForm({
       <fieldset className="door-form__section">
         <legend>📸 Bilde, video og sang</legend>
         <p className="admin__muted">
-          Alt er valgfritt: bare bilde, bilde og sang, bilde og video …
+          Alt er valgfritt: ett eller to bilder, en video og en sang, i hvilken som helst blanding.
         </p>
         <div className="form__grid">
-          <div className="field">
-            Bilde (vises i ramme)
-            <label
-              className={`upload${dragOver === 'image' ? ' upload--over' : ''}`}
-              {...dropTarget('image')}
-            >
-              {uploading === 'image' ? (
-                <span className="upload__empty">Laster opp {uploadingName} …</span>
-              ) : imageUrl === '' ? (
-                <span className="upload__empty">＋ Velg eller dra inn bilde</span>
-              ) : (
-                <img className="upload__preview" src={imageUrl} alt="" />
-              )}
-              <input
-                type="file"
-                accept="image/*,.heic,.heif"
-                disabled={uploading !== null}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file !== undefined) {
-                    uploadInto('image', file);
-                  }
-                }}
-              />
-            </label>
-            {uploadError?.box === 'image' && <p className="error">{uploadError.message}</p>}
-            {imageUrl !== '' && (
-              <button
-                type="button"
-                className="button button--ghost button--small"
-                onClick={() => {
-                  setImageUrl('');
-                }}
-              >
-                Fjern bilde
-              </button>
-            )}
-          </div>
+          {photoBox('image', 'Bilde 1 (vises i ramme)', imageUrl, setImageUrl)}
+          {photoBox(
+            'image2',
+            'Bilde 2 (valgfritt, ved siden av)',
+            secondImageUrl,
+            setSecondImageUrl,
+          )}
           <div className="field">
             Video eller sang
             <label

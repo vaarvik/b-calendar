@@ -26,6 +26,8 @@ export interface DoorContent {
   readonly message: string;
   /** Uploaded image (`/media/<file>`) or any https image. */
   readonly imageUrl: string | null;
+  /** A second photo, shown next to the first. */
+  readonly secondImageUrl: string | null;
   /** An uploaded video, played inside the door. */
   readonly videoUrl: string | null;
   /** An uploaded song, with a play button. */
@@ -104,6 +106,7 @@ export const DoorDraftSchema: z.ZodType<DoorDraft> = z.object({
     title: z.string().trim().min(1).max(120),
     message: z.string().max(5000),
     imageUrl: mediaUrl.nullable(),
+    secondImageUrl: mediaUrl.nullable().default(null),
     videoUrl: mediaUrl.nullable().default(null),
     audioUrl: mediaUrl.nullable().default(null),
     linkUrl: httpUrl.nullable(),

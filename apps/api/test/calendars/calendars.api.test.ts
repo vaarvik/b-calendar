@@ -30,6 +30,7 @@ describe('the recipient’s calendar over HTTP', () => {
     const content = {
       message: 'Hemmelig',
       imageUrl: null,
+      secondImageUrl: null,
       videoUrl: null,
       audioUrl: null,
       linkUrl: 'https://open.spotify.com/track/abc',

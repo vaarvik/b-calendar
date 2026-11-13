@@ -16,6 +16,7 @@ export const DoorDraftRowSchema: z.ZodType<DoorDraft> = z.object({
     title: z.string(),
     message: z.string(),
     imageUrl: z.string().nullable(),
+    secondImageUrl: z.string().nullable().default(null),
     // Drafts saved before videos and songs have neither.
     videoUrl: z.string().nullable().default(null),
     audioUrl: z.string().nullable().default(null),

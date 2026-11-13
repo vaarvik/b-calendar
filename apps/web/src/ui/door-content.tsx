@@ -11,6 +11,11 @@ interface DoorContentProps {
 /** What is behind a door: words, a picture, a song or video, a countdown. */
 export function DoorContent({ content, now, copy }: DoorContentProps) {
   const { link, countdown } = content;
+  // Up to three polaroids: two photos and the video.
+  const photos = [content.imageUrl, content.secondImageUrl].filter(
+    (url): url is string => url !== null,
+  );
+  const cards = photos.length + (content.videoUrl === null ? 0 : 1);
   return (
     <div className="door-content">
       <h2 className="door-content__title">{content.title}</h2>
@@ -18,15 +23,13 @@ export function DoorContent({ content, now, copy }: DoorContentProps) {
       {content.audioUrl !== null && (
         <audio className="door-content__audio" src={content.audioUrl} controls preload="none" />
       )}
-      {(content.imageUrl !== null || content.videoUrl !== null) && (
-        <div
-          className={`photo-pair${content.imageUrl !== null && content.videoUrl !== null ? ' photo-pair--two' : ''}`}
-        >
-          {content.imageUrl !== null && (
-            <figure className="photo-frame">
-              <img className="photo-frame__image" src={content.imageUrl} alt="" loading="lazy" />
+      {cards > 0 && (
+        <div className={`photo-pair photo-pair--${String(cards)}`}>
+          {photos.map((url) => (
+            <figure key={url} className="photo-frame">
+              <img className="photo-frame__image" src={url} alt="" loading="lazy" />
             </figure>
-          )}
+          ))}
           {content.videoUrl !== null && (
             <figure className="photo-frame photo-frame--video">
               <video
