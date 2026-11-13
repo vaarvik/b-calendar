@@ -50,5 +50,5 @@ jobs:
           # :latest only from main: a preview built from another branch never moves it,
           # nor a rebuild of an older commit (inputs.ref).
           tags: |
-            ghcr.io/vaarvik/b-calendar/b-calendar:${{ inputs.ref || github.sha }}
-            ${{ github.ref_name == 'main' && !inputs.ref && 'ghcr.io/vaarvik/b-calendar/b-calendar:latest' || '' }}
+            ghcr.io/vaarvik/b-calendar:${{ inputs.ref || github.sha }}
+            ${{ github.ref_name == 'main' && !inputs.ref && 'ghcr.io/vaarvik/b-calendar:latest' || '' }}
