@@ -27,7 +27,13 @@ export class FetchJsonHttpClient implements JsonHttpClient {
       throw new ApiError(0, 'network', 'No connection.');
     }
     const text = await response.text();
-    const json: unknown = text === '' ? undefined : JSON.parse(text);
+    // A proxy in front (e.g. Cloudflare refusing a too large upload) answers with HTML, not JSON.
+    let json: unknown;
+    try {
+      json = text === '' ? undefined : JSON.parse(text);
+    } catch {
+      json = undefined;
+    }
     if (!response.ok) {
       const error = (json as { error?: { code?: string; message?: string } } | undefined)?.error;
       throw new ApiError(

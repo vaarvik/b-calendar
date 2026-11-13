@@ -28,10 +28,10 @@ ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000 STORAGE=postgres WEB_ROOT=/app/we
 WORKDIR /app
 COPY --from=api --chown=node:node /out .
 COPY --from=web --chown=node:node /repo/apps/web/dist ./web
+COPY --chmod=755 docker-start.sh /usr/local/bin/b-calendar-start
 RUN mkdir -p /app/data/media && chown -R node:node /app/data
-USER node
 VOLUME /app/data/media
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s CMD node -e "fetch('http://127.0.0.1:'+process.env.PORT+'/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
-# Migrate to the latest schema, then serve. Migrations are idempotent and one copy runs.
-CMD ["sh", "-c", "node dist/src/migrate.js && exec node dist/src/server.js"]
+# Hands the media volume to `node`, drops root, migrates, then serves (docker-start.sh).
+CMD ["b-calendar-start"]

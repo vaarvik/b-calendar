@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { MAX_MEDIA_BYTES } from '@b-calendar/contracts';
 import type { DoorPreviewDto, UploadMediaResponseDto } from '@b-calendar/contracts';
+import { ApiError } from '../shared/shared.model';
 import type { DoorDraftDto } from '../admin/admin.ports';
 
 /** `2026-11-15T08:00` in the browser's time zone, for datetime-local inputs. */
@@ -11,6 +13,31 @@ export function toLocalInput(iso: string): string {
 
 export function fromLocalInput(value: string): string {
   return new Date(value).toISOString();
+}
+
+const MB = 1024 * 1024;
+
+function megabytes(bytes: number): string {
+  return `${String(Math.max(1, Math.round(bytes / MB)))} MB`;
+}
+
+/** Why an upload failed, in words she can act on. */
+function uploadProblem(caught: unknown): string {
+  if (caught instanceof ApiError) {
+    if (caught.status === 413) {
+      return 'Filen er for stor til å lastes opp (over 100 MB). Klipp den kortere eller film i 1080p.';
+    }
+    if (caught.status === 0) {
+      return 'Ingen forbindelse. Prøv igjen.';
+    }
+    if (caught.code === 'validation_failed') {
+      return `Ikke godtatt: ${caught.message}`;
+    }
+    if (caught.status === 401) {
+      return 'Du er logget ut. Logg inn igjen.';
+    }
+  }
+  return 'Opplastingen feilet. Prøv igjen.';
 }
 
 /** How long typing must pause before the draft saves itself. */
@@ -51,6 +78,11 @@ export function DoorForm({
   const [videoUrl, setVideoUrl] = useState(initial.content.videoUrl ?? '');
   const [audioUrl, setAudioUrl] = useState(initial.content.audioUrl ?? '');
   const [uploading, setUploading] = useState<'image' | 'clip' | null>(null);
+  const [uploadingName, setUploadingName] = useState('');
+  const [uploadError, setUploadError] = useState<{
+    readonly box: 'image' | 'clip';
+    readonly message: string;
+  } | null>(null);
   // No field for it any more; a link a door already has is kept.
   const linkUrl = initial.content.linkUrl ?? '';
   const [countdownTo, setCountdownTo] = useState(
@@ -87,10 +119,22 @@ export function DoorForm({
 
   /** Puts an upload where its kind goes: a photo, a video or a song. */
   const uploadInto = (box: 'image' | 'clip', file: File) => {
+    setUploadError(null);
+    if (box === 'clip') {
+      const video = file.type.startsWith('video/') || /\.(mov|mp4)$/i.test(file.name);
+      const max = video ? MAX_MEDIA_BYTES.video : MAX_MEDIA_BYTES.audio;
+      if (file.size > max) {
+        setUploadError({
+          box,
+          message: `${video ? 'Videoen' : 'Sangen'} er ${megabytes(file.size)}, maks ${megabytes(max)}.${video ? ' Klipp den kortere i Bilder, eller film i 1080p.' : ''}`,
+        });
+        return;
+      }
+    }
     setUploading(box);
-    void run(async () => {
-      try {
-        const { url, kind } = await onUpload(file);
+    setUploadingName(`${file.name} (${megabytes(file.size)})`);
+    onUpload(file).then(
+      ({ url, kind }) => {
         if (kind === 'image') {
           setImageUrl(url);
         } else if (kind === 'video') {
@@ -98,10 +142,13 @@ export function DoorForm({
         } else {
           setAudioUrl(url);
         }
-      } finally {
         setUploading(null);
-      }
-    });
+      },
+      (caught: unknown) => {
+        setUploadError({ box, message: uploadProblem(caught) });
+        setUploading(null);
+      },
+    );
   };
 
   const run = async (action: () => Promise<void>) => {
@@ -298,7 +345,7 @@ export function DoorForm({
             Bilde (vises i ramme)
             <label className="upload">
               {uploading === 'image' ? (
-                <span className="upload__empty">Laster opp …</span>
+                <span className="upload__empty">Laster opp {uploadingName} …</span>
               ) : imageUrl === '' ? (
                 <span className="upload__empty">＋ Velg bilde</span>
               ) : (
@@ -316,6 +363,7 @@ export function DoorForm({
                 }}
               />
             </label>
+            {uploadError?.box === 'image' && <p className="error">{uploadError.message}</p>}
             {imageUrl !== '' && (
               <button
                 type="button"
@@ -348,6 +396,7 @@ export function DoorForm({
                 }}
               />
             </label>
+            {uploadError?.box === 'clip' && <p className="error">{uploadError.message}</p>}
             <small className="admin__muted">
               Video: MP4/MOV opptil 95 MB · sang: MP3/M4A opptil 25 MB
             </small>
