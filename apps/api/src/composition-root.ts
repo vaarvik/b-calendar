@@ -14,7 +14,7 @@ import {
   SendTestNotificationUseCase,
   SubscribeUseCase,
   UpdateCalendarUseCase,
-  UploadImageUseCase,
+  UploadMediaUseCase,
   ViewCalendarUseCase,
   ZodInputValidator,
 } from '@b-calendar/application';
@@ -318,7 +318,7 @@ export class CompositionRoot {
           dtos,
         ),
         new MediaController(
-          new UploadImageUseCase(new DiskMediaStorage({ directory: config.mediaDir }), ids),
+          new UploadMediaUseCase(new DiskMediaStorage({ directory: config.mediaDir }), ids),
           admin,
           { directory: config.mediaDir },
         ),

@@ -1350,3 +1350,19 @@ button {
   color: var(--muted);
   line-height: 1.8;
 }
+
+/* An uploaded video or song behind a door. */
+.door-content__video {
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 14px;
+  background: #000;
+}
+
+.door-content__audio {
+  width: 100%;
+}
+
+.upload--clip {
+  min-height: 72px;
+}

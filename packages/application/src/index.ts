@@ -11,7 +11,7 @@ export * from './doors/add-door.use-case.js';
 export * from './doors/edit-door.use-case.js';
 export * from './doors/open-door.use-case.js';
 export * from './doors/remove-door.use-case.js';
-export * from './media/upload-image.use-case.js';
+export * from './media/upload-media.use-case.js';
 export * from './notifications/notify-opened-doors.use-case.js';
 export * from './notifications/send-test-notification.use-case.js';
 export * from './shared/zod-input.validator.js';

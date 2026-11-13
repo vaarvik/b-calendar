@@ -1,6 +1,6 @@
 import { mkdirSync } from 'node:fs';
-import { MAX_IMAGE_BYTES, UploadImageResponseDtoSchema } from '@b-calendar/contracts';
-import type { UploadImage } from '@b-calendar/contracts';
+import { UploadMediaResponseDtoSchema } from '@b-calendar/contracts';
+import type { UploadMedia } from '@b-calendar/contracts';
 import fastifyStatic from '@fastify/static';
 import type { FastifyInstance } from 'fastify';
 import type { AdminRequestAuthenticator, HttpController } from '../shared/shared.ports.js';
@@ -9,10 +9,13 @@ export interface MediaControllerConfig {
   readonly directory: string;
 }
 
-/** Uploads (admin, raw image body) and serving `/media/<file>` (anyone with the URL). */
+/**
+ * Uploads (admin, the raw photo, song or video as the body, streamed to disk) and serving
+ * `/media/<file>` (anyone with the URL; byte ranges, so phones can play and seek video).
+ */
 export class MediaController implements HttpController {
   public constructor(
-    private readonly uploadImage: UploadImage,
+    private readonly uploadMedia: UploadMedia,
     private readonly admin: AdminRequestAuthenticator,
     private readonly config: MediaControllerConfig,
   ) {}
@@ -29,21 +32,17 @@ export class MediaController implements HttpController {
     });
 
     void app.register((scope, _options, done) => {
-      scope.addContentTypeParser(
-        /^image\//,
-        { parseAs: 'buffer', bodyLimit: MAX_IMAGE_BYTES + 1 },
-        (_request, body, parsed) => {
-          parsed(null, body);
-        },
-      );
+      // The body stays a stream: UploadMedia counts it against the kind's limit as it arrives.
+      scope.addContentTypeParser(/^(image|audio|video)\//, (_request, payload, parsed) => {
+        parsed(null, payload);
+      });
       scope.post('/v1/admin/media', async (request, reply) => {
         this.admin.requireAdmin(request);
-        const body = request.body;
-        const output = await this.uploadImage.execute({
+        const output = await this.uploadMedia.execute({
           contentType: (request.headers['content-type'] ?? '').split(';')[0]?.trim() ?? '',
-          bytes: body instanceof Uint8Array ? body : new Uint8Array(),
+          chunks: request.body as AsyncIterable<Uint8Array>,
         });
-        return reply.status(201).send(UploadImageResponseDtoSchema.parse(output));
+        return reply.status(201).send(UploadMediaResponseDtoSchema.parse(output));
       });
       done();
     });

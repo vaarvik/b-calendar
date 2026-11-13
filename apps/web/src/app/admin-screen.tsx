@@ -382,6 +382,25 @@ function sameStep(a: Step, b: Step): boolean {
   return typeof a === 'string' || typeof b === 'string' ? a === b : a.door === b.door;
 }
 
+/** Types by extension, for files the browser gives no type (often .heic, .m4a or .mov). */
+const TYPES_BY_EXTENSION: Readonly<Record<string, string>> = {
+  heic: 'image/heic',
+  heif: 'image/heic',
+  mp3: 'audio/mpeg',
+  m4a: 'audio/mp4',
+  aac: 'audio/aac',
+  mp4: 'video/mp4',
+  mov: 'video/quicktime',
+};
+
+function mediaTypeOf(file: File): string {
+  if (file.type !== '') {
+    return file.type;
+  }
+  const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+  return TYPES_BY_EXTENSION[extension] ?? 'application/octet-stream';
+}
+
 const PUBLISHED_AT = new Intl.DateTimeFormat('nb-NO', {
   day: 'numeric',
   month: 'short',
@@ -459,6 +478,8 @@ function CalendarEditor({
       title: 'Ny luke',
       message: '',
       imageUrl: null,
+      videoUrl: null,
+      audioUrl: null,
       linkUrl: null,
       countdown: null,
       confetti: false,
@@ -497,7 +518,13 @@ function CalendarEditor({
       });
   };
   const live = details.versions[0];
-  const upload = async (file: File) => admin.uploadImage(await images.resize(file, 2000));
+  const upload = async (file: File) => {
+    const type = mediaTypeOf(file);
+    // Photos are shrunk (and HEIC turned into JPEG); songs and videos go up as they are.
+    return admin.uploadMedia(
+      type.startsWith('image/') ? await images.resize(file, 2000) : file.slice(0, file.size, type),
+    );
+  };
   const showPreview = (number: number, draft: DoorDraftDto) => {
     setPreview({
       number,

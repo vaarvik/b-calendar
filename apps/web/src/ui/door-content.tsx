@@ -20,6 +20,18 @@ export function DoorContent({ content, now, copy }: DoorContentProps) {
           <img className="photo-frame__image" src={content.imageUrl} alt="" loading="lazy" />
         </figure>
       )}
+      {content.videoUrl !== null && (
+        <video
+          className="door-content__video"
+          src={content.videoUrl}
+          controls
+          playsInline
+          preload="metadata"
+        />
+      )}
+      {content.audioUrl !== null && (
+        <audio className="door-content__audio" src={content.audioUrl} controls preload="none" />
+      )}
       {countdown !== null && (
         <div className="door-content__countdown">
           <Countdown to={Date.parse(countdown.to)} now={now} copy={copy} />

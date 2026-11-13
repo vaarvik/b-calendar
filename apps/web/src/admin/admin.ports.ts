@@ -5,6 +5,7 @@ import type {
   CalendarVersionDto,
   DoorPreviewDto,
   SendTestNotificationResponseDto,
+  UploadMediaResponseDto,
 } from '@b-calendar/contracts';
 
 /** A door as the admin's form sends it: times as ISO strings. Its number follows from the date. */
@@ -20,6 +21,8 @@ export interface DoorDraftDto {
     readonly title: string;
     readonly message: string;
     readonly imageUrl: string | null;
+    readonly videoUrl: string | null;
+    readonly audioUrl: string | null;
     readonly linkUrl: string | null;
     readonly countdown: { readonly to: string; readonly label: string } | null;
     readonly confetti: boolean;
@@ -44,8 +47,8 @@ export interface AdminClient {
   /** Gives the recipient the draft as the calendar's next version. */
   publish(calendarId: string): Promise<CalendarVersionDto>;
   sendTestNotification(calendarId: string): Promise<SendTestNotificationResponseDto>;
-  /** @returns the uploaded image's URL. */
-  uploadImage(image: Blob): Promise<string>;
+  /** Uploads a photo, song or video; its type is the blob's type. */
+  uploadMedia(file: Blob): Promise<UploadMediaResponseDto>;
 }
 
 /** Shrinks phone photos before upload and turns HEIC into JPEG. */

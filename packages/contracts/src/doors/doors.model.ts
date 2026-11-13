@@ -26,6 +26,10 @@ export interface DoorContent {
   readonly message: string;
   /** Uploaded image (`/media/<file>`) or any https image. */
   readonly imageUrl: string | null;
+  /** An uploaded video, played inside the door. */
+  readonly videoUrl: string | null;
+  /** An uploaded song, with a play button. */
+  readonly audioUrl: string | null;
   /** A song, a video or any web page. */
   readonly linkUrl: string | null;
   readonly countdown: DoorCountdown | null;
@@ -100,6 +104,8 @@ export const DoorDraftSchema: z.ZodType<DoorDraft> = z.object({
     title: z.string().trim().min(1).max(120),
     message: z.string().max(5000),
     imageUrl: mediaUrl.nullable(),
+    videoUrl: mediaUrl.nullable().default(null),
+    audioUrl: mediaUrl.nullable().default(null),
     linkUrl: httpUrl.nullable(),
     countdown: z
       .object({

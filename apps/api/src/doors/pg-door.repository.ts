@@ -89,6 +89,8 @@ export class PgDoorRepository implements DoorReader, DoorWriter {
       title: content.title,
       message: content.message,
       image_url: content.imageUrl,
+      video_url: content.videoUrl,
+      audio_url: content.audioUrl,
       link_url: content.linkUrl,
       countdown_to: content.countdown?.to ?? null,
       countdown_label: content.countdown?.label ?? null,
@@ -114,6 +116,8 @@ export class PgDoorRepository implements DoorReader, DoorWriter {
         title: row.title,
         message: row.message,
         imageUrl: row.image_url,
+        videoUrl: row.video_url,
+        audioUrl: row.audio_url,
         linkUrl: row.link_url,
         countdown:
           row.countdown_to === null

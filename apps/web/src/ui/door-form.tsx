@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { DoorPreviewDto } from '@b-calendar/contracts';
+import type { DoorPreviewDto, UploadMediaResponseDto } from '@b-calendar/contracts';
 import type { DoorDraftDto } from '../admin/admin.ports';
 
 /** `2026-11-15T08:00` in the browser's time zone, for datetime-local inputs. */
@@ -23,7 +23,7 @@ interface DoorFormProps {
   /** Saves the draft door; called by itself while she types. */
   readonly onSave: (draft: DoorDraftDto) => Promise<void>;
   readonly onRemove: () => Promise<void>;
-  readonly onUpload: (file: File) => Promise<string>;
+  readonly onUpload: (file: File) => Promise<UploadMediaResponseDto>;
   readonly onPreview: (draft: DoorDraftDto) => void;
   /** Shown as "Neste": saves what is pending, then goes to the next step. */
   readonly onNext?: () => void;
@@ -48,6 +48,9 @@ export function DoorForm({
   const [title, setTitle] = useState(initial.content.title);
   const [message, setMessage] = useState(initial.content.message);
   const [imageUrl, setImageUrl] = useState(initial.content.imageUrl ?? '');
+  const [videoUrl, setVideoUrl] = useState(initial.content.videoUrl ?? '');
+  const [audioUrl, setAudioUrl] = useState(initial.content.audioUrl ?? '');
+  const [uploading, setUploading] = useState<'image' | 'clip' | null>(null);
   const [linkUrl, setLinkUrl] = useState(initial.content.linkUrl ?? '');
   const [countdownTo, setCountdownTo] = useState(
     initial.content.countdown === null ? '' : toLocalInput(initial.content.countdown.to),
@@ -69,6 +72,8 @@ export function DoorForm({
       title: title.trim(),
       message,
       imageUrl: imageUrl.trim() === '' ? null : imageUrl.trim(),
+      videoUrl: videoUrl === '' ? null : videoUrl,
+      audioUrl: audioUrl === '' ? null : audioUrl,
       linkUrl: linkUrl.trim() === '' ? null : linkUrl.trim(),
       countdown:
         countdownTo === ''
@@ -78,6 +83,25 @@ export function DoorForm({
     },
     notification: { title: notificationTitle.trim(), body: notificationBody.trim() },
   });
+
+  /** Puts an upload where its kind goes: a photo, a video or a song. */
+  const uploadInto = (box: 'image' | 'clip', file: File) => {
+    setUploading(box);
+    void run(async () => {
+      try {
+        const { url, kind } = await onUpload(file);
+        if (kind === 'image') {
+          setImageUrl(url);
+        } else if (kind === 'video') {
+          setVideoUrl(url);
+        } else {
+          setAudioUrl(url);
+        }
+      } finally {
+        setUploading(null);
+      }
+    });
+  };
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
@@ -269,7 +293,9 @@ export function DoorForm({
           <div className="field">
             Bilde (vises i ramme)
             <label className="upload">
-              {imageUrl === '' ? (
+              {uploading === 'image' ? (
+                <span className="upload__empty">Laster opp …</span>
+              ) : imageUrl === '' ? (
                 <span className="upload__empty">＋ Velg bilde</span>
               ) : (
                 <img className="upload__preview" src={imageUrl} alt="" />
@@ -277,12 +303,11 @@ export function DoorForm({
               <input
                 type="file"
                 accept="image/*,.heic,.heif"
+                disabled={uploading !== null}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file !== undefined) {
-                    void run(async () => {
-                      setImageUrl(await onUpload(file));
-                    });
+                    uploadInto('image', file);
                   }
                 }}
               />
@@ -310,6 +335,57 @@ export function DoorForm({
             />
           </label>
         </div>
+      </fieldset>
+
+      <fieldset className="door-form__section">
+        <legend>🎬 Video og sang</legend>
+        <div className="field">
+          Last opp en video (MP4/MOV, opptil 95 MB) eller en sang (MP3/M4A, opptil 25 MB)
+          <label className="upload upload--clip">
+            <span className="upload__empty">
+              {uploading === 'clip' ? 'Laster opp … (kan ta litt tid)' : '＋ Velg video eller sang'}
+            </span>
+            <input
+              type="file"
+              accept="video/*,audio/*,.mov,.mp4,.m4a,.mp3,.aac"
+              disabled={uploading !== null}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file !== undefined) {
+                  uploadInto('clip', file);
+                }
+              }}
+            />
+          </label>
+        </div>
+        {videoUrl !== '' && (
+          <div className="field">
+            <video className="door-content__video" src={videoUrl} controls playsInline />
+            <button
+              type="button"
+              className="button button--ghost button--small"
+              onClick={() => {
+                setVideoUrl('');
+              }}
+            >
+              Fjern video
+            </button>
+          </div>
+        )}
+        {audioUrl !== '' && (
+          <div className="field">
+            <audio className="door-content__audio" src={audioUrl} controls />
+            <button
+              type="button"
+              className="button button--ghost button--small"
+              onClick={() => {
+                setAudioUrl('');
+              }}
+            >
+              Fjern sang
+            </button>
+          </div>
+        )}
       </fieldset>
 
       <fieldset className="door-form__section">

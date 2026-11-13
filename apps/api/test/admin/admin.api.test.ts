@@ -24,6 +24,8 @@ const DRAFT = {
     title: 'Ta med badetøy',
     message: '',
     imageUrl: null,
+    videoUrl: null,
+    audioUrl: null,
     linkUrl: 'https://youtu.be/dQw4w9WgXcQ',
     countdown: null,
     confetti: false,
@@ -261,6 +263,35 @@ describe('the admin over HTTP', () => {
     expect(served.rawPayload).toEqual(png);
     expect(anonymous.statusCode).toBe(401);
     expect(wrongType.statusCode).toBe(400);
+  });
+
+  it('uploads a video and serves it in ranges, so a phone can play and seek it', async () => {
+    const video = Buffer.from(Array.from({ length: 64 }, (_, i) => i));
+    const upload = await api.app.inject({
+      method: 'POST',
+      url: '/v1/admin/media',
+      headers: { ...auth, 'content-type': 'video/quicktime' },
+      payload: video,
+    });
+    const { url, kind } = upload.json<{ url: string; kind: string }>();
+    const part = await api.app.inject({ url, headers: { range: 'bytes=10-19' } });
+
+    expect(upload.statusCode).toBe(201);
+    expect(kind).toBe('video');
+    expect(url).toMatch(/^\/media\/[0-9a-f-]+\.mov$/);
+    expect(part.statusCode).toBe(206);
+    expect(part.rawPayload).toEqual(video.subarray(10, 20));
+  });
+
+  it('refuses an empty upload', async () => {
+    const empty = await api.app.inject({
+      method: 'POST',
+      url: '/v1/admin/media',
+      headers: { ...auth, 'content-type': 'audio/mpeg' },
+      payload: Buffer.alloc(0),
+    });
+
+    expect(empty.statusCode).toBe(400);
   });
 
   it('answers malformed JSON with a 400', async () => {

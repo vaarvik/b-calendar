@@ -7,6 +7,7 @@ import type {
   DoorContent,
   DoorId,
   DraftDoor,
+  MediaId,
   PublishedDoor,
   Subscription,
   SubscriptionId,
@@ -33,6 +34,10 @@ export class TestData {
 
   public doorId(): DoorId {
     return randomUUID() as DoorId;
+  }
+
+  public mediaId(): MediaId {
+    return randomUUID() as MediaId;
   }
 
   public subscriptionId(): SubscriptionId {
@@ -64,6 +69,8 @@ export class TestData {
       title: 'Ta med badetøy',
       message: 'Du trenger det snart.',
       imageUrl: null,
+      videoUrl: null,
+      audioUrl: null,
       linkUrl: null,
       countdown: null,
       confetti: false,

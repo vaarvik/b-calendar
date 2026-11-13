@@ -29,6 +29,8 @@ export interface OpenDoorContentDto {
   readonly title: string;
   readonly message: string;
   readonly imageUrl: string | null;
+  readonly videoUrl: string | null;
+  readonly audioUrl: string | null;
   readonly link: DoorLinkDto | null;
   readonly countdown: DoorCountdownDto | null;
   readonly confetti: boolean;
@@ -38,6 +40,8 @@ export const OpenDoorContentDtoSchema: z.ZodType<OpenDoorContentDto> = z.object(
   title: z.string(),
   message: z.string(),
   imageUrl: z.string().nullable(),
+  videoUrl: z.string().nullable(),
+  audioUrl: z.string().nullable(),
   link: DoorLinkDtoSchema.nullable(),
   countdown: DoorCountdownDtoSchema.nullable(),
   confetti: z.boolean(),
@@ -105,6 +109,8 @@ export interface DoorPreviewDto {
     readonly title: string;
     readonly message: string;
     readonly imageUrl: string | null;
+    readonly videoUrl: string | null;
+    readonly audioUrl: string | null;
     readonly linkUrl: string | null;
     readonly countdown: DoorCountdownDto | null;
     readonly confetti: boolean;
@@ -127,6 +133,8 @@ export const DoorPreviewDtoSchema: z.ZodType<DoorPreviewDto> = z.object({
     title: z.string(),
     message: z.string(),
     imageUrl: z.string().nullable(),
+    videoUrl: z.string().nullable(),
+    audioUrl: z.string().nullable(),
     linkUrl: z.string().nullable(),
     countdown: DoorCountdownDtoSchema.nullable(),
     confetti: z.boolean(),

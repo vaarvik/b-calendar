@@ -20,8 +20,8 @@ interface CalendarPreviewScreenProps {
 }
 
 function contentOf(door: DoorPreviewDto): OpenDoorContentDto {
-  const { title, message, imageUrl, countdown, confetti } = door.content;
-  return { title, message, imageUrl, countdown, confetti, link: door.link };
+  const { title, message, imageUrl, videoUrl, audioUrl, countdown, confetti } = door.content;
+  return { title, message, imageUrl, videoUrl, audioUrl, countdown, confetti, link: door.link };
 }
 
 /** The door as she sees it right now, or opened when the admin has revealed it here. */

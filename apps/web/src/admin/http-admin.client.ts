@@ -6,7 +6,7 @@ import {
   DoorPreviewDtoSchema,
   LogInResponseDtoSchema,
   SendTestNotificationResponseDtoSchema,
-  UploadImageResponseDtoSchema,
+  UploadMediaResponseDtoSchema,
 } from '@b-calendar/contracts';
 import type {
   CalendarDetailsResponseDto,
@@ -15,6 +15,7 @@ import type {
   CalendarVersionDto,
   DoorPreviewDto,
   SendTestNotificationResponseDto,
+  UploadMediaResponseDto,
 } from '@b-calendar/contracts';
 import type { JsonHttpClient, JsonRequest, KeyValueStorage } from '../shared/shared.ports';
 import type { AdminClient, DoorDraftDto } from './admin.ports';
@@ -124,14 +125,13 @@ export class HttpAdminClient implements AdminClient {
     });
   }
 
-  public async uploadImage(image: Blob): Promise<string> {
-    const { url } = await this.send({
+  public uploadMedia(file: Blob): Promise<UploadMediaResponseDto> {
+    return this.send({
       method: 'POST',
       path: '/v1/admin/media',
-      body: image,
-      schema: UploadImageResponseDtoSchema,
+      body: file,
+      schema: UploadMediaResponseDtoSchema,
     });
-    return url;
   }
 
   private send<T>(request: JsonRequest<T>): Promise<T> {

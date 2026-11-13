@@ -30,6 +30,8 @@ describe('the recipient’s calendar over HTTP', () => {
     const content = {
       message: 'Hemmelig',
       imageUrl: null,
+      videoUrl: null,
+      audioUrl: null,
       linkUrl: 'https://open.spotify.com/track/abc',
       countdown: { to: new Date(Date.now() + 2 * HOUR), label: 'til vi drar' },
       confetti: true,

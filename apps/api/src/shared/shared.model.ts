@@ -32,6 +32,8 @@ export interface DoorsTable {
   title: string;
   message: string;
   image_url: string | null;
+  video_url: string | null;
+  audio_url: string | null;
   link_url: string | null;
   countdown_to: Date | null;
   countdown_label: string | null;

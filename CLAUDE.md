@@ -120,7 +120,7 @@ UI copy uses the Norwegian in brackets.
   open time** (`defaultOpenTime`, e.g. 08:00, in the calendar's `timeZone`) or at its own
   `openTime`. `opensAt` is that instant, derived by `DoorScheduleCalculator` and kept in step by
   the use cases (changing the default moves every door without its own time). Holds **content** (title, message, an
-  image, a link — Spotify and YouTube are embedded —, a countdown, confetti) and the
+  image, an uploaded video and song (any mix, all optional), a link — Spotify and YouTube are embedded —, a countdown, confetti) and the
   **notification** sent when it opens.
 - **Door state**, as the recipient sees it, like a paper calendar: `locked` before `opensAt`,
   `ready` after it while still closed, `opened` for good once she has opened it
