@@ -1,0 +1,318 @@
+# simple-k8s image cleanup v1: written by simple-k8s, which starts it to delete old
+# builds of this repo's images (never one running, a rollback target, one of
+# the newest 20 or younger than 7 days). It never runs on a push; builds don't use it.
+name: simple-k8s image cleanup
+run-name: "simple-k8s image cleanup ${{ inputs.mode }} ${{ inputs.request }}"
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "preview (deletes nothing) or delete (only the ids from a preview)"
+        type: choice
+        options: [preview, delete]
+        default: preview
+      package:
+        description: "The image's package name (ghcr.io/<owner>/<package>)"
+        type: string
+        required: true
+      request:
+        description: "simple-k8s's id for this run"
+        type: string
+        required: true
+      keep_newest:
+        description: "Keep the newest N builds (at least 20)"
+        type: string
+        default: "20"
+      min_age_days:
+        description: "Keep builds younger than D days (at least 7)"
+        type: string
+        default: "7"
+      keep:
+        description: "Digests and tags that must stay (running, rollback targets)"
+        type: string
+        default: ""
+      ids:
+        description: "delete: the version ids from the preview"
+        type: string
+        default: ""
+permissions: {}
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Plan or delete old image versions
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ github.repository_owner }}
+          IN_MODE: ${{ inputs.mode }}
+          IN_PACKAGE: ${{ inputs.package }}
+          IN_REQUEST: ${{ inputs.request }}
+          IN_KEEP_NEWEST: ${{ inputs.keep_newest }}
+          IN_MIN_AGE_DAYS: ${{ inputs.min_age_days }}
+          IN_KEEP: ${{ inputs.keep }}
+          IN_IDS: ${{ inputs.ids }}
+          OUT_FILE: ${{ runner.temp }}/simple-k8s-cleanup/result.json
+        run: |
+          cat > "$RUNNER_TEMP/simple-k8s-cleanup.js" <<'SK8S_CLEANUP_SCRIPT'
+          "use strict";
+          const fs = require("fs");
+          const path = require("path");
+          const env = process.env;
+          const API = "https://api.github.com";
+          const FLOOR_NEWEST = 20;
+          const FLOOR_DAYS = 7;
+          const MAX_KEEP = 2000;
+          const MAX_IDS = 1000;
+          const MAX_PAGES = 50;
+          const DIGEST = /^sha256:[a-f0-9]{64}$/;
+          const TAG = /^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$/;
+          const PKG = /^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*)*$/;
+          const ACCEPT = "application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json";
+
+          function fail(msg) {
+            throw new Error(msg);
+          }
+          // Input values are never printed: a value could carry a workflow command.
+          function readInputs() {
+            const mode = String(env.IN_MODE || "");
+            if (mode !== "preview" && mode !== "delete") fail("mode must be preview or delete");
+            const request = String(env.IN_REQUEST || "");
+            if (!/^[a-z0-9-]{6,64}$/.test(request)) fail("request must be 6 to 64 of a-z, 0-9 and -");
+            const pkg = String(env.IN_PACKAGE || "");
+            if (pkg.length > 200 || !PKG.test(pkg)) fail("package name not allowed");
+            const num = function (v, name, min, max) {
+              const s = String(v || "").trim();
+              if (!/^[0-9]{1,6}$/.test(s)) fail(name + " must be a whole number");
+              const n = Number(s);
+              if (n < min || n > max) fail(name + " must be between " + min + " and " + max);
+              return n;
+            };
+            const keepNewest = num(env.IN_KEEP_NEWEST, "keep_newest", FLOOR_NEWEST, 1000);
+            const minAgeDays = num(env.IN_MIN_AGE_DAYS, "min_age_days", FLOOR_DAYS, 3650);
+            const words = function (s) {
+              return String(s || "").split(/[\s,]+/).filter(Boolean);
+            };
+            const keep = words(env.IN_KEEP);
+            if (keep.length > MAX_KEEP) fail("more than " + MAX_KEEP + " keep entries");
+            const keepDigests = new Set();
+            const keepTags = new Set();
+            for (const k of keep) {
+              if (DIGEST.test(k)) keepDigests.add(k);
+              else if (TAG.test(k)) keepTags.add(k);
+              else fail("a keep entry is neither a digest nor a tag");
+            }
+            const idWords = words(env.IN_IDS);
+            if (idWords.length > MAX_IDS) fail("more than " + MAX_IDS + " version ids");
+            const ids = [];
+            for (const w of idWords) {
+              if (!/^[0-9]{1,15}$/.test(w)) fail("version ids must be numbers");
+              ids.push(Number(w));
+            }
+            if (mode === "delete" && !ids.length) fail("delete needs the version ids from a preview");
+            if (mode === "preview" && ids.length) fail("preview takes no version ids");
+            return { mode: mode, request: request, pkg: pkg, keepNewest: keepNewest, minAgeDays: minAgeDays, keepDigests: keepDigests, keepTags: keepTags, ids: ids };
+          }
+
+          async function api(method, p) {
+            return fetch(API + p, {
+              method: method,
+              headers: { Authorization: "Bearer " + env.GH_TOKEN, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "simple-k8s-cleanup" },
+              signal: AbortSignal.timeout(30000),
+            });
+          }
+
+          // An organization's package or a user's: their API paths differ.
+          async function packageBase(owner, pkg) {
+            const r = await api("GET", "/users/" + encodeURIComponent(owner));
+            if (!r.ok) fail("GitHub answered " + r.status + " reading the repository owner");
+            const j = await r.json();
+            return (j && j.type === "Organization" ? "/orgs/" : "/users/") + encodeURIComponent(owner) + "/packages/container/" + encodeURIComponent(pkg);
+          }
+
+          // Newest first (GitHub's order), every page up to MAX_PAGES.
+          async function listVersions(base) {
+            const out = [];
+            for (let page = 1; page <= MAX_PAGES; page++) {
+              const r = await api("GET", base + "/versions?per_page=100&page=" + page);
+              if (!r.ok) {
+                const e = new Error("GitHub answered " + r.status + " listing the image's versions");
+                e.status = r.status;
+                throw e;
+              }
+              const j = await r.json();
+              if (!Array.isArray(j)) fail("GitHub's list of versions wasn't a list");
+              for (const v of j) {
+                const digest = String((v && v.name) || "");
+                const tags = v && v.metadata && v.metadata.container && Array.isArray(v.metadata.container.tags) ? v.metadata.container.tags.map(String) : [];
+                if (!v || !Number.isSafeInteger(v.id) || !DIGEST.test(digest)) continue;
+                out.push({ id: v.id, digest: digest, tags: tags, created: String(v.created_at || "") });
+              }
+              if (j.length < 100) return { versions: out, truncated: false };
+            }
+            return { versions: out, truncated: true };
+          }
+
+          // A pull token for the image (the workflow's own GITHUB_TOKEN, as docker login uses it).
+          async function registryToken(owner, pkg) {
+            const q = "service=ghcr.io&scope=" + encodeURIComponent("repository:" + owner + "/" + pkg + ":pull");
+            const basic = Buffer.from((env.GITHUB_ACTOR || "simple-k8s") + ":" + env.GH_TOKEN).toString("base64");
+            const r = await fetch("https://ghcr.io/token?" + q, { headers: { Authorization: "Basic " + basic }, signal: AbortSignal.timeout(30000) }).catch(function () {
+              return null;
+            });
+            if (!r || !r.ok) return null;
+            const j = await r.json().catch(function () {
+              return {};
+            });
+            return j.token || j.access_token || null;
+          }
+
+          async function manifest(owner, pkg, tok, digest) {
+            if (!tok) return null;
+            const r = await fetch("https://ghcr.io/v2/" + owner + "/" + pkg + "/manifests/" + digest, { headers: { Authorization: "Bearer " + tok, Accept: ACCEPT }, signal: AbortSignal.timeout(30000) }).catch(function () {
+              return null;
+            });
+            if (!r || !r.ok) return null;
+            return r.json().catch(function () {
+              return null;
+            });
+          }
+
+          function childDigests(m) {
+            return (m && Array.isArray(m.manifests) ? m.manifests : []).map(function (x) {
+              return String((x && x.digest) || "");
+            }).filter(function (d) {
+              return DIGEST.test(d);
+            });
+          }
+
+          // The rules (the same as simple-k8s's planCleanup): never in the keep list
+          // (by digest or tag), never 'latest', never one of the newest N tagged
+          // builds, never younger than D days, never a part of a kept build, and never
+          // an untagged version whose parent couldn't be read.
+          function plan(versions, inp, children, now) {
+            const minAge = inp.minAgeDays * 86400000;
+            const tagged = versions.filter(function (v) {
+              return v.tags.length;
+            }).sort(function (a, b) {
+              return Date.parse(b.created) - Date.parse(a.created);
+            });
+            const newest = new Set(tagged.slice(0, inp.keepNewest).map(function (v) {
+              return v.digest;
+            }));
+            const keep = new Set();
+            for (const v of versions) {
+              const old = now - Date.parse(v.created) >= minAge;
+              if (inp.keepDigests.has(v.digest) || v.tags.some(function (t) { return inp.keepTags.has(t); }) || newest.has(v.digest) || !old || v.tags.indexOf("latest") >= 0) keep.add(v.digest);
+            }
+            const queue = Array.from(keep);
+            while (queue.length) {
+              const d = queue.pop();
+              for (const c of children[d] || []) {
+                if (!keep.has(c)) {
+                  keep.add(c);
+                  queue.push(c);
+                }
+              }
+            }
+            const known = new Set();
+            for (const k of Object.keys(children)) for (const c of children[k]) known.add(c);
+            for (const v of versions) if (!v.tags.length && !known.has(v.digest) && !(v.digest in children)) keep.add(v.digest);
+            return versions.filter(function (v) {
+              return !keep.has(v.digest);
+            });
+          }
+
+          // What deleting these frees, at most: their layers and configs, each once.
+          async function freed(owner, pkg, tok, remove) {
+            const seen = new Map();
+            for (const v of remove.slice(0, 400)) {
+              const m = await manifest(owner, pkg, tok, v.digest);
+              if (!m || Array.isArray(m.manifests)) continue;
+              for (const b of [m.config].concat(Array.isArray(m.layers) ? m.layers : [])) {
+                const dg = String((b && b.digest) || "");
+                const n = Number(b && b.size);
+                if (DIGEST.test(dg) && Number.isFinite(n) && n > 0) seen.set(dg, n);
+              }
+            }
+            let sum = 0;
+            for (const n of seen.values()) sum += n;
+            return sum;
+          }
+
+          async function main() {
+            const result = { v: 1, ok: false };
+            try {
+              const inp = readInputs();
+              result.request = inp.request;
+              result.mode = inp.mode;
+              result.package = inp.pkg;
+              const owner = String(env.OWNER || "").toLowerCase();
+              if (!/^[a-z0-9-]{1,39}$/.test(owner)) fail("repository owner not allowed");
+              const base = await packageBase(owner, inp.pkg);
+              let listed;
+              try {
+                listed = await listVersions(base);
+              } catch (e) {
+                result.listStatus = e.status || 0;
+                throw e;
+              }
+              const versions = listed.versions;
+              const tok = await registryToken(owner, inp.pkg);
+              const children = {};
+              for (const v of versions.filter(function (x) { return x.tags.length; }).slice(0, 300)) {
+                const m = await manifest(owner, inp.pkg, tok, v.digest);
+                if (m) children[v.digest] = childDigests(m);
+              }
+              const remove = plan(versions, inp, children, Date.now());
+              result.total = versions.length;
+              result.truncated = listed.truncated;
+              if (inp.mode === "preview") {
+                result.versions = versions;
+                result.children = children;
+                result.remove = remove;
+                result.bytes = await freed(owner, inp.pkg, tok, remove);
+              } else {
+                const allowed = new Map(remove.map(function (v) { return [v.id, v]; }));
+                const listedIds = new Set(versions.map(function (v) { return v.id; }));
+                result.deleted = [];
+                result.skipped = [];
+                result.failed = [];
+                for (const id of inp.ids) {
+                  const v = allowed.get(id);
+                  if (!v) {
+                    result.skipped.push({ id: id, why: listedIds.has(id) ? "kept" : "gone" });
+                    continue;
+                  }
+                  const r = await api("DELETE", base + "/versions/" + id);
+                  if (r.status === 204) result.deleted.push(v);
+                  else result.failed.push({ id: id, digest: v.digest, status: r.status });
+                }
+              }
+              result.ok = true;
+            } catch (e) {
+              result.error = String((e && e.message) || e).slice(0, 300);
+              process.exitCode = 1;
+            }
+            fs.mkdirSync(path.dirname(env.OUT_FILE), { recursive: true });
+            fs.writeFileSync(env.OUT_FILE, JSON.stringify(result));
+            if (env.GITHUB_STEP_SUMMARY) {
+              const line = !result.ok ? "Stopped: " + result.error : result.mode === "preview" ? "Would delete " + result.remove.length + " of " + result.total + " versions (nothing deleted)." : "Deleted " + result.deleted.length + ", skipped " + result.skipped.length + ", failed " + result.failed.length + ".";
+              fs.appendFileSync(env.GITHUB_STEP_SUMMARY, "### simple-k8s image cleanup\n\n" + line + "\n");
+            }
+          }
+
+          main();
+          SK8S_CLEANUP_SCRIPT
+          node "$RUNNER_TEMP/simple-k8s-cleanup.js"
+      - name: Upload the result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: simple-k8s-cleanup
+          path: ${{ runner.temp }}/simple-k8s-cleanup/result.json
+          retention-days: 3
+          if-no-files-found: error
