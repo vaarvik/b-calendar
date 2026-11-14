@@ -8,7 +8,6 @@ import type {
 import type { DoorDraftDto } from '../admin/admin.ports';
 import { ApiError } from '../shared/shared.model';
 import { RECIPIENT_COPY } from '../shared/shared.model';
-import { GiverDoorComments } from '../ui/door-comments';
 import { DoorForm } from '../ui/door-form';
 import { DoorSheet } from '../ui/door-sheet';
 import { CalendarPreviewScreen } from './calendar-preview-screen';
@@ -676,9 +675,6 @@ function CalendarEditor({
                     },
                   })}
             />
-            <section className="door-form">
-              <GiverDoorComments doorId={door.id} opened={Date.parse(door.opensAt) <= now} />
-            </section>
           </>
         )}
 

@@ -7,6 +7,7 @@ import type {
 } from '@b-calendar/contracts';
 import { INTL_LOCALE, RECIPIENT_COPY } from '../shared/shared.model';
 import { Countdown } from '../ui/countdown';
+import { GiverDoorComments } from '../ui/door-comments';
 import { DoorSheet } from '../ui/door-sheet';
 import { DoorTile } from '../ui/door-tile';
 
@@ -183,7 +184,13 @@ export function CalendarPreviewScreen({
           onClose={() => {
             setShown(null);
           }}
-        />
+        >
+          <GiverDoorComments
+            key={shown.id}
+            doorId={shown.id}
+            opened={Date.parse(shown.opensAt) <= now}
+          />
+        </DoorSheet>
       )}
     </main>
   );
