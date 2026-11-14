@@ -8,7 +8,7 @@ import type { PushReadiness } from '../notifications/notifications.ports';
 import { ApiError } from '../shared/shared.model';
 import { INTL_LOCALE, RECIPIENT_COPY } from '../shared/shared.model';
 import { Countdown } from '../ui/countdown';
-import { DoorComments } from '../ui/door-comments';
+import { RecipientDoorComments } from '../ui/door-comments';
 import { DoorSheet } from '../ui/door-sheet';
 import { DoorTile } from '../ui/door-tile';
 import { NotifyCard } from '../ui/notify-card';
@@ -296,7 +296,7 @@ export function CalendarScreen({ slug }: { readonly slug: string }) {
             setShown(null);
           }}
         >
-          <DoorComments
+          <RecipientDoorComments
             key={shown.number}
             access={access}
             number={shown.number}

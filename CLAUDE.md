@@ -129,7 +129,9 @@ UI copy uses the Norwegian in brackets.
   `ready` after it while still closed, `opened` for good once she has opened it
   (`firstOpenedAt`). She can go back to an opened door any time.
 - **Comment** (kommentar): left behind a door that has opened, by her (with her name) or a
-  follower (with the name they give). Never on a locked or secret door. The admin can remove one.
+  follower (with the name they give), or by the **giver** (giver, the admin) behind any published
+  door, where it waits for her until the door opens. Never shown on a locked or secret door. Each
+  comment on an opened door notifies every phone but the writer's own; the admin can remove one.
 - **Subscription**: one browser's Web Push endpoint for a calendar.
 - **Admin**: the one person who writes calendars; signs in with `ADMIN_PASSWORD`.
 
@@ -142,6 +144,8 @@ UI copy uses the Norwegian in brackets.
   `OpenDoor` refuses with `DoorLockedError`. A ready door's content is only sent by `OpenDoor`,
   which records the first look.
 - A wrong key and an unknown slug give the same `UnauthenticatedError`.
+- Notification links carry no key: each phone opens the calendar with the link it was set up with,
+  so a follower's tap never turns into hers.
 - A door is marked notified **before** its push goes out: at most one notification per door. A
   notification later than `NOTIFY_GRACE_MINUTES` after `opensAt` is skipped, not sent. Moving a
   door into the future makes it notify again.

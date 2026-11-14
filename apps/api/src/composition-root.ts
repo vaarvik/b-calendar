@@ -1,5 +1,6 @@
 import {
   AddDoorCommentUseCase,
+  AddGiverDoorCommentUseCase,
   AddDoorUseCase,
   CreateCalendarUseCase,
   EditDoorUseCase,
@@ -8,6 +9,7 @@ import {
   ListAdminDoorCommentsUseCase,
   ListCalendarsUseCase,
   ListDoorCommentsUseCase,
+  PushCommentNotifier,
   RemoveDoorCommentUseCase,
   VisibleOpenedDoorLocator,
   PublishCalendarUseCase,
@@ -235,6 +237,13 @@ export class CompositionRoot {
     );
     const admin = new BearerAdminAuthenticator(sessions);
     const openedDoors = new VisibleOpenedDoorLocator(access, doors, presenter, clock);
+    const commentNotifier = new PushCommentNotifier(
+      subscriptions,
+      subscriptions,
+      push,
+      messages,
+      logger,
+    );
 
     this.createCalendar = new CreateCalendarUseCase(calendars, ids, secrets, clock, validator);
     const draftPresenter = new NumberedDraftDoorPresenter(
@@ -331,7 +340,23 @@ export class CompositionRoot {
         ),
         new CommentsController(
           {
-            addDoorComment: new AddDoorCommentUseCase(openedDoors, comments, ids, clock, validator),
+            addDoorComment: new AddDoorCommentUseCase(
+              openedDoors,
+              comments,
+              commentNotifier,
+              ids,
+              clock,
+              validator,
+            ),
+            addGiverDoorComment: new AddGiverDoorCommentUseCase(
+              calendars,
+              doors,
+              comments,
+              commentNotifier,
+              ids,
+              clock,
+              validator,
+            ),
             listDoorComments: new ListDoorCommentsUseCase(openedDoors, comments),
             listAdminDoorComments: new ListAdminDoorCommentsUseCase(comments),
             removeDoorComment: new RemoveDoorCommentUseCase(comments),

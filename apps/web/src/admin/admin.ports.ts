@@ -1,4 +1,5 @@
 import type {
+  AddDoorCommentRequestDto,
   CalendarDetailsResponseDto,
   CalendarDto,
   CalendarRole,
@@ -51,6 +52,8 @@ export interface AdminClient {
   /** A published door's comments, oldest first. */
   doorComments(doorId: string): Promise<readonly DoorCommentDto[]>;
   removeComment(commentId: string): Promise<void>;
+  /** The giver's comment behind a published door, also one that has not opened. */
+  addComment(doorId: string, comment: AddDoorCommentRequestDto): Promise<DoorCommentDto>;
   /** Gives the recipient the draft as the calendar's next version. */
   publish(calendarId: string): Promise<CalendarVersionDto>;
   sendTestNotification(calendarId: string): Promise<SendTestNotificationResponseDto>;

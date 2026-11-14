@@ -52,6 +52,19 @@ export class BrowserPushSubscriber implements PushSubscriber {
     };
   }
 
+  public async endpoint(): Promise<string | null> {
+    if (!('serviceWorker' in navigator) || !('PushManager' in globalThis)) {
+      return null;
+    }
+    try {
+      const registration = await navigator.serviceWorker.getRegistration(this.serviceWorkerUrl);
+      const subscription = await registration?.pushManager.getSubscription();
+      return subscription?.endpoint ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   /** VAPID keys are base64url; PushManager wants the bytes. */
   private decode(base64url: string): Uint8Array<ArrayBuffer> {
     const base64 = (base64url + '='.repeat((4 - (base64url.length % 4)) % 4))

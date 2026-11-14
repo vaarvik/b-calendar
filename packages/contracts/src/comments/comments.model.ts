@@ -1,15 +1,17 @@
 import { z } from 'zod';
-import type { CalendarRole } from '../calendars/calendars.model.js';
 import type { CommentId, DoorId } from '../shared/shared.model.js';
 
-/** A comment someone left behind an open door. */
+/** Who wrote a comment: her, a follower, or the giver (the admin). */
+export const COMMENT_ROLES = ['recipient', 'follower', 'giver'] as const;
+export type CommentRole = (typeof COMMENT_ROLES)[number];
+
+/** A comment someone left behind a door. */
 export interface DoorComment {
   readonly id: CommentId;
   readonly doorId: DoorId;
-  /** Her name on her link, or the name a follower gave. */
+  /** Her name on her link, or the name a follower or the giver gave. */
   readonly author: string;
-  /** Whose link wrote it. */
-  readonly role: CalendarRole;
+  readonly role: CommentRole;
   readonly text: string;
   readonly createdAt: Date;
 }

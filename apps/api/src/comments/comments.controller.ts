@@ -34,8 +34,13 @@ export class CommentsController implements HttpController {
   ) {}
 
   public register(app: FastifyInstance): void {
-    const { addDoorComment, listDoorComments, listAdminDoorComments, removeDoorComment } =
-      this.useCases;
+    const {
+      addDoorComment,
+      addGiverDoorComment,
+      listDoorComments,
+      listAdminDoorComments,
+      removeDoorComment,
+    } = this.useCases;
 
     app.get('/v1/calendars/:slug/doors/:number/comments', async (request, reply) => {
       const comments = await listDoorComments.execute(this.door(request));
@@ -59,6 +64,22 @@ export class CommentsController implements HttpController {
       return DoorCommentsResponseDtoSchema.parse({
         comments: comments.map((comment) => this.dtos.comment(comment)),
       });
+    });
+
+    app.post('/v1/admin/doors/:doorId/comments', async (request, reply) => {
+      this.admin.requireAdmin(request);
+      const { doorId } = this.validator.validate(AdminDoorParamsSchema, request.params);
+      const { author, text, endpoint } = this.validator.validate(
+        AddDoorCommentRequestDtoSchema,
+        request.body,
+      );
+      const comment = await addGiverDoorComment.execute({
+        doorId,
+        author: author ?? '',
+        text,
+        ...(endpoint === undefined ? {} : { endpoint }),
+      });
+      return reply.status(201).send(DoorCommentDtoSchema.parse(this.dtos.comment(comment)));
     });
 
     app.delete('/v1/admin/comments/:commentId', async (request, reply) => {

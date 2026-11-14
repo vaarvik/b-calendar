@@ -627,7 +627,9 @@ button {
 
 .field input,
 .field select,
-.field textarea {
+.field textarea,
+.comments__name,
+.comments__input {
   font: inherit;
   font-size: 1rem;
   color: var(--text);
@@ -1610,7 +1612,11 @@ button {
   background: var(--surface-strong);
 }
 
-.comments__item--hers {
+.comments__item--giver {
+  border: 1px solid var(--accent);
+}
+
+.comments__item--recipient {
   justify-self: end;
   border-radius: 14px 14px 4px 14px;
   background: color-mix(in srgb, var(--accent-2) 35%, transparent);
@@ -1639,7 +1645,8 @@ button {
 
 .comments__input {
   flex: 1;
-  min-height: 44px;
+  min-width: 0;
+  min-height: 46px;
   resize: vertical;
 }
 

@@ -19,4 +19,6 @@ export interface PushSubscriber {
    * @returns the endpoint to send to the API, or null when permission was refused.
    */
   subscribe(vapidPublicKey: string): Promise<PushEndpoint | null>;
+  /** This browser's push endpoint, or null when it has none; never asks for permission. */
+  endpoint(): Promise<string | null>;
 }

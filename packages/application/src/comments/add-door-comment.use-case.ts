@@ -3,6 +3,7 @@ import type {
   AddDoorComment,
   AddDoorCommentInput,
   Clock,
+  CommentNotifier,
   DoorComment,
   DoorCommentWriter,
   IdGenerator,
@@ -14,6 +15,7 @@ export class AddDoorCommentUseCase implements AddDoorComment {
   public constructor(
     private readonly doors: OpenedDoorLocator,
     private readonly comments: DoorCommentWriter,
+    private readonly notifier: CommentNotifier,
     private readonly ids: IdGenerator,
     private readonly clock: Clock,
     private readonly validator: InputValidator,
@@ -35,6 +37,8 @@ export class AddDoorCommentUseCase implements AddDoorComment {
       createdAt: this.clock.now(),
     };
     await this.comments.create(comment);
+    // The door has opened (the locator saw to that), so telling the others gives nothing away.
+    await this.notifier.notify(viewer.calendar, door, comment, input.endpoint ?? null);
     return comment;
   }
 }

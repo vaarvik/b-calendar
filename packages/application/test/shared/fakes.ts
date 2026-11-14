@@ -3,9 +3,13 @@ import { UnauthenticatedError } from '@b-calendar/contracts';
 import type {
   AdminSession,
   AdminSessionService,
+  Calendar,
   CalendarId,
   Clock,
   CommentId,
+  CommentNotifier,
+  Door,
+  DoorComment,
   DoorId,
   IdGenerator,
   Logger,
@@ -98,5 +102,20 @@ export class SilentLogger implements Logger {
   }
   public error(message: string): void {
     this.warnings.push(message);
+  }
+}
+
+/** Records which comments were announced, and to whom not. */
+export class RecordingCommentNotifier implements CommentNotifier {
+  public readonly notified: { comment: DoorComment; except: string | null }[] = [];
+
+  public notify(
+    _calendar: Calendar,
+    _door: Door,
+    comment: DoorComment,
+    except: string | null,
+  ): Promise<void> {
+    this.notified.push({ comment, except });
+    return Promise.resolve();
   }
 }

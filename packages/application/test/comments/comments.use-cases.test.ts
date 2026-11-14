@@ -1,5 +1,6 @@
 import {
   AddDoorCommentUseCase,
+  AddGiverDoorCommentUseCase,
   KeyCalendarAccessAuthenticator,
   ListAdminDoorCommentsUseCase,
   ListDoorCommentsUseCase,
@@ -25,7 +26,7 @@ import {
   InMemoryDoorRepository,
 } from '@b-calendar/in-memory';
 import { describe, expect, it } from 'vitest';
-import { ManualClock, RandomIds } from '../shared/fakes.js';
+import { ManualClock, RandomIds, RecordingCommentNotifier } from '../shared/fakes.js';
 
 async function setup() {
   const data = new TestData();
@@ -41,6 +42,8 @@ async function setup() {
   for (const door of [open, locked, secret]) {
     await doors.create(door);
   }
+  const notifier = new RecordingCommentNotifier();
+  const validator = new ZodInputValidator();
   const locator = new VisibleOpenedDoorLocator(
     new KeyCalendarAccessAuthenticator(calendars, new ConstantTimeSecretMatcher()),
     doors,
@@ -55,12 +58,17 @@ async function setup() {
     clock,
     hers: { slug: calendar.slug, accessKey: calendar.accessKey },
     followers: { slug: calendar.slug, accessKey: calendar.followerKey },
-    add: new AddDoorCommentUseCase(
-      locator,
+    notifier,
+    locked,
+    add: new AddDoorCommentUseCase(locator, comments, notifier, new RandomIds(), clock, validator),
+    giver: new AddGiverDoorCommentUseCase(
+      calendars,
+      doors,
       comments,
+      notifier,
       new RandomIds(),
       clock,
-      new ZodInputValidator(),
+      validator,
     ),
     list: new ListDoorCommentsUseCase(locator, comments),
     listAdmin: new ListAdminDoorCommentsUseCase(comments),
@@ -79,6 +87,23 @@ describe('AddDoorComment and ListDoorComments', () => {
     await expect(list.execute({ ...followers, number: 1 })).resolves.toMatchObject([
       { author: 'Karoline', role: 'recipient', text: 'Gleder meg!', createdAt: T0 },
       { author: 'Johann', role: 'follower', text: 'Jeg også', createdAt: hoursAfter(T0, 1) },
+    ]);
+  });
+
+  it('tells everyone else about a comment, but not the writer’s own phone', async () => {
+    const { add, hers, notifier } = await setup();
+
+    const comment = await add.execute({
+      ...hers,
+      number: 1,
+      text: 'Hei',
+      endpoint: 'https://push.example/hers',
+    });
+    await add.execute({ ...hers, number: 1, text: 'Igjen' });
+
+    expect(notifier.notified).toEqual([
+      { comment, except: 'https://push.example/hers' },
+      { comment: expect.objectContaining({ text: 'Igjen' }) as unknown, except: null },
     ]);
   });
 
@@ -121,5 +146,47 @@ describe('ListAdminDoorComments and RemoveDoorComment', () => {
     await expect(listAdmin.execute({ doorId: open.id })).resolves.toEqual([comment]);
     await remove.execute({ commentId: comment.id });
     await expect(listAdmin.execute({ doorId: open.id })).resolves.toEqual([]);
+  });
+});
+
+describe('AddGiverDoorComment', () => {
+  it('lets the giver comment behind a door before it opens, quietly, and seen once it opens', async () => {
+    const { giver, list, hers, locked, notifier, clock } = await setup();
+
+    const comment = await giver.execute({
+      doorId: locked.id,
+      author: ' Johann ',
+      text: 'Kos deg!',
+    });
+
+    expect(comment).toMatchObject({ author: 'Johann', role: 'giver', text: 'Kos deg!' });
+    expect(notifier.notified).toEqual([]);
+    await expect(list.execute({ ...hers, number: 2 })).rejects.toBeInstanceOf(DoorLockedError);
+    clock.set(hoursAfter(T0, 1));
+    await expect(list.execute({ ...hers, number: 2 })).resolves.toEqual([comment]);
+  });
+
+  it('tells everyone about the giver’s comment on a door that has opened', async () => {
+    const { giver, open, notifier } = await setup();
+
+    await giver.execute({
+      doorId: open.id,
+      author: 'Johann',
+      text: 'Hei',
+      endpoint: 'https://push.example/giver',
+    });
+
+    expect(notifier.notified).toMatchObject([{ except: 'https://push.example/giver' }]);
+  });
+
+  it('refuses an unknown door and a comment without a name', async () => {
+    const { giver, open, data } = await setup();
+
+    await expect(
+      giver.execute({ doorId: data.doorId(), author: 'Johann', text: 'Hei' }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      giver.execute({ doorId: open.id, author: ' ', text: 'Hei' }),
+    ).rejects.toBeInstanceOf(ValidationError);
   });
 });

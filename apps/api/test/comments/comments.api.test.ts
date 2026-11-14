@@ -81,6 +81,34 @@ describe('comments behind a door over HTTP', () => {
     expect(wrong.statusCode).toBe(401);
   });
 
+  it('lets the giver comment behind a door that has not opened, which she cannot see yet', async () => {
+    const auth = { authorization: `Bearer ${await api.adminToken()}` };
+    const doors = (
+      await api.app.inject({ url: `/v1/admin/calendars/${calendar.id}`, headers: auth })
+    ).json<{ doors: { id: string }[] }>().doors;
+    const created = await api.app.inject({
+      method: 'POST',
+      url: `/v1/admin/doors/${String(doors[1]?.id)}/comments`,
+      headers: auth,
+      payload: { author: 'Johann', text: 'Kos deg!' },
+    });
+    const hers = await api.app.inject({
+      url: '/v1/calendars/ida-30/doors/2/comments',
+      headers: { 'x-access-key': calendar.accessKey },
+    });
+    const unknown = await api.app.inject({
+      method: 'POST',
+      url: '/v1/admin/doors/00000000-0000-4000-8000-000000000000/comments',
+      headers: auth,
+      payload: { author: 'Johann', text: 'Hei' },
+    });
+
+    expect(created.statusCode).toBe(201);
+    expect(created.json()).toMatchObject({ author: 'Johann', role: 'giver' });
+    expect(hers.statusCode).toBe(403);
+    expect(unknown.statusCode).toBe(404);
+  });
+
   it('lets the admin read and remove comments', async () => {
     const created = await post(calendar.accessKey, 1, { text: 'Fjern meg' });
     const auth = { authorization: `Bearer ${await api.adminToken()}` };

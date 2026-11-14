@@ -3,6 +3,7 @@ import {
   CalendarDtoSchema,
   CalendarListResponseDtoSchema,
   CalendarVersionDtoSchema,
+  DoorCommentDtoSchema,
   DoorCommentsResponseDtoSchema,
   DoorPreviewDtoSchema,
   LogInResponseDtoSchema,
@@ -10,6 +11,7 @@ import {
   UploadMediaResponseDtoSchema,
 } from '@b-calendar/contracts';
 import type {
+  AddDoorCommentRequestDto,
   CalendarDetailsResponseDto,
   CalendarDto,
   CalendarRole,
@@ -119,6 +121,15 @@ export class HttpAdminClient implements AdminClient {
       schema: DoorCommentsResponseDtoSchema,
     });
     return comments;
+  }
+
+  public addComment(doorId: string, comment: AddDoorCommentRequestDto): Promise<DoorCommentDto> {
+    return this.send({
+      method: 'POST',
+      path: `/v1/admin/doors/${doorId}/comments`,
+      body: comment,
+      schema: DoorCommentDtoSchema,
+    });
   }
 
   public removeComment(commentId: string): Promise<void> {
