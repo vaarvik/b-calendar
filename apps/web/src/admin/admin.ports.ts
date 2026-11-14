@@ -4,6 +4,7 @@ import type {
   CalendarRole,
   CalendarSettings,
   CalendarVersionDto,
+  DoorCommentDto,
   DoorPreviewDto,
   SendTestNotificationResponseDto,
   UploadMediaResponseDto,
@@ -47,6 +48,9 @@ export interface AdminClient {
   addDoor(calendarId: string, draft: DoorDraftDto): Promise<DoorPreviewDto>;
   editDoor(doorId: string, draft: DoorDraftDto): Promise<DoorPreviewDto>;
   removeDoor(doorId: string): Promise<void>;
+  /** A published door's comments, oldest first. */
+  doorComments(doorId: string): Promise<readonly DoorCommentDto[]>;
+  removeComment(commentId: string): Promise<void>;
   /** Gives the recipient the draft as the calendar's next version. */
   publish(calendarId: string): Promise<CalendarVersionDto>;
   sendTestNotification(calendarId: string): Promise<SendTestNotificationResponseDto>;

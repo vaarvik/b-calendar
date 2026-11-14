@@ -5,6 +5,8 @@ import type {
   CalendarDto,
   CalendarVersionDto,
   CalendarVersionSummary,
+  DoorComment,
+  DoorCommentDto,
   DoorCountdown,
   DoorCountdownDto,
   DoorPreview,
@@ -32,6 +34,16 @@ export class IsoHttpDtoMapper implements HttpDtoMapper {
       unpublishedChanges: details.unpublishedChanges,
       versions: details.versions.map((version) => this.calendarVersion(version)),
       subscriberCount: details.subscriberCount,
+    };
+  }
+
+  public comment(comment: DoorComment): DoorCommentDto {
+    return {
+      id: comment.id,
+      author: comment.author,
+      role: comment.role,
+      text: comment.text,
+      createdAt: comment.createdAt.toISOString(),
     };
   }
 

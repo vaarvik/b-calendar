@@ -32,7 +32,8 @@ docs/                  Hosting and decisions
 
 Packages are layers; inside each layer, code is grouped by feature, with the same feature names
 in every layer: `calendars`, `doors`, `subscriptions` (push subscriptions), `notifications`
-(deciding and sending door notifications), `media` (uploaded images), `admin` (the admin session),
+(deciding and sending door notifications), `media` (uploaded photos, songs and videos), `comments`
+(comments behind an opened door), `admin` (the admin session),
 `shared`.
 
 ```
@@ -127,6 +128,8 @@ UI copy uses the Norwegian in brackets.
 - **Door state**, as the recipient sees it, like a paper calendar: `locked` before `opensAt`,
   `ready` after it while still closed, `opened` for good once she has opened it
   (`firstOpenedAt`). She can go back to an opened door any time.
+- **Comment** (kommentar): left behind a door that has opened, by her (with her name) or a
+  follower (with the name they give). Never on a locked or secret door. The admin can remove one.
 - **Subscription**: one browser's Web Push endpoint for a calendar.
 - **Admin**: the one person who writes calendars; signs in with `ADMIN_PASSWORD`.
 

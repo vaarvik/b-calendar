@@ -16,6 +16,8 @@ export type DoorId = Brand<string, 'DoorId'>;
 export type SubscriptionId = Brand<string, 'SubscriptionId'>;
 /** One uploaded media file. UUID. */
 export type MediaId = Brand<string, 'MediaId'>;
+/** Identifies a comment on a door. */
+export type CommentId = Brand<string, 'CommentId'>;
 
 export const CalendarIdSchema: z.ZodType<CalendarId> = z
   .uuid()
@@ -25,6 +27,9 @@ export const SubscriptionIdSchema: z.ZodType<SubscriptionId> = z
   .uuid()
   .transform((value) => value as SubscriptionId);
 export const MediaIdSchema: z.ZodType<MediaId> = z.uuid().transform((value) => value as MediaId);
+export const CommentIdSchema: z.ZodType<CommentId> = z
+  .uuid()
+  .transform((value) => value as CommentId);
 
 /** A point in time on the wire: ISO 8601 with an offset, parsed to a Date. */
 export const InstantSchema: z.ZodType<Date, string> = z.iso

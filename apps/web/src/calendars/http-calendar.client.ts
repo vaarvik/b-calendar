@@ -1,10 +1,14 @@
 import {
+  DoorCommentDtoSchema,
+  DoorCommentsResponseDtoSchema,
   OpenDoorResponseDtoSchema,
   PushConfigResponseDtoSchema,
   RecipientCalendarResponseDtoSchema,
 } from '@b-calendar/contracts';
 import type {
+  AddDoorCommentRequestDto,
   CalendarAccess,
+  DoorCommentDto,
   OpenDoorResponseDto,
   PushEndpoint,
   RecipientCalendarResponseDto,
@@ -38,6 +42,32 @@ export class HttpCalendarClient implements CalendarClient {
       path: `${this.base(access)}/subscriptions`,
       headers: this.headers(access),
       body: endpoint,
+    });
+  }
+
+  public async comments(
+    access: CalendarAccess,
+    number: number,
+  ): Promise<readonly DoorCommentDto[]> {
+    const { comments } = await this.http.request({
+      path: `${this.base(access)}/doors/${String(number)}/comments`,
+      headers: this.headers(access),
+      schema: DoorCommentsResponseDtoSchema,
+    });
+    return comments;
+  }
+
+  public comment(
+    access: CalendarAccess,
+    number: number,
+    comment: AddDoorCommentRequestDto,
+  ): Promise<DoorCommentDto> {
+    return this.http.request({
+      method: 'POST',
+      path: `${this.base(access)}/doors/${String(number)}/comments`,
+      headers: this.headers(access),
+      body: comment,
+      schema: DoorCommentDtoSchema,
     });
   }
 

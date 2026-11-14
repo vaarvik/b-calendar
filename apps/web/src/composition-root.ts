@@ -3,7 +3,12 @@ import { HttpAdminClient } from './admin/http-admin.client';
 import type { AdminClient, ImageResizer } from './admin/admin.ports';
 import { HttpCalendarClient } from './calendars/http-calendar.client';
 import { KeyValueAccessKeyStorage } from './calendars/key-value-access-key.storage';
-import type { AccessKeyStorage, CalendarClient } from './calendars/calendars.ports';
+import { KeyValueCommenterNameStorage } from './calendars/key-value-commenter-name.storage';
+import type {
+  AccessKeyStorage,
+  CalendarClient,
+  CommenterNameStorage,
+} from './calendars/calendars.ports';
 import { BrowserPushSubscriber } from './notifications/browser-push.subscriber';
 import type { PushSubscriber } from './notifications/notifications.ports';
 import { FetchJsonHttpClient } from './shared/fetch-json-http.client';
@@ -12,6 +17,7 @@ import { LocalKeyValueStorage } from './shared/local-key-value.storage';
 export interface Services {
   readonly calendars: CalendarClient;
   readonly keys: AccessKeyStorage;
+  readonly names: CommenterNameStorage;
   readonly push: PushSubscriber;
   readonly admin: AdminClient;
   readonly images: ImageResizer;
@@ -21,6 +27,7 @@ export interface Services {
 export class CompositionRoot implements Services {
   public readonly calendars: CalendarClient;
   public readonly keys: AccessKeyStorage;
+  public readonly names: CommenterNameStorage;
   public readonly push: PushSubscriber;
   public readonly admin: AdminClient;
   public readonly images: ImageResizer;
@@ -30,6 +37,7 @@ export class CompositionRoot implements Services {
     const storage = new LocalKeyValueStorage('b-calendar:');
     this.calendars = new HttpCalendarClient(http);
     this.keys = new KeyValueAccessKeyStorage(storage);
+    this.names = new KeyValueCommenterNameStorage(storage);
     this.push = new BrowserPushSubscriber('/sw.js');
     this.admin = new HttpAdminClient(http, storage);
     this.images = new CanvasImageResizer();

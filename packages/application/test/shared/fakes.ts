@@ -5,6 +5,7 @@ import type {
   AdminSessionService,
   CalendarId,
   Clock,
+  CommentId,
   DoorId,
   IdGenerator,
   Logger,
@@ -43,6 +44,9 @@ export class RandomIds implements IdGenerator {
   }
   public mediaId(): MediaId {
     return randomUUID() as MediaId;
+  }
+  public commentId(): CommentId {
+    return randomUUID() as CommentId;
   }
 }
 

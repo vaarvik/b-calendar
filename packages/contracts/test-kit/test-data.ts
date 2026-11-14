@@ -3,6 +3,8 @@ import type {
   Calendar,
   CalendarId,
   CalendarVersion,
+  CommentId,
+  DoorComment,
   Door,
   DoorContent,
   DoorId,
@@ -38,6 +40,22 @@ export class TestData {
 
   public mediaId(): MediaId {
     return randomUUID() as MediaId;
+  }
+
+  public commentId(): CommentId {
+    return randomUUID() as CommentId;
+  }
+
+  public comment(doorId: DoorId, overrides: Partial<DoorComment> = {}): DoorComment {
+    return {
+      id: this.commentId(),
+      doorId,
+      author: 'Ida',
+      role: 'recipient',
+      text: 'Gleder meg!',
+      createdAt: T0,
+      ...overrides,
+    };
   }
 
   public subscriptionId(): SubscriptionId {

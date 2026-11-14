@@ -1,5 +1,5 @@
 import type { CalendarId, DoorId } from '../shared/shared.model.js';
-import type { Calendar } from '../calendars/calendars.model.js';
+import type { Calendar, CalendarAccess, CalendarViewer } from '../calendars/calendars.model.js';
 import type {
   Door,
   DoorContent,
@@ -122,4 +122,19 @@ export interface DraftDoorPresenter {
     published: readonly Door[],
     id: DoorId,
   ): DoorPreview;
+}
+
+/**
+ * Finds a door someone with a link may see behind: one that is shown to her and has opened. The
+ * rule comments and opening share, so nothing leaks before its time.
+ */
+export interface OpenedDoorLocator {
+  /**
+   * @throws UnauthenticatedError when the slug or the key is wrong.
+   * @throws NotFoundError when there is no such door, or it is secret and has not opened.
+   * @throws DoorLockedError when the door has not opened yet.
+   */
+  locate(
+    access: CalendarAccess & { readonly number: number },
+  ): Promise<{ readonly viewer: CalendarViewer; readonly door: Door }>;
 }

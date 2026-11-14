@@ -3,6 +3,7 @@ import {
   CalendarDtoSchema,
   CalendarListResponseDtoSchema,
   CalendarVersionDtoSchema,
+  DoorCommentsResponseDtoSchema,
   DoorPreviewDtoSchema,
   LogInResponseDtoSchema,
   SendTestNotificationResponseDtoSchema,
@@ -14,6 +15,7 @@ import type {
   CalendarRole,
   CalendarSettings,
   CalendarVersionDto,
+  DoorCommentDto,
   DoorPreviewDto,
   SendTestNotificationResponseDto,
   UploadMediaResponseDto,
@@ -109,6 +111,18 @@ export class HttpAdminClient implements AdminClient {
 
   public removeDoor(doorId: string): Promise<void> {
     return this.send({ method: 'DELETE', path: `/v1/admin/doors/${doorId}` });
+  }
+
+  public async doorComments(doorId: string): Promise<readonly DoorCommentDto[]> {
+    const { comments } = await this.send({
+      path: `/v1/admin/doors/${doorId}/comments`,
+      schema: DoorCommentsResponseDtoSchema,
+    });
+    return comments;
+  }
+
+  public removeComment(commentId: string): Promise<void> {
+    return this.send({ method: 'DELETE', path: `/v1/admin/comments/${commentId}` });
   }
 
   public publish(calendarId: string): Promise<CalendarVersionDto> {

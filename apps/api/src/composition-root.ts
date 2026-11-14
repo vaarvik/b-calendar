@@ -1,10 +1,15 @@
 import {
+  AddDoorCommentUseCase,
   AddDoorUseCase,
   CreateCalendarUseCase,
   EditDoorUseCase,
   GetCalendarDetailsUseCase,
   KeyCalendarAccessAuthenticator,
+  ListAdminDoorCommentsUseCase,
   ListCalendarsUseCase,
+  ListDoorCommentsUseCase,
+  RemoveDoorCommentUseCase,
+  VisibleOpenedDoorLocator,
   PublishCalendarUseCase,
   LogInUseCase,
   NotifyOpenedDoorsUseCase,
@@ -21,6 +26,8 @@ import {
 import type {
   CalendarVersionReader,
   CalendarVersionWriter,
+  DoorCommentReader,
+  DoorCommentWriter,
   DraftDoorReader,
   DraftDoorWriter,
   PublishCalendar,
@@ -50,6 +57,7 @@ import {
 import {
   InMemoryCalendarRepository,
   InMemoryCalendarVersionRepository,
+  InMemoryDoorCommentRepository,
   InMemoryDraftDoorRepository,
   InMemoryDoorRepository,
   InMemorySubscriptionRepository,
@@ -66,6 +74,8 @@ import { HmacAdminSessionService } from './admin/hmac-admin-session.service.js';
 import { CalendarsController } from './calendars/calendars.controller.js';
 import { PgCalendarVersionRepository } from './calendars/pg-calendar-version.repository.js';
 import { PgCalendarRepository } from './calendars/pg-calendar.repository.js';
+import { CommentsController } from './comments/comments.controller.js';
+import { PgDoorCommentRepository } from './comments/pg-door-comment.repository.js';
 import { PgDoorRepository } from './doors/pg-door.repository.js';
 import { PgDraftDoorRepository } from './doors/pg-draft-door.repository.js';
 import { DiskMediaStorage } from './media/disk-media.storage.js';
@@ -168,6 +178,7 @@ interface Storage {
   readonly doors: DoorReader & DoorWriter;
   readonly drafts: DraftDoorReader & DraftDoorWriter;
   readonly versions: CalendarVersionReader & CalendarVersionWriter;
+  readonly comments: DoorCommentReader & DoorCommentWriter;
   readonly subscriptions: SubscriptionReader & SubscriptionWriter;
 }
 
@@ -209,7 +220,7 @@ export class CompositionRoot {
             }),
           })
         : null;
-    const { calendars, doors, drafts, versions, subscriptions } =
+    const { calendars, doors, drafts, versions, comments, subscriptions } =
       this.db === null ? this.inMemoryStorage() : this.postgresStorage(this.db);
 
     const push: PushSender =
@@ -223,6 +234,7 @@ export class CompositionRoot {
       matcher,
     );
     const admin = new BearerAdminAuthenticator(sessions);
+    const openedDoors = new VisibleOpenedDoorLocator(access, doors, presenter, clock);
 
     this.createCalendar = new CreateCalendarUseCase(calendars, ids, secrets, clock, validator);
     const draftPresenter = new NumberedDraftDoorPresenter(
@@ -317,6 +329,17 @@ export class CompositionRoot {
           validator,
           dtos,
         ),
+        new CommentsController(
+          {
+            addDoorComment: new AddDoorCommentUseCase(openedDoors, comments, ids, clock, validator),
+            listDoorComments: new ListDoorCommentsUseCase(openedDoors, comments),
+            listAdminDoorComments: new ListAdminDoorCommentsUseCase(comments),
+            removeDoorComment: new RemoveDoorCommentUseCase(comments),
+          },
+          admin,
+          validator,
+          dtos,
+        ),
         new MediaController(
           new UploadMediaUseCase(new DiskMediaStorage({ directory: config.mediaDir }), ids),
           admin,
@@ -393,6 +416,7 @@ export class CompositionRoot {
       doors: new InMemoryDoorRepository(),
       drafts: new InMemoryDraftDoorRepository(),
       versions: new InMemoryCalendarVersionRepository(),
+      comments: new InMemoryDoorCommentRepository(),
       subscriptions: new InMemorySubscriptionRepository(),
     };
   }
@@ -404,6 +428,7 @@ export class CompositionRoot {
       doors: new PgDoorRepository(db, errors),
       drafts: new PgDraftDoorRepository(db, errors),
       versions: new PgCalendarVersionRepository(db, errors),
+      comments: new PgDoorCommentRepository(db, errors),
       subscriptions: new PgSubscriptionRepository(db),
     };
   }

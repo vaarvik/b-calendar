@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import type { CalendarId, DoorId, MediaId, SubscriptionId } from './shared.model.js';
+import type { CalendarId, CommentId, DoorId, MediaId, SubscriptionId } from './shared.model.js';
 
 /** The current time. Injected so tests can fix it. */
 export interface Clock {
@@ -12,6 +12,7 @@ export interface IdGenerator {
   doorId(): DoorId;
   subscriptionId(): SubscriptionId;
   mediaId(): MediaId;
+  commentId(): CommentId;
 }
 
 /** Unguessable secrets, e.g. a calendar's access key. */

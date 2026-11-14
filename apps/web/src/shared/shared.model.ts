@@ -19,6 +19,12 @@ export interface RecipientCopy {
   readonly countdownDone: string;
   readonly listen: string;
   readonly pause: string;
+  readonly comments: string;
+  readonly noComments: string;
+  readonly writeComment: string;
+  readonly yourName: string;
+  readonly send: string;
+  readonly commentFailed: string;
   /** Over a door's song. */
   readonly songForYou: string;
   readonly openLink: string;
@@ -53,6 +59,12 @@ export const RECIPIENT_COPY: Readonly<Record<CalendarLocale, RecipientCopy>> = {
     listen: 'Hør',
     pause: 'Pause',
     songForYou: 'En sang til deg',
+    comments: 'Kommentarer',
+    noComments: 'Ingen kommentarer ennå. Bli den første!',
+    writeComment: 'Skriv en kommentar …',
+    yourName: 'Hva heter du?',
+    send: 'Send',
+    commentFailed: 'Kommentaren ble ikke sendt. Prøv igjen.',
     openLink: 'Åpne lenken',
     notifyTitle: 'Få beskjed når en luke åpner',
     notifyBody: 'Slå på varsler, så får du et pling hver gang det er noe nytt.',
@@ -87,6 +99,12 @@ export const RECIPIENT_COPY: Readonly<Record<CalendarLocale, RecipientCopy>> = {
     listen: 'Listen',
     pause: 'Pause',
     songForYou: 'A song for you',
+    comments: 'Comments',
+    noComments: 'No comments yet. Be the first!',
+    writeComment: 'Write a comment …',
+    yourName: 'What is your name?',
+    send: 'Send',
+    commentFailed: 'The comment was not sent. Try again.',
     openLink: 'Open the link',
     notifyTitle: 'Know when a door opens',
     notifyBody: 'Turn on notifications to get a ping whenever there is something new.',

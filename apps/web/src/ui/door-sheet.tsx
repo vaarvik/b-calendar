@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import type { ReactNode } from 'react';
 import type { OpenDoorContentDto } from '@b-calendar/contracts';
 import type { RecipientCopy } from '../shared/shared.model';
 import { Confetti } from './confetti';
@@ -10,10 +11,12 @@ interface DoorSheetProps {
   readonly now: number;
   readonly copy: RecipientCopy;
   readonly onClose: () => void;
+  /** Shown under the content, e.g. the comments. */
+  readonly children?: ReactNode;
 }
 
 /** A door's content over the calendar. */
-export function DoorSheet({ number, content, now, copy, onClose }: DoorSheetProps) {
+export function DoorSheet({ number, content, now, copy, onClose, children }: DoorSheetProps) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -39,6 +42,7 @@ export function DoorSheet({ number, content, now, copy, onClose }: DoorSheetProp
           </button>
         </div>
         <DoorContent content={content} now={now} copy={copy} />
+        {children}
       </div>
       {content.confetti && <Confetti />}
     </div>

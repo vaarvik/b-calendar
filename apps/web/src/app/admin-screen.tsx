@@ -8,6 +8,7 @@ import type {
 import type { DoorDraftDto } from '../admin/admin.ports';
 import { ApiError } from '../shared/shared.model';
 import { RECIPIENT_COPY } from '../shared/shared.model';
+import { AdminDoorComments } from '../ui/admin-door-comments';
 import { DoorForm } from '../ui/door-form';
 import { DoorSheet } from '../ui/door-sheet';
 import { CalendarPreviewScreen } from './calendar-preview-screen';
@@ -647,33 +648,36 @@ function CalendarEditor({
         )}
 
         {door !== undefined && (
-          <DoorForm
-            key={door.id}
-            door={door}
-            defaultOpenTime={calendar.defaultOpenTime}
-            onSave={async (draft) => {
-              await admin.editDoor(door.id, draft);
-              load();
-            }}
-            onRemove={async () => {
-              if (confirm(`Slette luke ${String(door.number)}?`)) {
-                await admin.removeDoor(door.id);
+          <>
+            <DoorForm
+              key={door.id}
+              door={door}
+              defaultOpenTime={calendar.defaultOpenTime}
+              onSave={async (draft) => {
+                await admin.editDoor(door.id, draft);
                 load();
-                go(previous ?? 'setup');
-              }
-            }}
-            onUpload={upload}
-            onPreview={(draft) => {
-              showPreview(door.number, draft);
-            }}
-            {...(following === undefined
-              ? {}
-              : {
-                  onNext: () => {
-                    go(following);
-                  },
-                })}
-          />
+              }}
+              onRemove={async () => {
+                if (confirm(`Slette luke ${String(door.number)}?`)) {
+                  await admin.removeDoor(door.id);
+                  load();
+                  go(previous ?? 'setup');
+                }
+              }}
+              onUpload={upload}
+              onPreview={(draft) => {
+                showPreview(door.number, draft);
+              }}
+              {...(following === undefined
+                ? {}
+                : {
+                    onNext: () => {
+                      go(following);
+                    },
+                  })}
+            />
+            <AdminDoorComments doorId={door.id} />
+          </>
         )}
 
         {step === 'share' && (

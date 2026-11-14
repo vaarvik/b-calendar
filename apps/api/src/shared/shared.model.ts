@@ -75,10 +75,20 @@ export interface CalendarVersionsTable {
   doors: JsonColumn;
 }
 
+export interface DoorCommentsTable {
+  id: string;
+  door_id: string;
+  author: string;
+  role: string;
+  text: string;
+  created_at: Date;
+}
+
 export interface Database {
   calendars: CalendarsTable;
   doors: DoorsTable;
   door_drafts: DoorDraftsTable;
   calendar_versions: CalendarVersionsTable;
+  door_comments: DoorCommentsTable;
   subscriptions: SubscriptionsTable;
 }
