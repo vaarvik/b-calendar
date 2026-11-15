@@ -1,6 +1,7 @@
 import { DoorDraftSchema } from '@b-calendar/contracts';
 import type {
   CalendarReader,
+  DoorOpeningReader,
   DoorPreview,
   DoorReader,
   DraftDoorPresenter,
@@ -17,6 +18,7 @@ export class EditDoorUseCase implements EditDoor {
     private readonly draftReader: DraftDoorReader,
     private readonly draftWriter: DraftDoorWriter,
     private readonly published: DoorReader,
+    private readonly openings: DoorOpeningReader,
     private readonly presenter: DraftDoorPresenter,
     private readonly validator: InputValidator,
   ) {}
@@ -26,10 +28,11 @@ export class EditDoorUseCase implements EditDoor {
     const existing = await this.draftReader.getById(input.doorId);
     await this.draftWriter.save({ ...existing, ...draft });
     const calendar = await this.calendars.getById(existing.calendarId);
-    const [drafts, published] = await Promise.all([
+    const [drafts, published, openings] = await Promise.all([
       this.draftReader.listByCalendar(calendar.id),
       this.published.listByCalendar(calendar.id),
+      this.openings.listByCalendar(calendar.id),
     ]);
-    return this.presenter.presentOne(calendar, drafts, published, existing.id);
+    return this.presenter.presentOne(calendar, drafts, { published, openings }, existing.id);
   }
 }

@@ -10,7 +10,6 @@ import { TestApi } from '../shared/test-api.js';
 const SETTINGS = {
   slug: 'ida-30',
   title: 'Bursdagsuka',
-  recipientName: 'Ida',
   theme: 'birthday',
   locale: 'nb',
   timeZone: 'Europe/Oslo',
@@ -89,20 +88,10 @@ describe('the admin over HTTP', () => {
     });
 
     expect(list.json()).toEqual({ calendars: [calendar] });
-    expect(updated.json()).toMatchObject({ theme: 'christmas', accessKey: calendar.accessKey });
-    expect(rotated.json<CalendarDto>().accessKey).not.toBe(calendar.accessKey);
-  });
-
-  it('gives the followers’ link a new key and keeps hers', async () => {
-    const calendar = await createCalendar();
-    const rotated = await api.app.inject({
-      method: 'POST',
-      url: `/v1/admin/calendars/${calendar.id}/key`,
-      headers: auth,
-      payload: { role: 'follower' },
+    expect(updated.json()).toMatchObject({
+      theme: 'christmas',
+      followerKey: calendar.followerKey,
     });
-
-    expect(rotated.json<CalendarDto>()).toMatchObject({ accessKey: calendar.accessKey });
     expect(rotated.json<CalendarDto>().followerKey).not.toBe(calendar.followerKey);
   });
 
@@ -205,7 +194,7 @@ describe('the admin over HTTP', () => {
     });
     const recipient = await api.app.inject({
       url: `/v1/calendars/${calendar.slug}`,
-      headers: { 'x-access-key': calendar.accessKey },
+      headers: { 'x-access-key': calendar.followerKey },
     });
 
     expect(first.statusCode).toBe(200);

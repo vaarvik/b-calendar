@@ -24,6 +24,7 @@ import {
   InMemoryCalendarRepository,
   InMemoryDoorCommentRepository,
   InMemoryDoorRepository,
+  InMemoryMemberRepository,
 } from '@b-calendar/in-memory';
 import { describe, expect, it } from 'vitest';
 import { ManualClock, RandomIds, RecordingCommentNotifier } from '../shared/fakes.js';
@@ -34,8 +35,11 @@ async function setup() {
   const doors = new InMemoryDoorRepository();
   const comments = new InMemoryDoorCommentRepository();
   const clock = new ManualClock();
-  const calendar = data.calendar({ recipientName: 'Karoline' });
+  const members = new InMemoryMemberRepository();
+  const calendar = data.calendar();
   await calendars.create(calendar);
+  const karoline = data.member(calendar.id, { name: 'Karoline' });
+  await members.create(karoline);
   const open = data.door(calendar.id, { number: 1, opensAt: hoursAfter(T0, -1) });
   const locked = data.door(calendar.id, { number: 2, opensAt: hoursAfter(T0, 1) });
   const secret = data.door(calendar.id, { number: 3, opensAt: hoursAfter(T0, 2), hidden: true });
@@ -45,7 +49,7 @@ async function setup() {
   const notifier = new RecordingCommentNotifier();
   const validator = new ZodInputValidator();
   const locator = new VisibleOpenedDoorLocator(
-    new KeyCalendarAccessAuthenticator(calendars, new ConstantTimeSecretMatcher()),
+    new KeyCalendarAccessAuthenticator(calendars, members, new ConstantTimeSecretMatcher()),
     doors,
     new OpensAtRecipientDoorPresenter(new UrlDoorLinkClassifier()),
     clock,
@@ -56,7 +60,8 @@ async function setup() {
     open,
     comments,
     clock,
-    hers: { slug: calendar.slug, accessKey: calendar.accessKey },
+    karoline,
+    hers: { slug: calendar.slug, accessKey: karoline.key },
     followers: { slug: calendar.slug, accessKey: calendar.followerKey },
     notifier,
     locked,
@@ -77,16 +82,28 @@ async function setup() {
 }
 
 describe('AddDoorComment and ListDoorComments', () => {
-  it('writes her comments with her name, and a follower’s with the name they gave', async () => {
-    const { add, list, hers, followers, clock } = await setup();
+  it('writes a member’s comments with their name, and a follower’s with the name they gave', async () => {
+    const { add, list, hers, followers, clock, karoline } = await setup();
 
     await add.execute({ ...hers, number: 1, author: 'Ignored', text: '  Gleder meg! ' });
     clock.set(hoursAfter(T0, 1));
     await add.execute({ ...followers, number: 1, author: ' Johann ', text: 'Jeg også' });
 
     await expect(list.execute({ ...followers, number: 1 })).resolves.toMatchObject([
-      { author: 'Karoline', role: 'recipient', text: 'Gleder meg!', createdAt: T0 },
-      { author: 'Johann', role: 'follower', text: 'Jeg også', createdAt: hoursAfter(T0, 1) },
+      {
+        author: 'Karoline',
+        role: 'member',
+        memberId: karoline.id,
+        text: 'Gleder meg!',
+        createdAt: T0,
+      },
+      {
+        author: 'Johann',
+        role: 'follower',
+        memberId: null,
+        text: 'Jeg også',
+        createdAt: hoursAfter(T0, 1),
+      },
     ]);
   });
 
@@ -159,7 +176,12 @@ describe('AddGiverDoorComment', () => {
       text: 'Kos deg!',
     });
 
-    expect(comment).toMatchObject({ author: 'Johann', role: 'giver', text: 'Kos deg!' });
+    expect(comment).toMatchObject({
+      author: 'Johann',
+      role: 'giver',
+      memberId: null,
+      text: 'Kos deg!',
+    });
     expect(notifier.notified).toEqual([]);
     await expect(list.execute({ ...hers, number: 2 })).rejects.toBeInstanceOf(DoorLockedError);
     clock.set(hoursAfter(T0, 1));

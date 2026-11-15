@@ -8,8 +8,11 @@ import type {
   Door,
   DoorContent,
   DoorId,
+  DoorOpening,
   DraftDoor,
   MediaId,
+  Member,
+  MemberId,
   PublishedDoor,
   Subscription,
   SubscriptionId,
@@ -51,11 +54,35 @@ export class TestData {
       id: this.commentId(),
       doorId,
       author: 'Ida',
-      role: 'recipient',
+      role: 'follower',
+      memberId: null,
       text: 'Gleder meg!',
       createdAt: T0,
       ...overrides,
     };
+  }
+
+  public memberId(): MemberId {
+    return randomUUID() as MemberId;
+  }
+
+  public member(calendarId: CalendarId, overrides: Partial<Member> = {}): Member {
+    return {
+      id: this.memberId(),
+      calendarId,
+      name: 'Ida',
+      key: `key-${randomUUID()}`,
+      addedAt: T0,
+      ...overrides,
+    };
+  }
+
+  public opening(
+    doorId: DoorId,
+    memberId: MemberId,
+    overrides: Partial<DoorOpening> = {},
+  ): DoorOpening {
+    return { doorId, memberId, openedAt: T0, ...overrides };
   }
 
   public subscriptionId(): SubscriptionId {
@@ -71,12 +98,10 @@ export class TestData {
       id: this.calendarId(),
       slug: this.slug(),
       title: 'Bursdagsuka',
-      recipientName: 'Ida',
       theme: 'birthday',
       locale: 'nb',
       timeZone: 'Europe/Oslo',
       defaultOpenTime: '08:00',
-      accessKey: `key-${randomUUID()}`,
       followerKey: `follow-${randomUUID()}`,
       createdAt: T0,
       ...overrides,
@@ -111,7 +136,6 @@ export class TestData {
       content: this.content(),
       notification: { title: 'Luke 1 er åpen', body: 'Et nytt hint venter.' },
       notifiedAt: null,
-      firstOpenedAt: null,
       ...overrides,
     };
   }
@@ -165,6 +189,7 @@ export class TestData {
       calendarId,
       endpoint: `https://push.example.com/${randomUUID()}`,
       keys: { p256dh: 'BPublicKey', auth: 'authSecret' },
+      memberId: null,
       createdAt: T0,
       ...overrides,
     };

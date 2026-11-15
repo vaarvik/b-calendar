@@ -28,10 +28,11 @@ export interface CalendarWriter {
   save(calendar: Calendar): Promise<void>;
 }
 
-/** Checks a recipient's link. Shared by everything she does. */
+/** Checks a link. Shared by everything done with one. */
 export interface CalendarAccessAuthenticator {
   /**
-   * @returns the calendar the slug and key open, and whether the key is hers or a follower's.
+   * @returns the calendar the slug and key open, and whether the key is a member's (which one)
+   * or the followers'.
    * @throws UnauthenticatedError when the slug is unknown or the key is wrong (one error for both,
    * so a wrong guess does not tell which calendars exist).
    */

@@ -13,9 +13,9 @@ export interface OpenDoorOutput {
 }
 
 /**
- * The recipient opens a door, or looks behind one she opened before. The first time is recorded:
- * the door then stays open, and the admin sees she opened it. A follower's link shows the content
- * and records nothing.
+ * A member opens a door, or looks behind one they opened before. The first time is recorded for
+ * them alone: the door then stays open on their link, and the admin sees they opened it. A
+ * follower's link shows the content and records nothing.
  */
 export interface OpenDoor {
   /**
@@ -32,7 +32,7 @@ export interface AddDoorInput {
   readonly draft: DoorDraft;
 }
 
-/** An admin adds a door to the draft. The recipient gets it with the next publish. */
+/** An admin adds a door to the draft. The members get it with the next publish. */
 export interface AddDoor {
   /**
    * @throws ValidationError when the draft is invalid.
@@ -46,7 +46,7 @@ export interface EditDoorInput {
   readonly draft: DoorDraft;
 }
 
-/** An admin changes a draft door, as she types. The recipient gets it with the next publish. */
+/** An admin changes a draft door, as she types. The members get it with the next publish. */
 export interface EditDoor {
   /**
    * @throws ValidationError when the draft is invalid.
@@ -55,7 +55,7 @@ export interface EditDoor {
   execute(input: EditDoorInput): Promise<DoorPreview>;
 }
 
-/** An admin removes a door from the draft. It leaves the recipient's calendar with the next publish. */
+/** An admin removes a door from the draft. It leaves the calendar with the next publish. */
 export interface RemoveDoor {
   /** @throws NotFoundError when the draft door does not exist. */
   execute(input: { readonly doorId: DoorId }): Promise<void>;

@@ -8,18 +8,18 @@ import type {
 } from '@b-calendar/contracts';
 
 /**
- * Locked until `opensAt`, ready after it, opened for good once she has looked. A hidden door is
+ * Locked until `opensAt`, ready after it, opened for good once this viewer has looked. A hidden door is
  * left out entirely until it opens.
  */
 export class OpensAtRecipientDoorPresenter implements RecipientDoorPresenter {
   public constructor(private readonly links: DoorLinkClassifier) {}
 
-  public present(door: Door, now: Date): RecipientDoor | null {
+  public present(door: Door, now: Date, openedAt: Date | null): RecipientDoor | null {
     const { number, opensAt, featured } = door;
     if (opensAt.getTime() > now.getTime()) {
       return door.hidden ? null : { state: 'locked', number, opensAt, featured };
     }
-    if (door.firstOpenedAt === null) {
+    if (openedAt === null) {
       return { state: 'ready', number, opensAt, featured };
     }
     return { state: 'opened', number, opensAt, featured, content: this.content(door.content) };

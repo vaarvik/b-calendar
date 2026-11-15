@@ -5,7 +5,7 @@ import { CompositionRoot } from './composition-root.js';
 
 // Usage:
 //   cli vapid-keys                                   VAPID keys for .env (once)
-//   cli seed-birthday [--slug s] [--name n] [--origin https://…]   the birthday week, with its link
+//   cli seed-birthday [--slug s] [--name n] [--origin https://…]   the birthday week, with one member's link
 const [command, ...rest] = process.argv.slice(2);
 
 if (command === 'vapid-keys') {
@@ -16,7 +16,7 @@ if (command === 'vapid-keys') {
     args: rest,
     options: {
       slug: { type: 'string', default: BIRTHDAY_WEEK.settings.slug },
-      name: { type: 'string', default: BIRTHDAY_WEEK.settings.recipientName },
+      name: { type: 'string', default: 'deg' },
       origin: { type: 'string', default: 'http://localhost:3000' },
     },
   });
@@ -25,8 +25,8 @@ if (command === 'vapid-keys') {
     const calendar = await root.createCalendar.execute({
       ...BIRTHDAY_WEEK.settings,
       slug: values.slug,
-      recipientName: values.name,
     });
+    const member = await root.addMember.execute({ calendarId: calendar.id, name: values.name });
     for (const draft of BIRTHDAY_WEEK.doors) {
       await root.addDoor.execute({ calendarId: calendar.id, draft });
     }
@@ -35,7 +35,7 @@ if (command === 'vapid-keys') {
       `Created ${calendar.title} with ${String(version.doorCount)} doors, published as version ${String(version.version)}.`,
     );
     console.log(
-      `Her link: ${values.origin}/c/${calendar.slug}?k=${encodeURIComponent(calendar.accessKey)}`,
+      `${member.name}'s link: ${values.origin}/c/${calendar.slug}?k=${encodeURIComponent(member.key)}`,
     );
     console.log(`Edit it:  ${values.origin}/admin/${calendar.id}`);
   } finally {

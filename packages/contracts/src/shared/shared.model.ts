@@ -8,7 +8,7 @@ declare const brand: unique symbol;
  */
 export type Brand<T, B extends string> = T & { readonly [brand]: B };
 
-/** A calendar: a series of doors for one recipient. UUID. */
+/** A calendar: a series of doors shared by its members. UUID. */
 export type CalendarId = Brand<string, 'CalendarId'>;
 /** One door (hatch, luke) in a calendar. UUID. */
 export type DoorId = Brand<string, 'DoorId'>;
@@ -18,6 +18,8 @@ export type SubscriptionId = Brand<string, 'SubscriptionId'>;
 export type MediaId = Brand<string, 'MediaId'>;
 /** Identifies a comment on a door. */
 export type CommentId = Brand<string, 'CommentId'>;
+/** One person sharing a calendar. UUID. */
+export type MemberId = Brand<string, 'MemberId'>;
 
 export const CalendarIdSchema: z.ZodType<CalendarId> = z
   .uuid()
@@ -30,6 +32,7 @@ export const MediaIdSchema: z.ZodType<MediaId> = z.uuid().transform((value) => v
 export const CommentIdSchema: z.ZodType<CommentId> = z
   .uuid()
   .transform((value) => value as CommentId);
+export const MemberIdSchema: z.ZodType<MemberId> = z.uuid().transform((value) => value as MemberId);
 
 /** A point in time on the wire: ISO 8601 with an offset, parsed to a Date. */
 export const InstantSchema: z.ZodType<Date, string> = z.iso

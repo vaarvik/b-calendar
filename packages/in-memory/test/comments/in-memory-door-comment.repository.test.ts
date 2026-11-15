@@ -3,6 +3,7 @@ import {
   InMemoryCalendarRepository,
   InMemoryDoorCommentRepository,
   InMemoryDoorRepository,
+  InMemoryMemberRepository,
 } from '@b-calendar/in-memory';
 
 describeDoorCommentRepositoryContract('InMemoryDoorCommentRepository', () => {
@@ -12,5 +13,6 @@ describeDoorCommentRepositoryContract('InMemoryDoorCommentRepository', () => {
     reader: repository,
     calendars: new InMemoryCalendarRepository(),
     doors: new InMemoryDoorRepository(),
+    members: new InMemoryMemberRepository(),
   });
 });

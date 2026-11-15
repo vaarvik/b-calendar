@@ -1,15 +1,18 @@
-import { NotFoundError } from '@b-calendar/contracts';
+import { COMMENT_ROLES, NotFoundError } from '@b-calendar/contracts';
 import type {
-  CalendarRole,
   CommentId,
   DoorComment,
   DoorCommentReader,
   DoorCommentWriter,
   DoorId,
+  MemberId,
 } from '@b-calendar/contracts';
 import type { Kysely } from 'kysely';
+import { z } from 'zod';
 import type { Database } from '../shared/shared.model.js';
 import type { DatabaseErrorTranslator } from '../shared/shared.ports.js';
+
+const RowSchema = z.object({ role: z.enum(COMMENT_ROLES) });
 
 export class PgDoorCommentRepository implements DoorCommentReader, DoorCommentWriter {
   public constructor(
@@ -28,7 +31,8 @@ export class PgDoorCommentRepository implements DoorCommentReader, DoorCommentWr
       id: row.id as CommentId,
       doorId: row.door_id as DoorId,
       author: row.author,
-      role: row.role as CalendarRole,
+      role: RowSchema.parse(row).role,
+      memberId: row.member_id as MemberId | null,
       text: row.text,
       createdAt: row.created_at,
     }));
@@ -43,6 +47,7 @@ export class PgDoorCommentRepository implements DoorCommentReader, DoorCommentWr
           door_id: comment.doorId,
           author: comment.author,
           role: comment.role,
+          member_id: comment.memberId,
           text: comment.text,
           created_at: comment.createdAt,
         })

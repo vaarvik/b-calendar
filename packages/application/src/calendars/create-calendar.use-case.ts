@@ -24,7 +24,6 @@ export class CreateCalendarUseCase implements CreateCalendar {
     const calendar: Calendar = {
       ...settings,
       id: this.ids.calendarId(),
-      accessKey: this.secrets.generate(),
       followerKey: this.secrets.generate(),
       createdAt: this.clock.now(),
     };

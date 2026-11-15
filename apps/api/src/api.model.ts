@@ -9,7 +9,6 @@ export const BIRTHDAY_WEEK: {
   settings: {
     slug: 'bursdagsuka',
     title: 'Bursdagsuka',
-    recipientName: 'deg',
     theme: 'birthday',
     locale: 'nb',
     timeZone: 'Europe/Oslo',

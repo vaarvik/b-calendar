@@ -7,6 +7,7 @@ import {
   DoorCommentsResponseDtoSchema,
   DoorPreviewDtoSchema,
   LogInResponseDtoSchema,
+  MemberDtoSchema,
   SendTestNotificationResponseDtoSchema,
   UploadMediaResponseDtoSchema,
 } from '@b-calendar/contracts';
@@ -14,11 +15,11 @@ import type {
   AddDoorCommentRequestDto,
   CalendarDetailsResponseDto,
   CalendarDto,
-  CalendarRole,
   CalendarSettings,
   CalendarVersionDto,
   DoorCommentDto,
   DoorPreviewDto,
+  MemberDto,
   SendTestNotificationResponseDto,
   UploadMediaResponseDto,
 } from '@b-calendar/contracts';
@@ -77,13 +78,42 @@ export class HttpAdminClient implements AdminClient {
     });
   }
 
-  public rotateKey(calendarId: string, role: CalendarRole): Promise<CalendarDto> {
+  public rotateFollowerKey(calendarId: string): Promise<CalendarDto> {
     return this.send({
       method: 'POST',
       path: `/v1/admin/calendars/${calendarId}/key`,
-      body: { role },
       schema: CalendarDtoSchema,
     });
+  }
+
+  public addMember(calendarId: string, name: string): Promise<MemberDto> {
+    return this.send({
+      method: 'POST',
+      path: `/v1/admin/calendars/${calendarId}/members`,
+      body: { name },
+      schema: MemberDtoSchema,
+    });
+  }
+
+  public renameMember(memberId: string, name: string): Promise<MemberDto> {
+    return this.send({
+      method: 'PUT',
+      path: `/v1/admin/members/${memberId}`,
+      body: { name },
+      schema: MemberDtoSchema,
+    });
+  }
+
+  public rotateMemberKey(memberId: string): Promise<MemberDto> {
+    return this.send({
+      method: 'POST',
+      path: `/v1/admin/members/${memberId}/key`,
+      schema: MemberDtoSchema,
+    });
+  }
+
+  public removeMember(memberId: string): Promise<void> {
+    return this.send({ method: 'DELETE', path: `/v1/admin/members/${memberId}` });
   }
 
   public calendar(calendarId: string): Promise<CalendarDetailsResponseDto> {

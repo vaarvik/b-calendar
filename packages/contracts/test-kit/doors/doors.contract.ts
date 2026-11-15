@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { ConflictError, NotFoundError } from '../../src/index.js';
 import type {
   CalendarWriter,
+  DoorOpeningReader,
+  DoorOpeningWriter,
   DoorReader,
   DoorWriter,
   DraftDoorReader,
   DraftDoorWriter,
+  MemberWriter,
 } from '../../src/index.js';
 import { FixtureHolder } from '../fixture.js';
 import type { FixtureFactory } from '../fixture.js';
@@ -49,7 +52,6 @@ export function describeDoorRepositoryContract(
           confetti: true,
         }),
         notifiedAt: hoursAfter(T0, 2),
-        firstOpenedAt: hoursAfter(T0, 3),
       });
 
       await fixture.current.writer.create(door);
@@ -246,6 +248,82 @@ export function describeDraftDoorRepositoryContract(
 
       await expect(fixture.current.reader.getById(door.id)).rejects.toBeInstanceOf(NotFoundError);
       await expect(fixture.current.writer.remove(door.id)).rejects.toBeInstanceOf(NotFoundError);
+    });
+  });
+}
+
+export interface DoorOpeningRepositoryFixture {
+  readonly writer: DoorOpeningWriter;
+  readonly reader: DoorOpeningReader;
+  /** An opening belongs to a published door and a member of the same calendar. */
+  readonly calendars: CalendarWriter;
+  readonly doors: DoorWriter;
+  readonly members: MemberWriter;
+}
+
+/** Behaviour every DoorOpeningWriter and DoorOpeningReader pair must have. */
+export function describeDoorOpeningRepositoryContract(
+  name: string,
+  factory: FixtureFactory<DoorOpeningRepositoryFixture>,
+): void {
+  describe(`${name} satisfies DoorOpeningReader and DoorOpeningWriter`, () => {
+    const fixture = new FixtureHolder(factory);
+
+    async function calendar(data: TestData) {
+      const created = data.calendar();
+      await fixture.current.calendars.create(created);
+      const doors = [data.door(created.id, { number: 1 }), data.door(created.id, { number: 2 })];
+      const members = [data.member(created.id), data.member(created.id, { name: 'Johann' })];
+      for (const door of doors) {
+        await fixture.current.doors.create(door);
+      }
+      for (const member of members) {
+        await fixture.current.members.create(member);
+      }
+      return { id: created.id, doors, members };
+    }
+
+    it('lists a member’s openings, and a calendar’s, by when they happened', async () => {
+      const data = new TestData();
+      const { id, doors, members } = await calendar(data);
+      const [one, two] = doors as [(typeof doors)[0], (typeof doors)[0]];
+      const [ida, johann] = members as [(typeof members)[0], (typeof members)[0]];
+      const idaLater = data.opening(two.id, ida.id, { openedAt: hoursAfter(T0, 2) });
+      const idaFirst = data.opening(one.id, ida.id);
+      const johannOne = data.opening(one.id, johann.id, { openedAt: hoursAfter(T0, 1) });
+      await fixture.current.writer.create(idaLater);
+      await fixture.current.writer.create(idaFirst);
+      await fixture.current.writer.create(johannOne);
+      const other = await calendar(data);
+      await fixture.current.writer.create(
+        data.opening(other.doors[0]?.id ?? data.doorId(), other.members[0]?.id ?? data.memberId()),
+      );
+
+      await expect(fixture.current.reader.listByMember(ida.id)).resolves.toEqual([
+        idaFirst,
+        idaLater,
+      ]);
+      await expect(fixture.current.reader.listByCalendar(id)).resolves.toEqual([
+        idaFirst,
+        johannOne,
+        idaLater,
+      ]);
+    });
+
+    it('lists nothing before anyone opens, and refuses a second opening of the same door', async () => {
+      const data = new TestData();
+      const { id, doors, members } = await calendar(data);
+      const opening = data.opening(
+        doors[0]?.id ?? data.doorId(),
+        members[0]?.id ?? data.memberId(),
+      );
+
+      await expect(fixture.current.reader.listByCalendar(id)).resolves.toEqual([]);
+      await expect(fixture.current.reader.listByMember(opening.memberId)).resolves.toEqual([]);
+      await fixture.current.writer.create(opening);
+      await expect(
+        fixture.current.writer.create({ ...opening, openedAt: hoursAfter(T0, 1) }),
+      ).rejects.toBeInstanceOf(ConflictError);
     });
   });
 }

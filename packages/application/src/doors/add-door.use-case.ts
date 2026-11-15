@@ -4,6 +4,7 @@ import type {
   AddDoorInput,
   CalendarReader,
   Clock,
+  DoorOpeningReader,
   DoorPreview,
   DoorReader,
   DraftDoor,
@@ -20,6 +21,7 @@ export class AddDoorUseCase implements AddDoor {
     private readonly draftReader: DraftDoorReader,
     private readonly draftWriter: DraftDoorWriter,
     private readonly published: DoorReader,
+    private readonly openings: DoorOpeningReader,
     private readonly presenter: DraftDoorPresenter,
     private readonly ids: IdGenerator,
     private readonly clock: Clock,
@@ -36,10 +38,11 @@ export class AddDoorUseCase implements AddDoor {
       addedAt: this.clock.now(),
     };
     await this.draftWriter.create(door);
-    const [drafts, published] = await Promise.all([
+    const [drafts, published, openings] = await Promise.all([
       this.draftReader.listByCalendar(calendar.id),
       this.published.listByCalendar(calendar.id),
+      this.openings.listByCalendar(calendar.id),
     ]);
-    return this.presenter.presentOne(calendar, drafts, published, door.id);
+    return this.presenter.presentOne(calendar, drafts, { published, openings }, door.id);
   }
 }

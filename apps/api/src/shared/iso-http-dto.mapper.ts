@@ -11,6 +11,8 @@ import type {
   DoorCountdownDto,
   DoorPreview,
   DoorPreviewDto,
+  Member,
+  MemberDto,
   OpenDoorContent,
   OpenDoorContentDto,
   OpenDoorOutput,
@@ -31,6 +33,7 @@ export class IsoHttpDtoMapper implements HttpDtoMapper {
     return {
       calendar: this.calendar(details.calendar),
       doors: details.doors.map((door) => this.doorPreview(door)),
+      members: details.members.map((member) => this.member(member)),
       unpublishedChanges: details.unpublishedChanges,
       versions: details.versions.map((version) => this.calendarVersion(version)),
       subscriberCount: details.subscriberCount,
@@ -41,9 +44,19 @@ export class IsoHttpDtoMapper implements HttpDtoMapper {
     return {
       id: comment.id,
       author: comment.author,
-      role: comment.role,
+      role: comment.role === 'member' ? 'recipient' : comment.role,
+      memberId: comment.memberId,
       text: comment.text,
       createdAt: comment.createdAt.toISOString(),
+    };
+  }
+
+  public member(member: Member): MemberDto {
+    return {
+      id: member.id,
+      name: member.name,
+      key: member.key,
+      addedAt: member.addedAt.toISOString(),
     };
   }
 
@@ -54,6 +67,8 @@ export class IsoHttpDtoMapper implements HttpDtoMapper {
   public recipientCalendar(calendar: RecipientCalendar): RecipientCalendarResponseDto {
     return {
       ...calendar,
+      role: calendar.viewer === 'member' ? 'recipient' : 'follower',
+      recipientName: calendar.name ?? '',
       now: calendar.now.toISOString(),
       doors: calendar.doors.map((door) => this.recipientDoor(door)),
     };
@@ -80,7 +95,10 @@ export class IsoHttpDtoMapper implements HttpDtoMapper {
       link: door.link,
       notification: door.notification,
       notifiedAt: door.notifiedAt?.toISOString() ?? null,
-      firstOpenedAt: door.firstOpenedAt?.toISOString() ?? null,
+      openings: door.openings.map((opening) => ({
+        memberId: opening.memberId,
+        openedAt: opening.openedAt.toISOString(),
+      })),
     };
   }
 

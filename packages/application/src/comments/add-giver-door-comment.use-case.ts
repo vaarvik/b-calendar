@@ -33,6 +33,7 @@ export class AddGiverDoorCommentUseCase implements AddGiverDoorComment {
       doorId: door.id,
       author,
       role: 'giver',
+      memberId: null,
       text,
       createdAt: now,
     };

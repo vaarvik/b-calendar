@@ -22,7 +22,7 @@ const COMMENT_PREVIEW = 120;
 
 /**
  * Notifications open the calendar's own page, without a key: each phone opens it with the link it
- * was set up with, hers or a follower's, so a follower's tap never becomes hers.
+ * was set up with, so one person's tap never becomes someone else's.
  */
 export class PathPushMessageFactory implements PushMessageFactory {
   public door(calendar: Calendar, door: Door): PushMessage {

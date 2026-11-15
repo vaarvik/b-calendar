@@ -99,7 +99,6 @@ export class PgDoorRepository implements DoorReader, DoorWriter {
       notification_title: notification.title,
       notification_body: notification.body,
       notified_at: door.notifiedAt,
-      first_opened_at: door.firstOpenedAt,
     };
   }
 
@@ -129,7 +128,6 @@ export class PgDoorRepository implements DoorReader, DoorWriter {
       },
       notification: { title: row.notification_title, body: row.notification_body },
       notifiedAt: row.notified_at,
-      firstOpenedAt: row.first_opened_at,
     };
   }
 }

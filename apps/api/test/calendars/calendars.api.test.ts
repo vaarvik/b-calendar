@@ -1,4 +1,4 @@
-import type { Calendar, RecipientCalendarResponseDto } from '@b-calendar/contracts';
+import type { Calendar, Member, RecipientCalendarResponseDto } from '@b-calendar/contracts';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { TestApi } from '../shared/test-api.js';
 
@@ -10,9 +10,10 @@ function at(instant: Date): { opensOn: string; openTime: string } {
   return { opensOn: iso.slice(0, 10), openTime: iso.slice(11, 16) };
 }
 
-describe('the recipient’s calendar over HTTP', () => {
+describe('a member’s calendar over HTTP', () => {
   let api: TestApi;
   let calendar: Calendar;
+  let member: Member;
 
   beforeEach(async () => {
     api = await TestApi.start({
@@ -21,12 +22,12 @@ describe('the recipient’s calendar over HTTP', () => {
     calendar = await api.root.createCalendar.execute({
       slug: 'ida-30',
       title: 'Bursdagsuka',
-      recipientName: 'Ida',
       theme: 'birthday',
       locale: 'nb',
       timeZone: 'UTC',
       defaultOpenTime: '08:00',
     });
+    member = await api.root.addMember.execute({ calendarId: calendar.id, name: 'Ida' });
     const content = {
       message: 'Hemmelig',
       imageUrl: null,
@@ -63,7 +64,7 @@ describe('the recipient’s calendar over HTTP', () => {
 
   afterEach(() => api.close());
 
-  const headers = () => ({ 'x-access-key': calendar.accessKey });
+  const headers = () => ({ 'x-access-key': member.key });
 
   it('shows the doors without the content of locked or unopened ones', async () => {
     const response = await api.app.inject({ url: '/v1/calendars/ida-30', headers: headers() });
@@ -76,7 +77,7 @@ describe('the recipient’s calendar over HTTP', () => {
     expect(response.body).not.toContain('Hemmelig');
   });
 
-  it('opens a ready door, which then stays opened', async () => {
+  it('opens a ready door, which then stays opened for this member only', async () => {
     const opened = await api.app.inject({
       method: 'POST',
       url: '/v1/calendars/ida-30/doors/1/open',
@@ -98,9 +99,15 @@ describe('the recipient’s calendar over HTTP', () => {
       state: 'opened',
       content: { title: 'Badetøy' },
     });
+    const johann = await api.root.addMember.execute({ calendarId: calendar.id, name: 'Johann' });
+    const his = await api.app.inject({
+      url: '/v1/calendars/ida-30',
+      headers: { 'x-access-key': johann.key },
+    });
+    expect(his.json<RecipientCalendarResponseDto>().doors[0]).toMatchObject({ state: 'ready' });
   });
 
-  it('lets a follower look behind a ready door without opening it for her', async () => {
+  it('lets the follower link look behind a ready door without opening it for anyone', async () => {
     const follower = { 'x-access-key': calendar.followerKey };
     const looked = await api.app.inject({
       method: 'POST',
@@ -112,10 +119,18 @@ describe('the recipient’s calendar over HTTP', () => {
 
     expect(looked.json()).toMatchObject({ content: { title: 'Badetøy' } });
     expect(hers.json<RecipientCalendarResponseDto>()).toMatchObject({
+      viewer: 'member',
+      name: 'Ida',
+      // What app versions from before members read.
       role: 'recipient',
+      recipientName: 'Ida',
       doors: [{ state: 'ready' }, { state: 'locked' }],
     });
-    expect(theirs.json<RecipientCalendarResponseDto>().role).toBe('follower');
+    expect(theirs.json<RecipientCalendarResponseDto>()).toMatchObject({
+      viewer: 'follower',
+      name: null,
+      role: 'follower',
+    });
   });
 
   it('refuses to open a locked door, and unknown doors', async () => {
@@ -168,14 +183,14 @@ describe('the recipient’s calendar over HTTP', () => {
 
   it('gives each calendar a manifest whose start URL keeps the key', async () => {
     const response = await api.app.inject({
-      url: `/c/ida-30/manifest.webmanifest?k=${encodeURIComponent(calendar.accessKey)}`,
+      url: `/c/ida-30/manifest.webmanifest?k=${encodeURIComponent(member.key)}`,
     });
     const wrong = await api.app.inject({ url: '/c/ida-30/manifest.webmanifest' });
 
     expect(response.headers['content-type']).toContain('application/manifest+json');
     expect(response.json()).toMatchObject({
       name: 'Bursdagsuka',
-      start_url: `/c/ida-30?k=${encodeURIComponent(calendar.accessKey)}`,
+      start_url: `/c/ida-30?k=${encodeURIComponent(member.key)}`,
       display: 'standalone',
     });
     expect(wrong.json()).toMatchObject({ name: 'Kalender' });

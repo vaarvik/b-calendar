@@ -1,17 +1,17 @@
 import { NotFoundError } from '@b-calendar/contracts';
 import type {
   Calendar,
-  Door,
   DoorId,
   DoorNumberCalculator,
   DoorPreview,
   DoorPreviewPresenter,
+  DoorProgress,
   DoorScheduleCalculator,
   DraftDoor,
   DraftDoorPresenter,
 } from '@b-calendar/contracts';
 
-/** Schedules the draft in the calendar's time zone, numbers it by date and adds her progress. */
+/** Schedules the draft in the calendar's time zone, numbers it by date and adds the progress. */
 export class NumberedDraftDoorPresenter implements DraftDoorPresenter {
   public constructor(
     private readonly schedule: DoorScheduleCalculator,
@@ -22,9 +22,9 @@ export class NumberedDraftDoorPresenter implements DraftDoorPresenter {
   public present(
     calendar: Calendar,
     drafts: readonly DraftDoor[],
-    published: readonly Door[],
+    progress: DoorProgress,
   ): DoorPreview[] {
-    const progress = new Map(published.map((door) => [door.id, door]));
+    const published = new Map(progress.published.map((door) => [door.id, door]));
     const scheduled = drafts.map(({ addedAt, ...draft }) => ({
       draft,
       id: draft.id,
@@ -36,24 +36,25 @@ export class NumberedDraftDoorPresenter implements DraftDoorPresenter {
       ),
     }));
     return this.numbering.ordered(scheduled).map(({ draft, opensAt }, index) => {
-      const live = progress.get(draft.id);
-      return this.previews.preview({
-        ...draft,
-        number: index + 1,
-        opensAt,
-        notifiedAt: live?.notifiedAt ?? null,
-        firstOpenedAt: live?.firstOpenedAt ?? null,
-      });
+      return this.previews.preview(
+        {
+          ...draft,
+          number: index + 1,
+          opensAt,
+          notifiedAt: published.get(draft.id)?.notifiedAt ?? null,
+        },
+        progress.openings,
+      );
     });
   }
 
   public presentOne(
     calendar: Calendar,
     drafts: readonly DraftDoor[],
-    published: readonly Door[],
+    progress: DoorProgress,
     id: DoorId,
   ): DoorPreview {
-    const preview = this.present(calendar, drafts, published).find((door) => door.id === id);
+    const preview = this.present(calendar, drafts, progress).find((door) => door.id === id);
     if (preview === undefined) {
       throw new NotFoundError('DraftDoor', id);
     }

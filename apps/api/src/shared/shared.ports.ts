@@ -6,6 +6,8 @@ import type {
   CalendarVersionSummary,
   DoorComment,
   DoorCommentDto,
+  Member,
+  MemberDto,
   CalendarDto,
   DoorPreview,
   DoorPreviewDto,
@@ -60,6 +62,7 @@ export interface HttpDtoMapper {
   calendarDetails(details: CalendarDetails): CalendarDetailsResponseDto;
   calendarVersion(version: CalendarVersionSummary): CalendarVersionDto;
   comment(comment: DoorComment): DoorCommentDto;
+  member(member: Member): MemberDto;
   recipientCalendar(calendar: RecipientCalendar): RecipientCalendarResponseDto;
   openDoor(output: OpenDoorOutput): OpenDoorResponseDto;
   doorPreview(door: DoorPreview): DoorPreviewDto;

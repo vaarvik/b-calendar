@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { CalendarId, SubscriptionId } from '../shared/shared.model.js';
+import type { CalendarId, MemberId, SubscriptionId } from '../shared/shared.model.js';
 
 /** The browser's PushSubscription, as `subscription.toJSON()` gives it. */
 export interface PushEndpoint {
@@ -19,5 +19,7 @@ export const PushEndpointSchema: z.ZodType<PushEndpoint> = z.object({
 export interface Subscription extends PushEndpoint {
   readonly id: SubscriptionId;
   readonly calendarId: CalendarId;
+  /** Whose link subscribed; null for the follower link. */
+  readonly memberId: MemberId | null;
   readonly createdAt: Date;
 }

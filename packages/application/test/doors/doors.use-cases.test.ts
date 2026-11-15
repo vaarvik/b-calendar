@@ -4,6 +4,7 @@ import {
   KeyCalendarAccessAuthenticator,
   OpenDoorUseCase,
   RemoveDoorUseCase,
+  VisibleOpenedDoorLocator,
   ZodInputValidator,
 } from '@b-calendar/application';
 import {
@@ -12,7 +13,7 @@ import {
   UnauthenticatedError,
   ValidationError,
 } from '@b-calendar/contracts';
-import type { DoorDraft } from '@b-calendar/contracts';
+import type { DoorDraft, DoorOpeningWriter } from '@b-calendar/contracts';
 import { T0, TestData, hoursAfter } from '@b-calendar/contracts/test-kit';
 import {
   ConstantTimeSecretMatcher,
@@ -25,8 +26,10 @@ import {
 } from '@b-calendar/domain';
 import {
   InMemoryCalendarRepository,
+  InMemoryDoorOpeningRepository,
   InMemoryDoorRepository,
   InMemoryDraftDoorRepository,
+  InMemoryMemberRepository,
 } from '@b-calendar/in-memory';
 import { describe, expect, it } from 'vitest';
 import { ManualClock, RandomIds } from '../shared/fakes.js';
@@ -36,6 +39,8 @@ async function setup() {
   const calendars = new InMemoryCalendarRepository();
   const doors = new InMemoryDoorRepository();
   const drafts = new InMemoryDraftDoorRepository();
+  const members = new InMemoryMemberRepository();
+  const openings = new InMemoryDoorOpeningRepository(doors);
   const clock = new ManualClock();
   const validator = new ZodInputValidator();
   const links = new UrlDoorLinkClassifier();
@@ -46,9 +51,23 @@ async function setup() {
   );
   const calendar = data.calendar();
   await calendars.create(calendar);
+  const ida = data.member(calendar.id);
+  const johann = data.member(calendar.id, { name: 'Johann' });
+  await members.create(ida);
+  await members.create(johann);
+  const recipients = new OpensAtRecipientDoorPresenter(links);
+  const locator = new VisibleOpenedDoorLocator(
+    new KeyCalendarAccessAuthenticator(calendars, members, new ConstantTimeSecretMatcher()),
+    doors,
+    recipients,
+    clock,
+  );
   return {
     data,
     calendar,
+    ida,
+    johann,
+    openings,
     doors,
     drafts,
     clock,
@@ -57,20 +76,17 @@ async function setup() {
       drafts,
       drafts,
       doors,
+      openings,
       presenter,
       new RandomIds(),
       clock,
       validator,
     ),
-    edit: new EditDoorUseCase(calendars, drafts, drafts, doors, presenter, validator),
+    edit: new EditDoorUseCase(calendars, drafts, drafts, doors, openings, presenter, validator),
     remove: new RemoveDoorUseCase(drafts),
-    open: new OpenDoorUseCase(
-      new KeyCalendarAccessAuthenticator(calendars, new ConstantTimeSecretMatcher()),
-      doors,
-      doors,
-      new OpensAtRecipientDoorPresenter(links),
-      clock,
-    ),
+    open: new OpenDoorUseCase(locator, openings, openings, recipients, clock),
+    openWith: (writer: DoorOpeningWriter) =>
+      new OpenDoorUseCase(locator, openings, writer, recipients, clock),
   };
 }
 
@@ -87,7 +103,7 @@ function draft(overrides: Partial<DoorDraft> = {}): DoorDraft {
 }
 
 describe('AddDoor', () => {
-  it('adds a door to the draft only: the recipient does not get it yet', async () => {
+  it('adds a door to the draft only: the members do not get it yet', async () => {
     const { add, calendar, drafts, doors } = await setup();
 
     const door = await add.execute({ calendarId: calendar.id, draft: draft() });
@@ -98,7 +114,7 @@ describe('AddDoor', () => {
       opensAt: T0,
       calendarId: calendar.id,
       notifiedAt: null,
-      firstOpenedAt: null,
+      openings: [],
       link: null,
     });
     await expect(drafts.getById(door.id)).resolves.toMatchObject({ ...draft(), addedAt: T0 });
@@ -156,11 +172,13 @@ describe('AddDoor', () => {
 
 describe('EditDoor', () => {
   it('changes the draft door, keeps when it was added, and leaves the published door alone', async () => {
-    const { edit, drafts, doors, data, calendar } = await setup();
+    const { edit, drafts, doors, openings, data, calendar, ida } = await setup();
     const saved = data.draftDoor(calendar.id);
-    const published = data.door(calendar.id, { id: saved.id, firstOpenedAt: T0, notifiedAt: T0 });
+    const published = data.door(calendar.id, { id: saved.id, notifiedAt: T0 });
     await drafts.create(saved);
     await doors.create(published);
+    const opening = data.opening(saved.id, ida.id);
+    await openings.create(opening);
 
     const edited = await edit.execute({
       doorId: saved.id,
@@ -171,7 +189,7 @@ describe('EditDoor', () => {
       opensAt: hoursAfter(T0, -1),
       openTime: '07:00',
       notifiedAt: T0,
-      firstOpenedAt: T0,
+      openings: [opening],
       content: { title: 'Ny tittel' },
     });
     await expect(drafts.getById(saved.id)).resolves.toMatchObject({ addedAt: saved.addedAt });
@@ -205,11 +223,11 @@ describe('RemoveDoor', () => {
 });
 
 describe('OpenDoor', () => {
-  it('opens a ready door, records the first look, and keeps it on later looks', async () => {
-    const { open, doors, data, calendar, clock } = await setup();
+  it('opens a ready door for this member only, records the first look, and keeps it on later looks', async () => {
+    const { open, doors, openings, data, calendar, clock, ida, johann } = await setup();
     const door = data.door(calendar.id, { number: 2, opensAt: hoursAfter(T0, -1) });
     await doors.create(door);
-    const access = { slug: calendar.slug, accessKey: calendar.accessKey, number: 2 };
+    const access = { slug: calendar.slug, accessKey: ida.key, number: 2 };
 
     const first = await open.execute(access);
     clock.set(hoursAfter(T0, 3));
@@ -221,22 +239,42 @@ describe('OpenDoor', () => {
       content: { title: door.content.title, link: null },
     });
     expect(again).toEqual(first);
-    await expect(doors.getById(door.id)).resolves.toMatchObject({ firstOpenedAt: T0 });
+    await expect(openings.listByMember(ida.id)).resolves.toEqual([
+      { doorId: door.id, memberId: ida.id, openedAt: T0 },
+    ]);
+    await expect(openings.listByMember(johann.id)).resolves.toEqual([]);
+  });
+
+  it('counts the first of two taps at once, and passes other failures on', async () => {
+    const { open, openWith, doors, openings, data, calendar, ida, johann } = await setup();
+    const door = data.door(calendar.id, { opensAt: hoursAfter(T0, -1) });
+    await doors.create(door);
+    const access = { slug: calendar.slug, accessKey: ida.key, number: 1 };
+
+    await Promise.all([open.execute(access), open.execute(access)]);
+
+    await expect(openings.listByMember(ida.id)).resolves.toHaveLength(1);
+    const failing: DoorOpeningWriter = {
+      create: () => Promise.reject(new Error('database down')),
+    };
+    await expect(openWith(failing).execute({ ...access, accessKey: johann.key })).rejects.toThrow(
+      'database down',
+    );
   });
 
   it('refuses a locked door and does not record anything', async () => {
-    const { open, doors, data, calendar } = await setup();
+    const { open, doors, openings, data, calendar, ida } = await setup();
     const door = data.door(calendar.id, { opensAt: hoursAfter(T0, 1) });
     await doors.create(door);
 
     await expect(
-      open.execute({ slug: calendar.slug, accessKey: calendar.accessKey, number: 1 }),
+      open.execute({ slug: calendar.slug, accessKey: ida.key, number: 1 }),
     ).rejects.toBeInstanceOf(DoorLockedError);
-    await expect(doors.getById(door.id)).resolves.toMatchObject({ firstOpenedAt: null });
+    await expect(openings.listByCalendar(calendar.id)).resolves.toEqual([]);
   });
 
-  it('shows a follower the content of a ready door without recording that it was opened', async () => {
-    const { open, doors, data, calendar } = await setup();
+  it('shows the follower link the content of a ready door without recording anything', async () => {
+    const { open, doors, openings, data, calendar } = await setup();
     const door = data.door(calendar.id, { opensAt: hoursAfter(T0, -1) });
     await doors.create(door);
 
@@ -247,26 +285,26 @@ describe('OpenDoor', () => {
     });
 
     expect(shown.content.title).toBe(door.content.title);
-    await expect(doors.getById(door.id)).resolves.toMatchObject({ firstOpenedAt: null });
+    await expect(openings.listByCalendar(calendar.id)).resolves.toEqual([]);
   });
 
   it('answers a secret door that has not opened as if it did not exist', async () => {
-    const { open, doors, data, calendar } = await setup();
+    const { open, doors, data, calendar, ida } = await setup();
     await doors.create(data.door(calendar.id, { opensAt: hoursAfter(T0, 1), hidden: true }));
 
     await expect(
-      open.execute({ slug: calendar.slug, accessKey: calendar.accessKey, number: 1 }),
+      open.execute({ slug: calendar.slug, accessKey: ida.key, number: 1 }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it('refuses a wrong key and a door number the calendar does not have', async () => {
-    const { open, calendar } = await setup();
+    const { open, calendar, ida } = await setup();
 
     await expect(
       open.execute({ slug: calendar.slug, accessKey: 'wrong', number: 1 }),
     ).rejects.toBeInstanceOf(UnauthenticatedError);
     await expect(
-      open.execute({ slug: calendar.slug, accessKey: calendar.accessKey, number: 7 }),
+      open.execute({ slug: calendar.slug, accessKey: ida.key, number: 7 }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 });

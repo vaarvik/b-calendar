@@ -36,18 +36,18 @@ function contentOf(door: DoorPreviewDto): OpenDoorContentDto {
   };
 }
 
-/** The door as she sees it right now, or opened when the admin has revealed it here. */
+/** The door as a member who has opened nothing sees it, or opened when revealed here. */
 function asRecipient(door: DoorPreviewDto, now: number, revealed: boolean): RecipientDoorDto {
   const { number, opensAt, featured } = door;
-  if (revealed || (door.firstOpenedAt !== null && Date.parse(opensAt) <= now)) {
+  if (revealed) {
     return { state: 'opened', number, opensAt, featured, content: contentOf(door) };
   }
   return { state: Date.parse(opensAt) > now ? 'locked' : 'ready', number, opensAt, featured };
 }
 
 /**
- * The calendar as the recipient sees it, for the admin. Any door can be opened, locked or not.
- * Nothing is recorded: opening here does not count as her opening it.
+ * The calendar as a member sees it, for the admin. Any door can be opened, locked or not.
+ * Nothing is recorded: opening here does not count for anyone.
  */
 export function CalendarPreviewScreen({
   calendarId,
@@ -146,7 +146,7 @@ export function CalendarPreviewScreen({
       </div>
 
       <header className="calendar__header">
-        <p className="calendar__hello">{copy.hello(calendar.recipientName)}</p>
+        <p className="calendar__hello">{copy.hello(details.members[0]?.name ?? '…')}</p>
         <h1 className="calendar__title">{calendar.title}</h1>
         {nextLocked === undefined ? (
           <p className="calendar__next">{copy.allOpen}</p>

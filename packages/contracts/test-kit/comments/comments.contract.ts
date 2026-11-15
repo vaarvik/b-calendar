@@ -5,6 +5,7 @@ import type {
   DoorCommentReader,
   DoorCommentWriter,
   DoorWriter,
+  MemberWriter,
 } from '../../src/index.js';
 import { FixtureHolder } from '../fixture.js';
 import type { FixtureFactory } from '../fixture.js';
@@ -16,6 +17,8 @@ export interface DoorCommentRepositoryFixture {
   /** Comments belong to a published door of a calendar; both must exist. */
   readonly calendars: CalendarWriter;
   readonly doors: DoorWriter;
+  /** A comment may belong to a member of the door's calendar. */
+  readonly members: MemberWriter;
 }
 
 /** Behaviour every DoorCommentWriter and DoorCommentReader pair must have. */
@@ -36,9 +39,19 @@ export function describeDoorCommentRepositoryContract(
 
     it('lists a door’s comments oldest first, with every field', async () => {
       const data = new TestData();
-      const doorId = await door(data);
-      const later = data.comment(doorId, { createdAt: hoursAfter(T0, 1), role: 'follower' });
-      const first = data.comment(doorId, { text: 'Linje 1\nLinje 2 🎉' });
+      const calendar = data.calendar();
+      await fixture.current.calendars.create(calendar);
+      const created = data.door(calendar.id);
+      await fixture.current.doors.create(created);
+      const member = data.member(calendar.id);
+      await fixture.current.members.create(member);
+      const doorId = created.id;
+      const later = data.comment(doorId, { createdAt: hoursAfter(T0, 1), role: 'giver' });
+      const first = data.comment(doorId, {
+        text: 'Linje 1\nLinje 2 🎉',
+        role: 'member',
+        memberId: member.id,
+      });
       await fixture.current.writer.create(later);
       await fixture.current.writer.create(first);
       await fixture.current.writer.create(data.comment(await door(data)));

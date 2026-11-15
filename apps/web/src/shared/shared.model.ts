@@ -4,7 +4,7 @@ import type { CalendarLocale } from '@b-calendar/contracts';
 export interface RecipientCopy {
   readonly hello: (name: string) => string;
   /** Shown on a follower's link. */
-  readonly following: (name: string) => string;
+  readonly following: string;
   readonly nextDoorIn: string;
   readonly allOpen: string;
   /** Before the first door is published. */
@@ -43,8 +43,7 @@ export interface RecipientCopy {
 export const RECIPIENT_COPY: Readonly<Record<CalendarLocale, RecipientCopy>> = {
   nb: {
     hello: (name) => `Hei, ${name}`,
-    following: (name) =>
-      `👀 Du følger med på ${name}s kalender. Åpner du en luke, teller det ikke for ${name}.`,
+    following: '👀 Du følger med. Åpner du en luke her, teller det ikke for noen.',
     nextDoorIn: 'Neste luke åpner om',
     allOpen: 'Alle lukene er åpne 💛',
     comingSoon: 'Kommer snart … 🎁',
@@ -83,8 +82,7 @@ export const RECIPIENT_COPY: Readonly<Record<CalendarLocale, RecipientCopy>> = {
   },
   en: {
     hello: (name) => `Hi, ${name}`,
-    following: (name) =>
-      `👀 You are following ${name}'s calendar. Opening a door here does not count for ${name}.`,
+    following: '👀 You are following along. Opening a door here does not count for anyone.',
     nextDoorIn: 'Next door opens in',
     allOpen: 'Every door is open 💛',
     comingSoon: 'Coming soon … 🎁',

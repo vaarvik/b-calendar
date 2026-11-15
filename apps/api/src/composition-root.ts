@@ -2,6 +2,7 @@ import {
   AddDoorCommentUseCase,
   AddGiverDoorCommentUseCase,
   AddDoorUseCase,
+  AddMemberUseCase,
   CreateCalendarUseCase,
   EditDoorUseCase,
   GetCalendarDetailsUseCase,
@@ -17,7 +18,10 @@ import {
   NotifyOpenedDoorsUseCase,
   OpenDoorUseCase,
   RemoveDoorUseCase,
+  RemoveMemberUseCase,
+  RenameMemberUseCase,
   RotateCalendarKeyUseCase,
+  RotateMemberKeyUseCase,
   SendTestNotificationUseCase,
   SubscribeUseCase,
   UpdateCalendarUseCase,
@@ -26,6 +30,11 @@ import {
   ZodInputValidator,
 } from '@b-calendar/application';
 import type {
+  AddMember,
+  DoorOpeningReader,
+  DoorOpeningWriter,
+  MemberReader,
+  MemberWriter,
   CalendarVersionReader,
   CalendarVersionWriter,
   DoorCommentReader,
@@ -60,8 +69,10 @@ import {
   InMemoryCalendarRepository,
   InMemoryCalendarVersionRepository,
   InMemoryDoorCommentRepository,
+  InMemoryDoorOpeningRepository,
   InMemoryDraftDoorRepository,
   InMemoryDoorRepository,
+  InMemoryMemberRepository,
   InMemorySubscriptionRepository,
 } from '@b-calendar/in-memory';
 import { resolve } from 'node:path';
@@ -78,10 +89,13 @@ import { PgCalendarVersionRepository } from './calendars/pg-calendar-version.rep
 import { PgCalendarRepository } from './calendars/pg-calendar.repository.js';
 import { CommentsController } from './comments/comments.controller.js';
 import { PgDoorCommentRepository } from './comments/pg-door-comment.repository.js';
+import { PgDoorOpeningRepository } from './doors/pg-door-opening.repository.js';
 import { PgDoorRepository } from './doors/pg-door.repository.js';
 import { PgDraftDoorRepository } from './doors/pg-draft-door.repository.js';
 import { DiskMediaStorage } from './media/disk-media.storage.js';
 import { MediaController } from './media/media.controller.js';
+import { MembersController } from './members/members.controller.js';
+import { PgMemberRepository } from './members/pg-member.repository.js';
 import { AllMigrationsProvider } from './migrations/all-migrations.provider.js';
 import { IntervalJobScheduler } from './notifications/interval-job.scheduler.js';
 import { NullPushSender } from './notifications/null-push.sender.js';
@@ -182,6 +196,8 @@ interface Storage {
   readonly versions: CalendarVersionReader & CalendarVersionWriter;
   readonly comments: DoorCommentReader & DoorCommentWriter;
   readonly subscriptions: SubscriptionReader & SubscriptionWriter;
+  readonly members: MemberReader & MemberWriter;
+  readonly openings: DoorOpeningReader & DoorOpeningWriter;
 }
 
 /**
@@ -194,6 +210,7 @@ export class CompositionRoot {
   public readonly createCalendar: CreateCalendar;
   public readonly addDoor: AddDoor;
   public readonly publishCalendar: PublishCalendar;
+  public readonly addMember: AddMember;
   public readonly logger: Logger;
   private readonly scheduler: JobScheduler;
   private readonly db: Kysely<Database> | null;
@@ -222,14 +239,14 @@ export class CompositionRoot {
             }),
           })
         : null;
-    const { calendars, doors, drafts, versions, comments, subscriptions } =
+    const { calendars, doors, drafts, versions, comments, subscriptions, members, openings } =
       this.db === null ? this.inMemoryStorage() : this.postgresStorage(this.db);
 
     const push: PushSender =
       config.push === undefined
         ? new NullPushSender(logger)
         : new WebPushSender({ ...config.push, ttlSeconds: 6 * 3600 }, logger);
-    const access = new KeyCalendarAccessAuthenticator(calendars, matcher);
+    const access = new KeyCalendarAccessAuthenticator(calendars, members, matcher);
     const sessions = new HmacAdminSessionService(
       { secret: config.sessionSecret, ttlHours: 30 * 24 },
       clock,
@@ -256,11 +273,13 @@ export class CompositionRoot {
       drafts,
       drafts,
       doors,
+      openings,
       draftPresenter,
       ids,
       clock,
       validator,
     );
+    this.addMember = new AddMemberUseCase(calendars, members, ids, secrets, clock, validator);
     this.publishCalendar = new PublishCalendarUseCase(
       calendars,
       drafts,
@@ -293,8 +312,8 @@ export class CompositionRoot {
       [
         new HealthController(),
         new CalendarsController(
-          new ViewCalendarUseCase(access, doors, presenter, clock),
-          new OpenDoorUseCase(access, doors, doors, presenter, clock),
+          new ViewCalendarUseCase(access, doors, openings, presenter, clock),
+          new OpenDoorUseCase(openedDoors, openings, openings, presenter, clock),
           new SubscribeUseCase(access, subscriptions, ids, clock, validator),
           validator,
           dtos,
@@ -309,6 +328,8 @@ export class CompositionRoot {
               calendars,
               drafts,
               doors,
+              members,
+              openings,
               versions,
               subscriptions,
               draftPresenter,
@@ -322,6 +343,7 @@ export class CompositionRoot {
               drafts,
               drafts,
               doors,
+              openings,
               draftPresenter,
               validator,
             ),
@@ -360,6 +382,17 @@ export class CompositionRoot {
             listDoorComments: new ListDoorCommentsUseCase(openedDoors, comments),
             listAdminDoorComments: new ListAdminDoorCommentsUseCase(comments),
             removeDoorComment: new RemoveDoorCommentUseCase(comments),
+          },
+          admin,
+          validator,
+          dtos,
+        ),
+        new MembersController(
+          {
+            addMember: this.addMember,
+            renameMember: new RenameMemberUseCase(members, members, validator),
+            rotateMemberKey: new RotateMemberKeyUseCase(members, members, secrets),
+            removeMember: new RemoveMemberUseCase(members),
           },
           admin,
           validator,
@@ -436,13 +469,16 @@ export class CompositionRoot {
   }
 
   private inMemoryStorage(): Storage {
+    const doors = new InMemoryDoorRepository();
     return {
       calendars: new InMemoryCalendarRepository(),
-      doors: new InMemoryDoorRepository(),
+      doors,
       drafts: new InMemoryDraftDoorRepository(),
       versions: new InMemoryCalendarVersionRepository(),
       comments: new InMemoryDoorCommentRepository(),
       subscriptions: new InMemorySubscriptionRepository(),
+      members: new InMemoryMemberRepository(),
+      openings: new InMemoryDoorOpeningRepository(doors),
     };
   }
 
@@ -455,6 +491,8 @@ export class CompositionRoot {
       versions: new PgCalendarVersionRepository(db, errors),
       comments: new PgDoorCommentRepository(db, errors),
       subscriptions: new PgSubscriptionRepository(db),
+      members: new PgMemberRepository(db, errors),
+      openings: new PgDoorOpeningRepository(db, errors),
     };
   }
 }

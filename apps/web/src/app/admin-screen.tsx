@@ -10,6 +10,7 @@ import { ApiError } from '../shared/shared.model';
 import { RECIPIENT_COPY } from '../shared/shared.model';
 import { DoorForm } from '../ui/door-form';
 import { DoorSheet } from '../ui/door-sheet';
+import { MembersSection } from '../ui/members-section';
 import { CalendarPreviewScreen } from './calendar-preview-screen';
 import { useServices } from './services';
 
@@ -191,7 +192,7 @@ function SettingsForm({
 }) {
   const [settings, setSettings] = useState(initial);
   const [error, setError] = useState<string | null>(null);
-  // A new calendar's address follows the recipient's name until it is typed in.
+  // A new calendar's address follows its title until it is typed in.
   const [slugTyped, setSlugTyped] = useState(initial.slug !== '');
   const set = (patch: Partial<CalendarSettings>) => {
     setSettings((current) => ({ ...current, ...patch }));
@@ -214,23 +215,11 @@ function SettingsForm({
             {...NOT_A_LOGIN}
             value={settings.title}
             onChange={(e) => {
-              set({ title: e.target.value });
+              const title = e.target.value;
+              set(slugTyped ? { title } : { title, slug: slugOf(title) });
             }}
             required
             placeholder="Karolines bursdag"
-          />
-        </label>
-        <label className="field">
-          Mottaker
-          <input
-            {...NOT_A_LOGIN}
-            value={settings.recipientName}
-            onChange={(e) => {
-              const recipientName = e.target.value;
-              set(slugTyped ? { recipientName } : { recipientName, slug: slugOf(recipientName) });
-            }}
-            required
-            placeholder="Navnet som står øverst i kalenderen"
           />
         </label>
         <label className="field">
@@ -245,7 +234,7 @@ function SettingsForm({
             required
             pattern="[a-z0-9]+(-[a-z0-9]+)*"
             placeholder="karoline"
-            title="Små bokstaver, tall og bindestrek. Blir slutten av lenken hennes."
+            title="Små bokstaver, tall og bindestrek. Blir en del av lenkene."
           />
         </label>
         <label className="field">
@@ -335,8 +324,7 @@ function CalendarList({ onUnauthenticated }: Guarded) {
         >
           <h2>{calendar.title}</h2>
           <p className="admin__muted">
-            Til {calendar.recipientName} · /c/{calendar.slug} ·{' '}
-            {calendar.theme === 'christmas' ? 'Jul' : 'Bursdag'}
+            /c/{calendar.slug} · {calendar.theme === 'christmas' ? 'Jul' : 'Bursdag'}
           </p>
         </a>
       ))}
@@ -346,7 +334,6 @@ function CalendarList({ onUnauthenticated }: Guarded) {
           initial={{
             slug: '',
             title: '',
-            recipientName: '',
             theme: 'birthday',
             locale: 'nb',
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -449,6 +436,7 @@ function CalendarEditor({
     );
   }
   const { calendar, doors } = details;
+  const names = new Map(details.members.map((member) => [member.id, member.name]));
   const steps: Step[] = ['setup', ...doors.map((door) => ({ door: door.id })), 'share'];
   const fallback: Step = doors[0] === undefined ? 'setup' : { door: doors[0].id };
   const step: Step =
@@ -463,7 +451,6 @@ function CalendarEditor({
   const previous = steps[index - 1];
   const following = steps[index + 1];
 
-  const link = `${location.origin}/c/${calendar.slug}?k=${encodeURIComponent(calendar.accessKey)}`;
   const followerLink = `${location.origin}/c/${calendar.slug}?k=${encodeURIComponent(calendar.followerKey)}`;
   const last = doors.at(-1);
   const nextDraft: DoorDraftDto = {
@@ -559,7 +546,7 @@ function CalendarEditor({
       <div className={`publish${details.unpublishedChanges ? ' publish--pending' : ''}`}>
         <span className="publish__state">
           {live === undefined
-            ? `Ikke publisert – ${calendar.recipientName} ser ingen luker ennå.`
+            ? 'Ikke publisert – ingen ser noen luker ennå.'
             : `Versjon ${String(live.version)} · publisert ${PUBLISHED_AT.format(Date.parse(live.publishedAt))}`}
           {details.unpublishedChanges && live !== undefined && ' · upubliserte endringer'}
         </span>
@@ -651,6 +638,7 @@ function CalendarEditor({
             <DoorForm
               key={door.id}
               door={door}
+              names={names}
               defaultOpenTime={calendar.defaultOpenTime}
               onSave={async (draft) => {
                 await admin.editDoor(door.id, draft);
@@ -680,44 +668,13 @@ function CalendarEditor({
 
         {step === 'share' && (
           <div className="door-form">
-            <h2 className="door-form__title">🚀 Del med {calendar.recipientName}</h2>
+            <h2 className="door-form__title">🚀 Del</h2>
+            <MembersSection details={details} now={now} onChanged={load} onNotice={setNotice} />
             <fieldset className="door-form__section">
-              <legend>🔗 Lenken hennes (hold den hemmelig)</legend>
-              <a className="admin__link" href={link} target="_blank" rel="noreferrer">
-                {link}
-              </a>
-              <div className="door-form__actions">
-                <button
-                  className="button"
-                  onClick={() => {
-                    void navigator.clipboard.writeText(link).then(() => {
-                      setNotice('Kopiert ✓');
-                    });
-                  }}
-                >
-                  📋 Kopier lenke
-                </button>
-                <button
-                  className="button button--danger"
-                  onClick={() => {
-                    if (
-                      confirm('Ny lenke? Den gamle slutter å virke, også på Hjem-skjermen hennes.')
-                    ) {
-                      admin.rotateKey(calendar.id, 'recipient').then(load, (caught: unknown) => {
-                        setNotice(message(caught));
-                      });
-                    }
-                  }}
-                >
-                  🔄 Ny lenke
-                </button>
-              </div>
-            </fieldset>
-            <fieldset className="door-form__section">
-              <legend>👀 Følgerlenke (for deg og andre som vil følge med)</legend>
+              <legend>👀 Følgerlenke (for deg og andre som bare vil se på)</legend>
               <p className="admin__muted">
-                Viser det {calendar.recipientName} ser, med de samme varslene. Åpner du en luke her,
-                teller det ikke for henne.
+                Viser lukene etter hvert som de åpner, med de samme varslene. Åpner du en luke her,
+                teller det ikke for noen.
               </p>
               <a className="admin__link" href={followerLink} target="_blank" rel="noreferrer">
                 {followerLink}
@@ -738,10 +695,10 @@ function CalendarEditor({
                   onClick={() => {
                     if (
                       confirm(
-                        'Ny følgerlenke? Den gamle slutter å virke. Hennes lenke virker fortsatt.',
+                        'Ny følgerlenke? Den gamle slutter å virke. Personenes lenker virker fortsatt.',
                       )
                     ) {
-                      admin.rotateKey(calendar.id, 'follower').then(load, (caught: unknown) => {
+                      admin.rotateFollowerKey(calendar.id).then(load, (caught: unknown) => {
                         setNotice(message(caught));
                       });
                     }
@@ -804,9 +761,7 @@ function CalendarEditor({
       <footer className="wizard__nav">
         {details.unpublishedChanges && (
           <div className="unpublished" role="status">
-            <span>
-              ✏️ Upubliserte endringer – {calendar.recipientName} ser dem ikke før du publiserer.
-            </span>
+            <span>✏️ Upubliserte endringer – ingen ser dem før du publiserer.</span>
             <button className="button" disabled={publishing} onClick={publish}>
               {publishing ? 'Publiserer …' : 'Publiser'}
             </button>

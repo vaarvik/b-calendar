@@ -2,8 +2,10 @@ import {
   describeCalendarRepositoryContract,
   describeCalendarVersionRepositoryContract,
   describeDoorCommentRepositoryContract,
+  describeDoorOpeningRepositoryContract,
   describeDoorRepositoryContract,
   describeDraftDoorRepositoryContract,
+  describeMemberRepositoryContract,
   describeSubscriptionRepositoryContract,
 } from '@b-calendar/contracts/test-kit';
 import { NO_MIGRATIONS } from 'kysely/migration';
@@ -11,8 +13,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PgCalendarVersionRepository } from '../../src/calendars/pg-calendar-version.repository.js';
 import { PgCalendarRepository } from '../../src/calendars/pg-calendar.repository.js';
 import { PgDoorCommentRepository } from '../../src/comments/pg-door-comment.repository.js';
+import { PgDoorOpeningRepository } from '../../src/doors/pg-door-opening.repository.js';
 import { PgDoorRepository } from '../../src/doors/pg-door.repository.js';
 import { PgDraftDoorRepository } from '../../src/doors/pg-draft-door.repository.js';
+import { PgMemberRepository } from '../../src/members/pg-member.repository.js';
 import { PgDatabaseErrorTranslator } from '../../src/shared/pg-database-error.translator.js';
 import { PgSubscriptionRepository } from '../../src/subscriptions/pg-subscription.repository.js';
 import { PostgresTestDatabase } from './postgres-test.database.js';
@@ -59,13 +63,37 @@ describeDoorCommentRepositoryContract('PgDoorCommentRepository', async () => {
     reader: comments,
     calendars,
     doors: new PgDoorRepository(database.db, errors),
+    members: new PgMemberRepository(database.db, errors),
+  };
+});
+
+describeMemberRepositoryContract('PgMemberRepository', async () => {
+  const calendars = await fresh();
+  const members = new PgMemberRepository(database.db, errors);
+  return { writer: members, reader: members, calendars };
+});
+
+describeDoorOpeningRepositoryContract('PgDoorOpeningRepository', async () => {
+  const calendars = await fresh();
+  const openings = new PgDoorOpeningRepository(database.db, errors);
+  return {
+    writer: openings,
+    reader: openings,
+    calendars,
+    doors: new PgDoorRepository(database.db, errors),
+    members: new PgMemberRepository(database.db, errors),
   };
 });
 
 describeSubscriptionRepositoryContract('PgSubscriptionRepository', async () => {
   const calendars = await fresh();
   const subscriptions = new PgSubscriptionRepository(database.db);
-  return { writer: subscriptions, reader: subscriptions, calendars };
+  return {
+    writer: subscriptions,
+    reader: subscriptions,
+    calendars,
+    members: new PgMemberRepository(database.db, errors),
+  };
 });
 
 describe('migrations', () => {

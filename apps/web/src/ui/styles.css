@@ -629,7 +629,8 @@ button {
 .field select,
 .field textarea,
 .comments__name,
-.comments__input {
+.comments__input,
+.member__name {
   font: inherit;
   font-size: 1rem;
   color: var(--text);
@@ -1347,6 +1348,49 @@ button {
   border-style: dashed;
 }
 
+/* The people sharing a calendar, each with their own link. */
+.members {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.member {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.member__head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.member__head .member__name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.member__head .chip {
+  flex: none;
+}
+
+.member__add {
+  display: flex;
+  gap: 10px;
+}
+
+.member__add .member__name {
+  flex: 1;
+  min-width: 0;
+}
+
 .versions {
   margin: 0;
   padding-left: 18px;
@@ -1616,7 +1660,7 @@ button {
   border: 1px solid var(--accent);
 }
 
-.comments__item--recipient {
+.comments__item--member {
   justify-self: end;
   border-radius: 14px 14px 4px 14px;
   background: color-mix(in srgb, var(--accent-2) 35%, transparent);

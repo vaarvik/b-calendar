@@ -48,6 +48,8 @@ const AUTOSAVE_MS = 700;
 
 interface DoorFormProps {
   readonly door: DoorPreviewDto;
+  /** Names of the people sharing the calendar, by id: who opened the door. */
+  readonly names: ReadonlyMap<string, string>;
   /** The calendar's default time of day, `HH:MM`. */
   readonly defaultOpenTime: string;
   /** Saves the draft door; called by itself while she types. */
@@ -62,6 +64,7 @@ interface DoorFormProps {
 /** One door's fields. Saves itself as she types; empty optional fields become null. */
 export function DoorForm({
   door,
+  names,
   defaultOpenTime,
   onSave,
   onRemove,
@@ -70,6 +73,7 @@ export function DoorForm({
   onNext,
 }: DoorFormProps) {
   const initial = door;
+  const openers = door.openings.flatMap((opening) => names.get(opening.memberId) ?? []);
   const [opensOn, setOpensOn] = useState(initial.opensOn);
   const [ownTime, setOwnTime] = useState(initial.openTime !== null);
   const [openTime, setOpenTime] = useState(initial.openTime ?? defaultOpenTime);
@@ -349,11 +353,11 @@ export function DoorForm({
           <span className={`chip${door.notifiedAt === null ? '' : ' chip--good'}`}>
             {door.notifiedAt === null ? '🔕 Ikke varslet' : '🔔 Varslet'}
           </span>
-          <span className={`chip${door.firstOpenedAt === null ? '' : ' chip--good'}`}>
-            {door.firstOpenedAt === null
-              ? '🙈 Ikke åpnet'
-              : `👀 Åpnet ${new Date(door.firstOpenedAt).toLocaleString('nb-NO')}`}
-          </span>
+          {openers.length === 0 ? (
+            <span className="chip">🙈 Ikke åpnet</span>
+          ) : (
+            <span className="chip chip--good">👀 Åpnet av {openers.join(', ')}</span>
+          )}
         </div>
       </header>
 
@@ -552,7 +556,7 @@ export function DoorForm({
               setHidden(e.target.checked);
             }}
           />
-          <span>🤫 Hemmelig luke – hun ser den ikke før den åpner</span>
+          <span>🤫 Hemmelig luke – ingen ser den før den åpner</span>
         </label>
       </fieldset>
 

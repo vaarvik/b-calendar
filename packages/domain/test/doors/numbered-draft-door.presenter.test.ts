@@ -17,12 +17,13 @@ describe('NumberedDraftDoorPresenter', () => {
   );
   const data = new TestData();
   const calendar = data.calendar();
+  const none = { published: [], openings: [] };
 
   it('schedules each draft door in the calendar’s time zone, at its own time or the default', () => {
     const own = data.draftDoor(calendar.id, { opensOn: '2026-11-16', openTime: '17:30' });
     const byDefault = data.draftDoor(calendar.id, { opensOn: '2026-11-15' });
 
-    const [first, second] = presenter.present(calendar, [own, byDefault], []);
+    const [first, second] = presenter.present(calendar, [own, byDefault], none);
 
     expect(first).toMatchObject({ id: byDefault.id, number: 1, opensAt: T0 });
     expect(second).toMatchObject({
@@ -39,7 +40,7 @@ describe('NumberedDraftDoorPresenter', () => {
     });
 
     const { id, calendarId, opensOn, openTime, featured, hidden, content, notification } = draft;
-    expect(presenter.present(calendar, [draft], [])).toEqual([
+    expect(presenter.present(calendar, [draft], none)).toEqual([
       {
         id,
         calendarId,
@@ -52,34 +53,30 @@ describe('NumberedDraftDoorPresenter', () => {
         number: 1,
         opensAt: T0,
         notifiedAt: null,
-        firstOpenedAt: null,
+        openings: [],
         link: { url: 'https://example.com/x', kind: 'web', embedUrl: null },
       },
     ]);
   });
 
-  it('takes the recipient’s progress from the published door of the same id', () => {
+  it('takes the progress from the published door of the same id', () => {
     const draft = data.draftDoor(calendar.id);
-    const published = data.door(calendar.id, {
-      id: draft.id,
-      notifiedAt: T0,
-      firstOpenedAt: hoursAfter(T0, 1),
-    });
+    const published = data.door(calendar.id, { id: draft.id, notifiedAt: T0 });
+    const opening = data.opening(draft.id, data.memberId(), { openedAt: hoursAfter(T0, 1) });
 
-    expect(presenter.present(calendar, [draft], [published])[0]).toMatchObject({
-      notifiedAt: T0,
-      firstOpenedAt: hoursAfter(T0, 1),
-    });
+    expect(
+      presenter.present(calendar, [draft], { published: [published], openings: [opening] })[0],
+    ).toMatchObject({ notifiedAt: T0, openings: [opening] });
   });
 
   it('presents one draft door numbered among the others, and refuses an unknown id', () => {
     const later = data.draftDoor(calendar.id, { opensOn: '2026-11-17' });
     const first = data.draftDoor(calendar.id);
 
-    expect(presenter.presentOne(calendar, [later, first], [], later.id)).toMatchObject({
+    expect(presenter.presentOne(calendar, [later, first], none, later.id)).toMatchObject({
       id: later.id,
       number: 2,
     });
-    expect(() => presenter.presentOne(calendar, [first], [], later.id)).toThrow(NotFoundError);
+    expect(() => presenter.presentOne(calendar, [first], none, later.id)).toThrow(NotFoundError);
   });
 });

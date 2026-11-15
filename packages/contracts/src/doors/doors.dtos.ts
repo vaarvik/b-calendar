@@ -98,6 +98,16 @@ export const OpenDoorResponseDtoSchema: z.ZodType<OpenDoorResponseDto> = z.objec
   content: OpenDoorContentDtoSchema,
 });
 
+export interface DoorOpeningDto {
+  readonly memberId: string;
+  readonly openedAt: string;
+}
+
+export const DoorOpeningDtoSchema: z.ZodType<DoorOpeningDto> = z.object({
+  memberId: z.string(),
+  openedAt: z.string(),
+});
+
 /** Everything about a door, for the admin. */
 export interface DoorPreviewDto {
   readonly id: string;
@@ -121,7 +131,8 @@ export interface DoorPreviewDto {
   readonly link: DoorLinkDto | null;
   readonly notification: { readonly title: string; readonly body: string };
   readonly notifiedAt: string | null;
-  readonly firstOpenedAt: string | null;
+  /** Who has opened it, first first. */
+  readonly openings: readonly DoorOpeningDto[];
 }
 
 export const DoorPreviewDtoSchema: z.ZodType<DoorPreviewDto> = z.object({
@@ -146,5 +157,5 @@ export const DoorPreviewDtoSchema: z.ZodType<DoorPreviewDto> = z.object({
   link: DoorLinkDtoSchema.nullable(),
   notification: z.object({ title: z.string(), body: z.string() }),
   notifiedAt: z.string().nullable(),
-  firstOpenedAt: z.string().nullable(),
+  openings: z.array(DoorOpeningDtoSchema),
 });

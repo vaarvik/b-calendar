@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Door } from '../doors/doors.model.js';
+import type { Member } from '../members/members.model.js';
 import type { CalendarId } from '../shared/shared.model.js';
 import { TimeOfDaySchema, TimeZoneSchema } from '../shared/shared.model.js';
 
@@ -22,8 +23,6 @@ export const SlugSchema = z
 export interface CalendarSettings {
   readonly slug: string;
   readonly title: string;
-  /** Shown in greetings: "Hei, Ida". */
-  readonly recipientName: string;
   readonly theme: CalendarTheme;
   readonly locale: CalendarLocale;
   /** Where the doors' times of day are meant, e.g. `Europe/Oslo`. */
@@ -35,34 +34,33 @@ export interface CalendarSettings {
 export const CalendarSettingsSchema: z.ZodType<CalendarSettings> = z.object({
   slug: SlugSchema,
   title: z.string().trim().min(1).max(80),
-  recipientName: z.string().trim().min(1).max(40),
   theme: z.enum(CALENDAR_THEMES),
   locale: z.enum(CALENDAR_LOCALES),
   timeZone: TimeZoneSchema,
   defaultOpenTime: TimeOfDaySchema,
 });
 
-/** A series of doors for one recipient. Aggregate root; doors refer to it by id. */
+/**
+ * A series of doors shared by its members, each with their own link. Aggregate root; doors and
+ * members refer to it by id.
+ */
 export interface Calendar extends CalendarSettings {
   readonly id: CalendarId;
-  /** The recipient's secret. Part of her link; whoever has it can open the calendar. */
-  readonly accessKey: string;
-  /** The followers' secret: their link shows what she sees, but opening a door records nothing. */
+  /** The followers' secret: their link shows the doors, but opening one records nothing. */
   readonly followerKey: string;
   readonly createdAt: Date;
 }
 
-/** Who a link belongs to: the recipient herself, or someone following along. */
-export const CALENDAR_ROLES = ['recipient', 'follower'] as const;
-export type CalendarRole = (typeof CALENDAR_ROLES)[number];
+/** Who a link belongs to: a member, or someone following along. */
+export const CALENDAR_VIEWER_KINDS = ['member', 'follower'] as const;
+export type CalendarViewerKind = (typeof CALENDAR_VIEWER_KINDS)[number];
 
 /** A calendar opened with a link, and whose link it was. */
-export interface CalendarViewer {
-  readonly calendar: Calendar;
-  readonly role: CalendarRole;
-}
+export type CalendarViewer =
+  | { readonly kind: 'member'; readonly calendar: Calendar; readonly member: Member }
+  | { readonly kind: 'follower'; readonly calendar: Calendar };
 
-/** Proof of access a recipient sends: the calendar's address and its key. */
+/** Proof of access a link sends: the calendar's address and the key in the link. */
 export interface CalendarAccess {
   readonly slug: string;
   readonly accessKey: string;
@@ -73,10 +71,10 @@ export const CalendarAccessSchema: z.ZodType<CalendarAccess> = z.object({
   accessKey: z.string().min(1).max(200),
 });
 
-/** A door as one version published it: what the recipient got, without her progress. */
-export type PublishedDoor = Omit<Door, 'calendarId' | 'notifiedAt' | 'firstOpenedAt'>;
+/** A door as one version published it: what the members got, without their progress. */
+export type PublishedDoor = Omit<Door, 'calendarId' | 'notifiedAt'>;
 
-/** One publish of a calendar: the doors the recipient got, as they were. */
+/** One publish of a calendar: the doors the members got, as they were. */
 export interface CalendarVersion {
   readonly calendarId: CalendarId;
   /** 1, 2, 3 … within the calendar. */

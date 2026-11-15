@@ -38,7 +38,10 @@ export class PublishCalendarUseCase implements PublishCalendar {
     const now = this.clock.now();
     const liveById = new Map(live.map((door) => [door.id, door]));
     const doors: PublishedDoor[] = [];
-    for (const preview of this.presenter.present(calendar, drafts, live)) {
+    for (const preview of this.presenter.present(calendar, drafts, {
+      published: live,
+      openings: [],
+    })) {
       const { id, number, opensOn, openTime, opensAt, featured, hidden, content, notification } =
         preview;
       const door: PublishedDoor = {
@@ -58,7 +61,6 @@ export class PublishCalendarUseCase implements PublishCalendar {
         calendarId: calendar.id,
         // A door that opens later than now notifies (again) when it opens.
         notifiedAt: door.opensAt.getTime() > now.getTime() ? null : (existing?.notifiedAt ?? null),
-        firstOpenedAt: existing?.firstOpenedAt ?? null,
       };
       if (existing === undefined) {
         await this.doorWriter.create(next);

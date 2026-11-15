@@ -1,39 +1,39 @@
-import { DoorLockedError, NotFoundError } from '@b-calendar/contracts';
+import { ConflictError } from '@b-calendar/contracts';
 import type {
-  CalendarAccessAuthenticator,
   Clock,
-  DoorReader,
-  DoorWriter,
+  DoorOpeningReader,
+  DoorOpeningWriter,
   OpenDoor,
   OpenDoorInput,
   OpenDoorOutput,
+  OpenedDoorLocator,
   RecipientDoorPresenter,
 } from '@b-calendar/contracts';
 
 export class OpenDoorUseCase implements OpenDoor {
   public constructor(
-    private readonly access: CalendarAccessAuthenticator,
-    private readonly reader: DoorReader,
-    private readonly writer: DoorWriter,
+    private readonly doors: OpenedDoorLocator,
+    private readonly openingReader: DoorOpeningReader,
+    private readonly openingWriter: DoorOpeningWriter,
     private readonly presenter: RecipientDoorPresenter,
     private readonly clock: Clock,
   ) {}
 
   public async execute(input: OpenDoorInput): Promise<OpenDoorOutput> {
-    const { calendar, role } = await this.access.authenticate(input);
-    const doors = await this.reader.listByCalendar(calendar.id);
-    const door = doors.find((candidate) => candidate.number === input.number);
-    const now = this.clock.now();
-    const shown = door === undefined ? null : this.presenter.present(door, now);
-    if (door === undefined || shown === null) {
-      throw new NotFoundError('Door', String(input.number));
-    }
-    if (shown.state === 'locked') {
-      throw new DoorLockedError(door.number, door.opensAt);
-    }
-    // Only she opens doors for real; a follower looks without leaving a trace.
-    if (door.firstOpenedAt === null && role === 'recipient') {
-      await this.writer.save({ ...door, firstOpenedAt: now });
+    const { viewer, door } = await this.doors.locate(input);
+    // A member opens doors for themselves; a follower looks without leaving a trace.
+    if (viewer.kind === 'member') {
+      const opened = await this.openingReader.listByMember(viewer.member.id);
+      if (!opened.some((opening) => opening.doorId === door.id)) {
+        await this.openingWriter
+          .create({ doorId: door.id, memberId: viewer.member.id, openedAt: this.clock.now() })
+          .catch((error: unknown) => {
+            // Two taps at once: the first one counts.
+            if (!(error instanceof ConflictError)) {
+              throw error;
+            }
+          });
+      }
     }
     return {
       number: door.number,

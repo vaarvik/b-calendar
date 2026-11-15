@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { CalendarWriter, SubscriptionReader, SubscriptionWriter } from '../../src/index.js';
+import type {
+  CalendarWriter,
+  MemberWriter,
+  SubscriptionReader,
+  SubscriptionWriter,
+} from '../../src/index.js';
 import { FixtureHolder } from '../fixture.js';
 import type { FixtureFactory } from '../fixture.js';
 import { T0, TestData, hoursAfter } from '../test-data.js';
@@ -8,6 +13,8 @@ export interface SubscriptionRepositoryFixture {
   readonly writer: SubscriptionWriter;
   readonly reader: SubscriptionReader;
   readonly calendars: CalendarWriter;
+  /** A subscription may belong to a member of its calendar. */
+  readonly members: MemberWriter;
 }
 
 /** Behaviour every SubscriptionWriter and SubscriptionReader pair must have. */
@@ -36,6 +43,20 @@ export function describeSubscriptionRepositoryContract(
       await expect(fixture.current.reader.listByCalendar(calendarId)).resolves.toEqual([
         older,
         newer,
+      ]);
+    });
+
+    it('keeps the member whose link subscribed', async () => {
+      const data = new TestData();
+      const calendarId = await calendar(data);
+      const member = data.member(calendarId);
+      await fixture.current.members.create(member);
+      const subscription = data.subscription(calendarId, { memberId: member.id });
+
+      await fixture.current.writer.upsert(subscription);
+
+      await expect(fixture.current.reader.listByCalendar(calendarId)).resolves.toEqual([
+        subscription,
       ]);
     });
 

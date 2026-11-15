@@ -5,6 +5,7 @@ import type {
   DoorId,
   IdGenerator,
   MediaId,
+  MemberId,
   SubscriptionId,
 } from '@b-calendar/contracts';
 
@@ -27,5 +28,9 @@ export class RandomUuidIdGenerator implements IdGenerator {
 
   public commentId(): CommentId {
     return randomUUID() as CommentId;
+  }
+
+  public memberId(): MemberId {
+    return randomUUID() as MemberId;
   }
 }

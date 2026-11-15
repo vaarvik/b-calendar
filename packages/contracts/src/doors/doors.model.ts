@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { CalendarId, DoorId } from '../shared/shared.model.js';
+import type { CalendarId, DoorId, MemberId } from '../shared/shared.model.js';
 import { InstantSchema, LocalDateSchema, TimeOfDaySchema } from '../shared/shared.model.js';
 
 /** What a link in a door points to, so the app can embed it. */
@@ -46,9 +46,9 @@ export interface DoorNotification {
 }
 
 /**
- * One door of a calendar as the recipient has it: the published door. Locked until `opensAt`.
- * Written by PublishCalendar from the draft; her progress (`notifiedAt`, `firstOpenedAt`) stays
- * with the door across versions.
+ * One door of a calendar as the members have it: the published door. Locked until `opensAt`.
+ * Written by PublishCalendar from the draft; `notifiedAt` and the members' openings stay with the
+ * door across versions.
  */
 export interface Door {
   readonly id: DoorId;
@@ -66,14 +66,19 @@ export interface Door {
   readonly opensAt: Date;
   /** A special hatch (the birthday, the last day): it looks grander, even while locked. */
   readonly featured: boolean;
-  /** A secret door: the recipient does not know it exists until it opens. */
+  /** A secret door: nobody with a link knows it exists until it opens. */
   readonly hidden: boolean;
   readonly content: DoorContent;
   readonly notification: DoorNotification;
   /** When the notification went out (or was skipped as too late); null until then. */
   readonly notifiedAt: Date | null;
-  /** When the recipient first looked behind the door; null until then. */
-  readonly firstOpenedAt: Date | null;
+}
+
+/** A member's first look behind a door. From then on the door stays open for them. */
+export interface DoorOpening {
+  readonly doorId: DoorId;
+  readonly memberId: MemberId;
+  readonly openedAt: Date;
 }
 
 const httpUrl = z.url({ protocol: /^https?$/ }).max(2000);
@@ -137,10 +142,12 @@ export interface DraftDoor extends DoorDraft {
 
 /**
  * A door as the admin sees it: the draft, numbered and scheduled, its link classified, with the
- * recipient's progress on the published door of the same id (null when not published).
+ * progress on the published door of the same id (none when not published).
  */
 export interface DoorPreview extends Door {
   readonly link: DoorLink | null;
+  /** Who has opened it, first first. */
+  readonly openings: DoorOpening[];
 }
 
 /** The content of an open door as the recipient gets it. */
@@ -149,10 +156,9 @@ export interface OpenDoorContent extends Omit<DoorContent, 'linkUrl'> {
 }
 
 /**
- * A door as the recipient gets it, like a paper calendar: `locked` until its time, `ready`
- * (still closed, she can open it) after that, and `opened` for good once she has. Only an
- * opened door carries its content; a ready door's content comes from OpenDoor, which records
- * the first look.
+ * A door as one member gets it, like a paper calendar: `locked` until its time, `ready` (still
+ * closed, they can open it) after that, and `opened` for good once they have. Only an opened door
+ * carries its content; a ready door's content comes from OpenDoor, which records the first look.
  */
 export type RecipientDoor =
   | {

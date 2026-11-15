@@ -10,7 +10,7 @@ import type {
   RecipientDoorPresenter,
 } from '@b-calendar/contracts';
 
-/** A door by number, if the presenter shows it to her and its time has come. */
+/** A door by number, if the presenter shows it on this link and its time has come. */
 export class VisibleOpenedDoorLocator implements OpenedDoorLocator {
   public constructor(
     private readonly access: CalendarAccessAuthenticator,
@@ -25,7 +25,7 @@ export class VisibleOpenedDoorLocator implements OpenedDoorLocator {
     const viewer = await this.access.authenticate(input);
     const doors = await this.doors.listByCalendar(viewer.calendar.id);
     const door = doors.find((candidate) => candidate.number === input.number);
-    const shown = door === undefined ? null : this.presenter.present(door, this.clock.now());
+    const shown = door === undefined ? null : this.presenter.present(door, this.clock.now(), null);
     if (door === undefined || shown === null) {
       throw new NotFoundError('Door', String(input.number));
     }

@@ -11,12 +11,10 @@ export interface CalendarsTable {
   id: string;
   slug: string;
   title: string;
-  recipient_name: string;
   theme: string;
   locale: string;
   time_zone: string;
   default_open_time: string;
-  access_key: string;
   follower_key: string;
   created_at: Date;
 }
@@ -43,7 +41,6 @@ export interface DoorsTable {
   notification_title: string;
   notification_body: string;
   notified_at: Date | null;
-  first_opened_at: Date | null;
 }
 
 export interface SubscriptionsTable {
@@ -52,6 +49,7 @@ export interface SubscriptionsTable {
   endpoint: string;
   p256dh: string;
   auth: string;
+  member_id: string | null;
   created_at: Date;
 }
 
@@ -80,8 +78,23 @@ export interface DoorCommentsTable {
   door_id: string;
   author: string;
   role: string;
+  member_id: string | null;
   text: string;
   created_at: Date;
+}
+
+export interface MembersTable {
+  id: string;
+  calendar_id: string;
+  name: string;
+  key: string;
+  added_at: Date;
+}
+
+export interface DoorOpeningsTable {
+  door_id: string;
+  member_id: string;
+  opened_at: Date;
 }
 
 export interface Database {
@@ -90,5 +103,7 @@ export interface Database {
   door_drafts: DoorDraftsTable;
   calendar_versions: CalendarVersionsTable;
   door_comments: DoorCommentsTable;
+  door_openings: DoorOpeningsTable;
+  members: MembersTable;
   subscriptions: SubscriptionsTable;
 }

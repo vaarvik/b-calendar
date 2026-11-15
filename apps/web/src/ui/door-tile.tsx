@@ -55,7 +55,7 @@ export function DoorTile({
         )}
         {inside !== null && <span className="door__caption">{inside.title}</span>}
       </span>
-      {secret && <span className="door__secret">🤫 Hemmelig – hun ser den ikke ennå</span>}
+      {secret && <span className="door__secret">🤫 Hemmelig – ingen ser den ennå</span>}
       <span className="door__panel">
         {door.featured && (
           <>

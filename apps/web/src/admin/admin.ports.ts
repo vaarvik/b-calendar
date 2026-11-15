@@ -2,11 +2,11 @@ import type {
   AddDoorCommentRequestDto,
   CalendarDetailsResponseDto,
   CalendarDto,
-  CalendarRole,
   CalendarSettings,
   CalendarVersionDto,
   DoorCommentDto,
   DoorPreviewDto,
+  MemberDto,
   SendTestNotificationResponseDto,
   UploadMediaResponseDto,
 } from '@b-calendar/contracts';
@@ -43,8 +43,14 @@ export interface AdminClient {
   listCalendars(): Promise<readonly CalendarDto[]>;
   createCalendar(settings: CalendarSettings): Promise<CalendarDto>;
   updateCalendar(calendarId: string, settings: CalendarSettings): Promise<CalendarDto>;
-  /** A new key for her link or the followers' link; the other keeps working. */
-  rotateKey(calendarId: string, role: CalendarRole): Promise<CalendarDto>;
+  /** A new key for the follower link; the members' links keep working. */
+  rotateFollowerKey(calendarId: string): Promise<CalendarDto>;
+  /** A person sharing the calendar, with their own link. */
+  addMember(calendarId: string, name: string): Promise<MemberDto>;
+  renameMember(memberId: string, name: string): Promise<MemberDto>;
+  /** A new key for one member's link; their old link stops working. */
+  rotateMemberKey(memberId: string): Promise<MemberDto>;
+  removeMember(memberId: string): Promise<void>;
   calendar(calendarId: string): Promise<CalendarDetailsResponseDto>;
   addDoor(calendarId: string, draft: DoorDraftDto): Promise<DoorPreviewDto>;
   editDoor(doorId: string, draft: DoorDraftDto): Promise<DoorPreviewDto>;
@@ -54,7 +60,7 @@ export interface AdminClient {
   removeComment(commentId: string): Promise<void>;
   /** The giver's comment behind a published door, also one that has not opened. */
   addComment(doorId: string, comment: AddDoorCommentRequestDto): Promise<DoorCommentDto>;
-  /** Gives the recipient the draft as the calendar's next version. */
+  /** Gives the members the draft as the calendar's next version. */
   publish(calendarId: string): Promise<CalendarVersionDto>;
   sendTestNotification(calendarId: string): Promise<SendTestNotificationResponseDto>;
   /** Uploads a photo, song or video; its type is the blob's type. */

@@ -1,8 +1,9 @@
 # b-calendar
 
 Countdown calendars with one door (luke) at a time: a birthday week, an advent calendar, any span
-of dates. Each door unlocks at its time, the recipient gets a push notification, opens the door
-and it stays open. One admin (the giver) writes the doors; recipients only need their link.
+of dates. Each door unlocks at its time, everyone gets a push notification, and each member opens
+the door for themselves; it stays open for them. One admin (the giver) writes the doors; members
+only need their own link.
 
 Web first (a PWA, so iPhones get push from the Home Screen app); a native app may follow and reuse
 `packages/*`.
@@ -25,7 +26,7 @@ packages/domain        Domain services. Pure, no I/O
 packages/application   Use cases, one class per use case
 packages/in-memory     InMemory* adapters for every port (tests, `STORAGE=memory`)
 apps/api               Fastify adapter, Postgres and Web Push adapters, migrations, CLI, composition root
-apps/web               The PWA: recipient calendar at /c/<slug>?k=<key>, admin at /admin
+apps/web               The PWA: a member's calendar at /c/<slug>?k=<key>, admin at /admin
 tools/contract-check   ts-morph script that enforces the rules below in CI
 docs/                  Hosting and decisions
 ```
@@ -33,7 +34,8 @@ docs/                  Hosting and decisions
 Packages are layers; inside each layer, code is grouped by feature, with the same feature names
 in every layer: `calendars`, `doors`, `subscriptions` (push subscriptions), `notifications`
 (deciding and sending door notifications), `media` (uploaded photos, songs and videos), `comments`
-(comments behind an opened door), `admin` (the admin session),
+(comments behind an opened door), `members` (the people sharing a calendar), `admin` (the admin
+session),
 `shared`.
 
 ```
@@ -110,42 +112,46 @@ Writes use `create`, `save` (replace), `upsert` and `remove`. contract-check rul
 
 UI copy uses the Norwegian in brackets.
 
-- **Calendar** (kalender): a series of doors for one recipient. Has a `slug` (its address,
-  `/c/<slug>`), a `theme` (`birthday`, `christmas`), a `locale` for the fixed UI copy and an
-  **access key**, the secret in her link, and a **follower key** for the follower link
-  (følgerlenke): followers see what she sees and get the same notifications, but opening a door
-  with their link records nothing.
+- **Calendar** (kalender): a series of doors shared by its members. Has a `slug` (its address,
+  `/c/<slug>`), a `theme` (`birthday`, `christmas`), a `locale` for the fixed UI copy and a
+  **follower key** for the follower link (følgerlenke): it shows every door as it opens and gets
+  the same notifications, but opening a door with it records nothing.
+- **Member** (person): someone sharing a calendar, with a name and their own **key**, the secret
+  in their link (`/c/<slug>?k=<key>`). The link is who they are: no logins. Each member opens
+  doors for themselves (`DoorOpening`) and comments under their name. The admin adds, renames,
+  re-keys and removes members.
 - **Draft** (utkast) and **version** (versjon): the admin edits a draft, which saves as she types;
   **Publiser** turns it into the calendar's next numbered version (`CalendarVersion`). The
-  recipient and the notifications only see the published doors. Her progress (`notifiedAt`,
-  `firstOpenedAt`) stays with each door across versions.
+  members and the notifications only see the published doors. `notifiedAt` and the members'
+  openings stay with each door across versions.
 - **Door** (luke): numbered 1, 2, 3 … by when it opens (`DoorNumberCalculator`), never by hand; opens on a day (`opensOn`) at the calendar's **default
   open time** (`defaultOpenTime`, e.g. 08:00, in the calendar's `timeZone`) or at its own
   `openTime`. `opensAt` is that instant, derived by `DoorScheduleCalculator` and kept in step by
   the use cases (changing the default moves every door without its own time). Holds **content** (title, message, an
   image, an uploaded video and song (any mix, all optional), a link — Spotify and YouTube are embedded —, a countdown, confetti) and the
   **notification** sent when it opens.
-- **Door state**, as the recipient sees it, like a paper calendar: `locked` before `opensAt`,
-  `ready` after it while still closed, `opened` for good once she has opened it
-  (`firstOpenedAt`). She can go back to an opened door any time.
-- **Comment** (kommentar): left behind a door that has opened, by her (with her name) or a
-  follower (with the name they give), or by the **giver** (giver, the admin) behind any published
-  door, where it waits for her until the door opens. Never shown on a locked or secret door. Each
+- **Door state**, as one member sees it, like a paper calendar: `locked` before `opensAt`,
+  `ready` after it while still closed, `opened` for good once they have opened it (their
+  `DoorOpening`). They can go back to an opened door any time. The follower link sees `ready`.
+- **Comment** (kommentar): left behind a door that has opened, by a member (with their name) or
+  on the follower link (with the name they give), or by the **giver** (giver, the admin) behind
+  any published door, where it waits until the door opens. Never shown on a locked or secret door. Each
   comment on an opened door notifies every phone but the writer's own; the admin can remove one.
 - **Subscription**: one browser's Web Push endpoint for a calendar.
 - **Admin**: the one person who writes calendars; signs in with `ADMIN_PASSWORD`.
 
 ### Rules that keep the surprise
 
-- A **secret door** (`hidden`, hemmelig luke) does not exist for her until it opens: no tile, no
+- A **secret door** (`hidden`, hemmelig luke) does not exist for anyone with a link until it opens: no tile, no
   number, not in the countdown, and OpenDoor answers it with the same NotFoundError as a door
   that does not exist.
 - A locked door's content never leaves the server: `RecipientDoorPresenter` strips it, and
   `OpenDoor` refuses with `DoorLockedError`. A ready door's content is only sent by `OpenDoor`,
   which records the first look.
-- A wrong key and an unknown slug give the same `UnauthenticatedError`.
+- A wrong key, a removed member's key and an unknown slug give the same `UnauthenticatedError`;
+  every key of the calendar is compared in constant time.
 - Notification links carry no key: each phone opens the calendar with the link it was set up with,
-  so a follower's tap never turns into hers.
+  so one person's tap never turns into someone else's.
 - A door is marked notified **before** its push goes out: at most one notification per door. A
   notification later than `NOTIFY_GRACE_MINUTES` after `opensAt` is skipped, not sent. Moving a
   door into the future makes it notify again.
@@ -157,13 +163,13 @@ UI copy uses the Norwegian in brackets.
 
 ### Building blocks
 
-| DDD concept         | Here                                                                  |
-| ------------------- | --------------------------------------------------------------------- |
-| Entity              | `Calendar`, `Door`, `Subscription` (identity via branded id)          |
-| Aggregate root      | `Calendar`; doors and subscriptions refer to it by id                 |
-| Repository          | `*Reader` / `*Writer` ports                                           |
-| Domain service      | `packages/domain` classes, e.g. `OpensAtRecipientDoorPresenter`. Pure |
-| Application service | One use case class per `packages/application` file                    |
+| DDD concept         | Here                                                                   |
+| ------------------- | ---------------------------------------------------------------------- |
+| Entity              | `Calendar`, `Door`, `Member`, `Subscription` (identity via branded id) |
+| Aggregate root      | `Calendar`; doors, members and subscriptions refer to it by id         |
+| Repository          | `*Reader` / `*Writer` ports                                            |
+| Domain service      | `packages/domain` classes, e.g. `OpensAtRecipientDoorPresenter`. Pure  |
+| Application service | One use case class per `packages/application` file                     |
 
 Entities are plain data, not classes with methods. Behaviour lives in domain services.
 
@@ -238,7 +244,7 @@ pnpm api                     # build and start the API (serves apps/web/dist too
 pnpm web                     # Vite dev server on :5173, proxying /v1 and /media to :3000
 pnpm web:build               # apps/web/dist
 node --env-file=.env apps/api/dist/src/cli.js vapid-keys     # VAPID keys, once
-node --env-file=.env apps/api/dist/src/cli.js seed-birthday  # the birthday week, prints her link
+node --env-file=.env apps/api/dist/src/cli.js seed-birthday  # the birthday week, prints a member's link
 ```
 
 Copy `.env.example` to `.env`. Hosting: `docs/hosting.md`.

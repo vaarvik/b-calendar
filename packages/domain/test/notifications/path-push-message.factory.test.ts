@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 describe('PathPushMessageFactory', () => {
   const factory = new PathPushMessageFactory();
   const data = new TestData();
-  const calendar = data.calendar({ slug: 'ida-30', accessKey: 'k/ey+1' });
+  const calendar = data.calendar({ slug: 'ida-30', followerKey: 'k/ey+1' });
 
   it('opens the door from its notification, without a key, so each phone uses its own link', () => {
     const door = data.door(calendar.id, {

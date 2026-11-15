@@ -7,7 +7,7 @@ export interface DoorCommentsInput extends CalendarAccess {
 }
 
 export interface AddDoorCommentInput extends DoorCommentsInput {
-  /** A follower's name; her link writes with her name, and ignores this. */
+  /** A follower's name; a member's link writes with the member's name, and ignores this. */
   readonly author?: string;
   readonly text: string;
   /** The writer's own push endpoint, left out of the notification. */
@@ -15,8 +15,8 @@ export interface AddDoorCommentInput extends DoorCommentsInput {
 }
 
 /**
- * Someone with a link comments behind a door. Only on a door she can see that has opened, so a
- * comment never gives a locked or secret door away. Everyone else with notifications on hears of
+ * Someone with a link comments behind a door. Only on a door their link shows that has opened,
+ * so a comment never gives a locked or secret door away. Everyone else with notifications on hears of
  * it.
  */
 export interface AddDoorComment {
@@ -61,7 +61,7 @@ export interface AddGiverDoorCommentInput {
 
 /**
  * The giver comments behind any published door, also one that has not opened: the comment waits
- * there for her. Notifications go out only for a door that has opened, so nothing gives a door
+ * there for the members. Notifications go out only for a door that has opened, so nothing gives a door
  * away.
  */
 export interface AddGiverDoorComment {

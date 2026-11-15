@@ -246,10 +246,10 @@ export function CalendarScreen({ slug }: { readonly slug: string }) {
   return (
     <main className="calendar">
       <header className="calendar__header">
-        {calendar.role === 'follower' ? (
-          <p className="calendar__following">{copy.following(calendar.recipientName)}</p>
+        {calendar.name === null ? (
+          <p className="calendar__following">{copy.following}</p>
         ) : (
-          <p className="calendar__hello">{copy.hello(calendar.recipientName)}</p>
+          <p className="calendar__hello">{copy.hello(calendar.name)}</p>
         )}
         <h1 className="calendar__title">{calendar.title}</h1>
         {calendar.doors.length === 0 ? (
@@ -300,7 +300,7 @@ export function CalendarScreen({ slug }: { readonly slug: string }) {
             key={shown.number}
             access={access}
             number={shown.number}
-            role={calendar.role}
+            viewer={calendar.viewer}
             copy={copy}
           />
         </DoorSheet>

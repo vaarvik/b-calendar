@@ -5,7 +5,7 @@ export interface SubscribeInput extends CalendarAccess {
   readonly endpoint: PushEndpoint;
 }
 
-/** The recipient's browser asks for notifications. */
+/** A browser with a link asks for notifications. */
 export interface Subscribe {
   /**
    * @throws UnauthenticatedError when the slug or the key is wrong.

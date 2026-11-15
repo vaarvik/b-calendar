@@ -1,10 +1,11 @@
-import type { CalendarId, DoorId } from '../shared/shared.model.js';
+import type { CalendarId, DoorId, MemberId } from '../shared/shared.model.js';
 import type { Calendar, CalendarAccess, CalendarViewer } from '../calendars/calendars.model.js';
 import type {
   Door,
   DoorContent,
   DraftDoor,
   DoorLink,
+  DoorOpening,
   DoorPreview,
   OpenDoorContent,
   RecipientDoor,
@@ -39,15 +40,33 @@ export interface DoorLinkClassifier {
   classify(url: string): DoorLink;
 }
 
+/** Reads which members have opened which doors. */
+export interface DoorOpeningReader {
+  /** The doors a member has opened, by `openedAt`; `[]` when none. */
+  listByMember(memberId: MemberId): Promise<DoorOpening[]>;
+  /** Every opening of the calendar's doors, by `openedAt`. */
+  listByCalendar(calendarId: CalendarId): Promise<DoorOpening[]>;
+}
+
+/** Records a member's first look behind a door. */
+export interface DoorOpeningWriter {
+  /** @throws ConflictError when the member has already opened the door. */
+  create(opening: DoorOpening): Promise<void>;
+}
+
 /**
- * The one rule that keeps the surprise: what the recipient may see of a door at a time.
+ * The one rule that keeps the surprise: what one link may see of a door at a time.
  * Invariants: a door whose `opensAt` is after `now` is `locked` and carries no content, and a
- * hidden one is not shown at all (null); a door with `firstOpenedAt` set and `opensAt` passed is
- * `opened` with its content; otherwise `ready`.
+ * hidden one is not shown at all (null); a door the viewer opened (`openedAt`) whose `opensAt`
+ * has passed is `opened` with its content; otherwise `ready`.
  */
 export interface RecipientDoorPresenter {
-  /** @returns null when she must not know the door exists yet. */
-  present(door: Door, now: Date): RecipientDoor | null;
+  /**
+   * @param openedAt when this viewer first opened the door; null when they have not (always, on
+   * the follower link).
+   * @returns null when they must not know the door exists yet.
+   */
+  present(door: Door, now: Date, openedAt: Date | null): RecipientDoor | null;
   /** @returns the content of an open door. */
   content(content: DoorContent): OpenDoorContent;
 }
@@ -62,9 +81,10 @@ export interface DoorScheduleCalculator {
   opensAt(opensOn: string, time: string, timeZone: string): Date;
 }
 
-/** A door as the admin sees it, with its link classified. */
+/** A door as the admin sees it, with its link classified and who has opened it. */
 export interface DoorPreviewPresenter {
-  preview(door: Door): DoorPreview;
+  /** @param openings of any doors; only this door's are kept. */
+  preview(door: Door, openings: readonly DoorOpening[]): DoorPreview;
 }
 
 /** Reads the doors the admin is writing. */
@@ -101,17 +121,19 @@ export interface DoorNumberCalculator {
   ordered<T extends DoorOrderKey>(doors: readonly T[]): T[];
 }
 
+/** The progress a draft door shows: from the published door of the same id. */
+export interface DoorProgress {
+  readonly published: readonly Door[];
+  readonly openings: readonly DoorOpening[];
+}
+
 /**
  * A calendar's draft as the admin sees it: each draft door scheduled in the calendar's time zone,
- * numbered by date, with the recipient's progress from the published door of the same id.
+ * numbered by date, with the progress on the published door of the same id.
  */
 export interface DraftDoorPresenter {
   /** @returns the previews in door order. */
-  present(
-    calendar: Calendar,
-    drafts: readonly DraftDoor[],
-    published: readonly Door[],
-  ): DoorPreview[];
+  present(calendar: Calendar, drafts: readonly DraftDoor[], progress: DoorProgress): DoorPreview[];
   /**
    * @returns one draft door's preview, numbered among the others.
    * @throws NotFoundError when `id` is not among the drafts.
@@ -119,14 +141,14 @@ export interface DraftDoorPresenter {
   presentOne(
     calendar: Calendar,
     drafts: readonly DraftDoor[],
-    published: readonly Door[],
+    progress: DoorProgress,
     id: DoorId,
   ): DoorPreview;
 }
 
 /**
- * Finds a door someone with a link may see behind: one that is shown to her and has opened. The
- * rule comments and opening share, so nothing leaks before its time.
+ * Finds a door someone with a link may see behind: one that is shown on their link and has
+ * opened. The rule comments and opening share, so nothing leaks before its time.
  */
 export interface OpenedDoorLocator {
   /**

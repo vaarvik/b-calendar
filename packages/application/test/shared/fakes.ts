@@ -14,6 +14,7 @@ import type {
   IdGenerator,
   Logger,
   MediaId,
+  MemberId,
   PushEndpoint,
   PushMessage,
   PushOutcome,
@@ -51,6 +52,9 @@ export class RandomIds implements IdGenerator {
   }
   public commentId(): CommentId {
     return randomUUID() as CommentId;
+  }
+  public memberId(): MemberId {
+    return randomUUID() as MemberId;
   }
 }
 

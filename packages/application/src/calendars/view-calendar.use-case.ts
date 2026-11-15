@@ -2,6 +2,7 @@ import type {
   CalendarAccess,
   CalendarAccessAuthenticator,
   Clock,
+  DoorOpeningReader,
   DoorReader,
   RecipientCalendar,
   RecipientDoorPresenter,
@@ -12,23 +13,31 @@ export class ViewCalendarUseCase implements ViewCalendar {
   public constructor(
     private readonly access: CalendarAccessAuthenticator,
     private readonly doors: DoorReader,
+    private readonly openings: DoorOpeningReader,
     private readonly presenter: RecipientDoorPresenter,
     private readonly clock: Clock,
   ) {}
 
   public async execute(input: CalendarAccess): Promise<RecipientCalendar> {
-    const { calendar, role } = await this.access.authenticate(input);
+    const viewer = await this.access.authenticate(input);
+    const { calendar } = viewer;
     const now = this.clock.now();
-    const doors = await this.doors.listByCalendar(calendar.id);
+    const [doors, openings] = await Promise.all([
+      this.doors.listByCalendar(calendar.id),
+      viewer.kind === 'member' ? this.openings.listByMember(viewer.member.id) : [],
+    ]);
+    const openedAt = new Map(openings.map((opening) => [opening.doorId, opening.openedAt]));
     return {
-      role,
+      viewer: viewer.kind,
+      name: viewer.kind === 'member' ? viewer.member.name : null,
       slug: calendar.slug,
       title: calendar.title,
-      recipientName: calendar.recipientName,
       theme: calendar.theme,
       locale: calendar.locale,
       now,
-      doors: doors.flatMap((door) => this.presenter.present(door, now) ?? []),
+      doors: doors.flatMap(
+        (door) => this.presenter.present(door, now, openedAt.get(door.id) ?? null) ?? [],
+      ),
     };
   }
 }

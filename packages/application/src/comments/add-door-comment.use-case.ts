@@ -24,15 +24,16 @@ export class AddDoorCommentUseCase implements AddDoorComment {
   public async execute(input: AddDoorCommentInput): Promise<DoorComment> {
     const text = this.validator.validate(CommentTextSchema, input.text);
     const { viewer, door } = await this.doors.locate(input);
-    const author =
-      viewer.role === 'recipient'
-        ? viewer.calendar.recipientName
-        : this.validator.validate(CommentAuthorSchema, input.author ?? '');
     const comment: DoorComment = {
       id: this.ids.commentId(),
       doorId: door.id,
-      author,
-      role: viewer.role,
+      ...(viewer.kind === 'member'
+        ? { author: viewer.member.name, role: 'member', memberId: viewer.member.id }
+        : {
+            author: this.validator.validate(CommentAuthorSchema, input.author ?? ''),
+            role: 'follower',
+            memberId: null,
+          }),
       text,
       createdAt: this.clock.now(),
     };

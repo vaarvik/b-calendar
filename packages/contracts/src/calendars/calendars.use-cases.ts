@@ -1,16 +1,17 @@
 import type { DoorPreview, RecipientDoor } from '../doors/doors.model.js';
+import type { Member } from '../members/members.model.js';
 import type { CalendarId } from '../shared/shared.model.js';
 import type {
   Calendar,
   CalendarAccess,
   CalendarLocale,
-  CalendarRole,
   CalendarSettings,
   CalendarTheme,
+  CalendarViewerKind,
   CalendarVersionSummary,
 } from './calendars.model.js';
 
-/** An admin creates a calendar. It gets a fresh access key. */
+/** An admin creates a calendar, with a fresh follower key and no members yet. */
 export interface CreateCalendar {
   /**
    * @throws ValidationError when the settings are invalid.
@@ -25,8 +26,8 @@ export interface UpdateCalendarInput {
 }
 
 /**
- * An admin changes a calendar's settings. The access key stays. A new default time or time zone
- * moves the draft's doors without their own time; the recipient gets them with the next publish.
+ * An admin changes a calendar's settings. Every link keeps working. A new default time or time zone
+ * moves the draft's doors without their own time; the members get them with the next publish.
  */
 export interface UpdateCalendar {
   /**
@@ -37,16 +38,13 @@ export interface UpdateCalendar {
   execute(input: UpdateCalendarInput): Promise<Calendar>;
 }
 
-export interface RotateCalendarKeyInput {
-  readonly calendarId: CalendarId;
-  /** Her link or the followers' link; the other keeps working. */
-  readonly role: CalendarRole;
-}
-
-/** A new key for one link, which signs out every device that used the old one. */
+/**
+ * A new key for the follower link, which signs out every device that used the old one. Members'
+ * links keep working; each has its own key (RotateMemberKey).
+ */
 export interface RotateCalendarKey {
   /** @throws NotFoundError when the calendar does not exist. */
-  execute(input: RotateCalendarKeyInput): Promise<Calendar>;
+  execute(input: { readonly calendarId: CalendarId }): Promise<Calendar>;
 }
 
 /** Every calendar, newest first. */
@@ -57,9 +55,11 @@ export interface ListCalendars {
 /** A calendar with its draft in full, for the admin. */
 export interface CalendarDetails {
   readonly calendar: Calendar;
-  /** The draft's doors, in order, with the recipient's progress. */
+  /** The draft's doors, in order, with who has opened each. */
   readonly doors: DoorPreview[];
-  /** Whether publishing would change what the recipient has. */
+  /** By `addedAt`. */
+  readonly members: Member[];
+  /** Whether publishing would change what the members have. */
   readonly unpublishedChanges: boolean;
   /** Newest first. */
   readonly versions: CalendarVersionSummary[];
@@ -73,22 +73,26 @@ export interface GetCalendarDetails {
 }
 
 /**
- * An admin publishes the draft as the calendar's next version. The recipient's doors become the
- * draft's, numbered by date; her progress stays with each door, a door moved into the future
- * notifies again, and doors no longer in the draft leave her calendar.
+ * An admin publishes the draft as the calendar's next version. The members' doors become the
+ * draft's, numbered by date; who opened what stays with each door, a door moved into the future
+ * notifies again, and doors no longer in the draft leave the calendar.
  */
 export interface PublishCalendar {
   /** @throws NotFoundError when the calendar does not exist. */
   execute(input: { readonly calendarId: CalendarId }): Promise<CalendarVersionSummary>;
 }
 
-/** The calendar as the recipient sees it: open doors with content, locked ones without. */
+/**
+ * The calendar as one link sees it: open doors with content, locked ones without. A member sees
+ * the doors they opened as opened; a follower sees every door that has opened as ready.
+ */
 export interface RecipientCalendar {
   /** Whose link opened it: a follower's opens doors without recording them. */
-  readonly role: CalendarRole;
+  readonly viewer: CalendarViewerKind;
+  /** The member's name, for the greeting; null on the follower link. */
+  readonly name: string | null;
   readonly slug: string;
   readonly title: string;
-  readonly recipientName: string;
   readonly theme: CalendarTheme;
   readonly locale: CalendarLocale;
   /** Server time, so the app can count down without trusting the phone's clock. */
@@ -96,7 +100,7 @@ export interface RecipientCalendar {
   readonly doors: RecipientDoor[];
 }
 
-/** The recipient opens her calendar. */
+/** Someone opens the calendar with their link. */
 export interface ViewCalendar {
   /** @throws UnauthenticatedError when the slug or the key is wrong (the same error for both). */
   execute(input: CalendarAccess): Promise<RecipientCalendar>;

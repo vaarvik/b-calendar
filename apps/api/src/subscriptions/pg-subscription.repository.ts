@@ -1,5 +1,6 @@
 import type {
   CalendarId,
+  MemberId,
   Subscription,
   SubscriptionId,
   SubscriptionReader,
@@ -24,6 +25,7 @@ export class PgSubscriptionRepository implements SubscriptionReader, Subscriptio
       calendarId: row.calendar_id as CalendarId,
       endpoint: row.endpoint,
       keys: { p256dh: row.p256dh, auth: row.auth },
+      memberId: row.member_id as MemberId | null,
       createdAt: row.created_at,
     }));
   }
@@ -37,12 +39,14 @@ export class PgSubscriptionRepository implements SubscriptionReader, Subscriptio
         endpoint: subscription.endpoint,
         p256dh: subscription.keys.p256dh,
         auth: subscription.keys.auth,
+        member_id: subscription.memberId,
         created_at: subscription.createdAt,
       })
       .onConflict((conflict) =>
         conflict.columns(['calendar_id', 'endpoint']).doUpdateSet((excluded) => ({
           p256dh: excluded.ref('excluded.p256dh'),
           auth: excluded.ref('excluded.auth'),
+          member_id: excluded.ref('excluded.member_id'),
         })),
       )
       .execute();

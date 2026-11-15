@@ -1,4 +1,4 @@
-import type { Calendar, DoorCommentsResponseDto } from '@b-calendar/contracts';
+import type { Calendar, Member, DoorCommentsResponseDto } from '@b-calendar/contracts';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { TestApi } from '../shared/test-api.js';
 
@@ -12,18 +12,19 @@ function at(instant: Date): { opensOn: string; openTime: string } {
 describe('comments behind a door over HTTP', () => {
   let api: TestApi;
   let calendar: Calendar;
+  let member: Member;
 
   beforeEach(async () => {
     api = await TestApi.start();
     calendar = await api.root.createCalendar.execute({
       slug: 'ida-30',
       title: 'Bursdagsuka',
-      recipientName: 'Karoline',
       theme: 'birthday',
       locale: 'nb',
       timeZone: 'UTC',
       defaultOpenTime: '08:00',
     });
+    member = await api.root.addMember.execute({ calendarId: calendar.id, name: 'Karoline' });
     const content = {
       title: 'Luke',
       message: '',
@@ -55,8 +56,8 @@ describe('comments behind a door over HTTP', () => {
       payload,
     });
 
-  it('takes comments from her and from a named follower, and shows them to both', async () => {
-    const hers = await post(calendar.accessKey, 1, { text: 'Gleder meg!' });
+  it('takes comments from a member and from a named follower, and shows them to both', async () => {
+    const hers = await post(member.key, 1, { text: 'Gleder meg!' });
     const theirs = await post(calendar.followerKey, 1, { author: 'Johann', text: 'Jeg også' });
     const list = await api.app.inject({
       url: '/v1/calendars/ida-30/doors/1/comments',
@@ -66,14 +67,14 @@ describe('comments behind a door over HTTP', () => {
     expect(hers.statusCode).toBe(201);
     expect(theirs.statusCode).toBe(201);
     expect(list.json<DoorCommentsResponseDto>().comments).toMatchObject([
-      { author: 'Karoline', role: 'recipient', text: 'Gleder meg!' },
+      { author: 'Karoline', role: 'recipient', memberId: member.id, text: 'Gleder meg!' },
       { author: 'Johann', role: 'follower', text: 'Jeg også' },
     ]);
   });
 
   it('refuses a locked door, an empty comment and a wrong key', async () => {
-    const locked = await post(calendar.accessKey, 2, { text: 'Hei' });
-    const empty = await post(calendar.accessKey, 1, { text: ' ' });
+    const locked = await post(member.key, 2, { text: 'Hei' });
+    const empty = await post(member.key, 1, { text: ' ' });
     const wrong = await post('nope', 1, { text: 'Hei' });
 
     expect(locked.statusCode).toBe(403);
@@ -94,7 +95,7 @@ describe('comments behind a door over HTTP', () => {
     });
     const hers = await api.app.inject({
       url: '/v1/calendars/ida-30/doors/2/comments',
-      headers: { 'x-access-key': calendar.accessKey },
+      headers: { 'x-access-key': member.key },
     });
     const unknown = await api.app.inject({
       method: 'POST',
@@ -110,7 +111,7 @@ describe('comments behind a door over HTTP', () => {
   });
 
   it('lets the admin read and remove comments', async () => {
-    const created = await post(calendar.accessKey, 1, { text: 'Fjern meg' });
+    const created = await post(member.key, 1, { text: 'Fjern meg' });
     const auth = { authorization: `Bearer ${await api.adminToken()}` };
     const details = await api.root.publishCalendar.execute({ calendarId: calendar.id });
     expect(details.doorCount).toBe(2);

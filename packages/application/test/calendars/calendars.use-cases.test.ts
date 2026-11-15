@@ -29,8 +29,10 @@ import {
 import {
   InMemoryCalendarRepository,
   InMemoryCalendarVersionRepository,
+  InMemoryDoorOpeningRepository,
   InMemoryDoorRepository,
   InMemoryDraftDoorRepository,
+  InMemoryMemberRepository,
   InMemorySubscriptionRepository,
 } from '@b-calendar/in-memory';
 import { describe, expect, it } from 'vitest';
@@ -39,7 +41,6 @@ import { CountingSecrets, ManualClock, RandomIds } from '../shared/fakes.js';
 const SETTINGS: CalendarSettings = {
   slug: 'ida-30',
   title: 'Bursdagsuka',
-  recipientName: 'Ida',
   theme: 'birthday',
   locale: 'nb',
   timeZone: 'Europe/Oslo',
@@ -52,11 +53,17 @@ function setup() {
   const drafts = new InMemoryDraftDoorRepository();
   const versions = new InMemoryCalendarVersionRepository();
   const subscriptions = new InMemorySubscriptionRepository();
+  const members = new InMemoryMemberRepository();
+  const openings = new InMemoryDoorOpeningRepository(doors);
   const clock = new ManualClock();
   const validator = new ZodInputValidator();
   const secrets = new CountingSecrets();
   const links = new UrlDoorLinkClassifier();
-  const access = new KeyCalendarAccessAuthenticator(calendars, new ConstantTimeSecretMatcher());
+  const access = new KeyCalendarAccessAuthenticator(
+    calendars,
+    members,
+    new ConstantTimeSecretMatcher(),
+  );
   const presenter = new NumberedDraftDoorPresenter(
     new ZonedDoorScheduleCalculator(),
     new OpensAtDoorNumberCalculator(),
@@ -68,6 +75,8 @@ function setup() {
     drafts,
     versions,
     subscriptions,
+    members,
+    openings,
     clock,
     create: new CreateCalendarUseCase(calendars, new RandomIds(), secrets, clock, validator),
     update: new UpdateCalendarUseCase(calendars, calendars, validator),
@@ -77,6 +86,8 @@ function setup() {
       calendars,
       drafts,
       doors,
+      members,
+      openings,
       versions,
       subscriptions,
       presenter,
@@ -91,22 +102,23 @@ function setup() {
       presenter,
       clock,
     ),
-    view: new ViewCalendarUseCase(access, doors, new OpensAtRecipientDoorPresenter(links), clock),
+    view: new ViewCalendarUseCase(
+      access,
+      doors,
+      openings,
+      new OpensAtRecipientDoorPresenter(links),
+      clock,
+    ),
   };
 }
 
 describe('CreateCalendar', () => {
-  it('creates a calendar with fresh keys for her link and the followers’ link', async () => {
+  it('creates a calendar with a fresh key for the follower link', async () => {
     const { create, calendars } = setup();
 
     const calendar = await create.execute(SETTINGS);
 
-    expect(calendar).toMatchObject({
-      ...SETTINGS,
-      accessKey: 'secret-1',
-      followerKey: 'secret-2',
-      createdAt: T0,
-    });
+    expect(calendar).toMatchObject({ ...SETTINGS, followerKey: 'secret-1', createdAt: T0 });
     await expect(calendars.getById(calendar.id)).resolves.toEqual(calendar);
   });
 
@@ -146,25 +158,21 @@ describe('UpdateCalendar and RotateCalendarKey', () => {
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
-  it('gives one link a new key and leaves the other working', async () => {
+  it('gives the follower link a new key', async () => {
     const { create, rotate } = setup();
     const calendar = await create.execute(SETTINGS);
 
-    await expect(rotate.execute({ calendarId: calendar.id, role: 'recipient' })).resolves.toEqual({
+    await expect(rotate.execute({ calendarId: calendar.id })).resolves.toEqual({
       ...calendar,
-      accessKey: 'secret-3',
-    });
-    await expect(rotate.execute({ calendarId: calendar.id, role: 'follower' })).resolves.toEqual({
-      ...calendar,
-      accessKey: 'secret-3',
-      followerKey: 'secret-4',
+      followerKey: 'secret-2',
     });
   });
 });
 
 describe('ListCalendars and GetCalendarDetails', () => {
   it('lists calendars and shows one with its draft in full, its versions and subscribers', async () => {
-    const { create, list, details, drafts, publish, clock, subscriptions } = setup();
+    const { create, list, details, drafts, publish, clock, subscriptions, members, openings } =
+      setup();
     const calendar = await create.execute(SETTINGS);
     const data = new TestData();
     const door = data.draftDoor(calendar.id, {
@@ -175,11 +183,20 @@ describe('ListCalendars and GetCalendarDetails', () => {
     await subscriptions.upsert(data.subscription(calendar.id));
     clock.set(hoursAfter(T0, 1));
     await publish.execute({ calendarId: calendar.id });
+    const ida = data.member(calendar.id);
+    const gone = data.member(calendar.id, { name: 'Borte' });
+    await members.create(ida);
+    await members.create(gone);
+    const opening = data.opening(door.id, ida.id);
+    await openings.create(opening);
+    await openings.create(data.opening(door.id, gone.id));
+    await members.remove(gone.id);
 
     await expect(list.execute()).resolves.toEqual([calendar]);
     const shown = await details.execute({ calendarId: calendar.id });
     expect(shown).toMatchObject({
       calendar,
+      members: [ida],
       subscriberCount: 1,
       unpublishedChanges: false,
       versions: [{ version: 1, publishedAt: hoursAfter(T0, 1), doorCount: 1 }],
@@ -190,11 +207,12 @@ describe('ListCalendars and GetCalendarDetails', () => {
         number: 1,
         opensAt: new Date('2026-11-16T07:00:00.000Z'),
         link: expect.objectContaining({ kind: 'youtube' }) as unknown,
+        openings: [opening],
       }),
     ]);
   });
 
-  it('tells when the draft differs from what the recipient has', async () => {
+  it('tells when the draft differs from what the members have', async () => {
     const { create, details, drafts, publish } = setup();
     const calendar = await create.execute(SETTINGS);
     const data = new TestData();
@@ -213,7 +231,7 @@ describe('ListCalendars and GetCalendarDetails', () => {
 });
 
 describe('PublishCalendar', () => {
-  it('gives the recipient the draft’s doors, numbered by date, as version 1', async () => {
+  it('gives the members the draft’s doors, numbered by date, as version 1', async () => {
     const { create, publish, drafts, doors, versions } = setup();
     const calendar = await create.execute(SETTINGS);
     const data = new TestData();
@@ -245,7 +263,6 @@ describe('PublishCalendar', () => {
         number: 2,
         opensAt: new Date('2026-11-17T07:00:00.000Z'),
         notifiedAt: null,
-        firstOpenedAt: null,
       }),
     ]);
     const [version] = await versions.listByCalendar(calendar.id);
@@ -255,8 +272,8 @@ describe('PublishCalendar', () => {
     ]);
   });
 
-  it('keeps her progress, renumbers, notifies a door moved into the future again, and removes dropped doors', async () => {
-    const { create, publish, drafts, doors, clock } = setup();
+  it('keeps the progress, renumbers, notifies a door moved into the future again, and removes dropped doors', async () => {
+    const { create, publish, drafts, doors, members, openings, clock } = setup();
     const calendar = await create.execute(SETTINGS);
     const data = new TestData();
     const opened = data.draftDoor(calendar.id, { opensOn: '2026-11-15' });
@@ -267,7 +284,11 @@ describe('PublishCalendar', () => {
     }
     await publish.execute({ calendarId: calendar.id });
     const before = await doors.getById(opened.id);
-    await doors.save({ ...before, notifiedAt: T0, firstOpenedAt: T0 });
+    await doors.save({ ...before, notifiedAt: T0 });
+    const ida = data.member(calendar.id);
+    await members.create(ida);
+    const opening = data.opening(opened.id, ida.id);
+    await openings.create(opening);
     await doors.save({ ...(await doors.getById(moved.id)), notifiedAt: T0 });
 
     await drafts.save({ ...moved, opensOn: '2026-11-18' });
@@ -277,9 +298,10 @@ describe('PublishCalendar', () => {
 
     expect(summary).toEqual({ version: 2, publishedAt: hoursAfter(T0, 1), doorCount: 2 });
     await expect(doors.listByCalendar(calendar.id)).resolves.toEqual([
-      expect.objectContaining({ id: opened.id, number: 1, notifiedAt: T0, firstOpenedAt: T0 }),
+      expect.objectContaining({ id: opened.id, number: 1, notifiedAt: T0 }),
       expect.objectContaining({ id: moved.id, number: 2, notifiedAt: null }),
     ]);
+    await expect(openings.listByMember(ida.id)).resolves.toEqual([opening]);
   });
 
   it('moves doors without their own time when the default time changed since the last publish', async () => {
@@ -333,53 +355,61 @@ describe('PublishCalendar', () => {
 });
 
 describe('ViewCalendar', () => {
-  it('shows locked, ready and opened doors, with content only behind opened ones', async () => {
-    const { create, view, doors } = setup();
-    const calendar = await create.execute(SETTINGS);
+  async function shared() {
+    const tools = setup();
+    const calendar = await tools.create.execute(SETTINGS);
     const data = new TestData();
-    await doors.create(
-      data.door(calendar.id, { number: 1, opensAt: hoursAfter(T0, -48), firstOpenedAt: T0 }),
-    );
+    const ida = data.member(calendar.id, { name: 'Ida' });
+    const johann = data.member(calendar.id, { name: 'Johann' });
+    await tools.members.create(ida);
+    await tools.members.create(johann);
+    return { ...tools, calendar, data, ida, johann };
+  }
+
+  it('shows each member their own doors: locked, ready, and opened by them, with content only behind opened ones', async () => {
+    const { calendar, data, view, doors, openings, ida, johann } = await shared();
+    const first = data.door(calendar.id, { number: 1, opensAt: hoursAfter(T0, -48) });
+    await doors.create(first);
     await doors.create(data.door(calendar.id, { number: 2, opensAt: hoursAfter(T0, -24) }));
     await doors.create(data.door(calendar.id, { number: 3, opensAt: hoursAfter(T0, 1) }));
+    await openings.create(data.opening(first.id, ida.id));
 
-    const shown = await view.execute({ slug: 'ida-30', accessKey: calendar.accessKey });
+    const hers = await view.execute({ slug: 'ida-30', accessKey: ida.key });
+    const his = await view.execute({ slug: 'ida-30', accessKey: johann.key });
 
-    expect(shown).toMatchObject({
-      role: 'recipient',
+    expect(hers).toMatchObject({
+      viewer: 'member',
+      name: 'Ida',
       slug: 'ida-30',
       title: 'Bursdagsuka',
-      recipientName: 'Ida',
       now: T0,
     });
-    expect(shown.doors.map((door) => door.state)).toEqual(['opened', 'ready', 'locked']);
-    expect(shown.doors[2]).not.toHaveProperty('content');
+    expect(hers.doors.map((door) => door.state)).toEqual(['opened', 'ready', 'locked']);
+    expect(hers.doors[2]).not.toHaveProperty('content');
+    expect(his).toMatchObject({ viewer: 'member', name: 'Johann' });
+    expect(his.doors.map((door) => door.state)).toEqual(['ready', 'ready', 'locked']);
   });
 
-  it('shows a follower what she sees, her opened doors included', async () => {
-    const { create, view, doors } = setup();
-    const calendar = await create.execute(SETTINGS);
-    const data = new TestData();
-    await doors.create(
-      data.door(calendar.id, { number: 1, opensAt: hoursAfter(T0, -48), firstOpenedAt: T0 }),
-    );
+  it('shows the follower link every door that has opened as ready, without a name', async () => {
+    const { calendar, data, view, doors, openings, ida } = await shared();
+    const first = data.door(calendar.id, { number: 1, opensAt: hoursAfter(T0, -48) });
+    await doors.create(first);
     await doors.create(data.door(calendar.id, { number: 2, opensAt: hoursAfter(T0, 1) }));
+    await openings.create(data.opening(first.id, ida.id));
 
     const shown = await view.execute({ slug: 'ida-30', accessKey: calendar.followerKey });
 
-    expect(shown.role).toBe('follower');
-    expect(shown.doors.map((door) => door.state)).toEqual(['opened', 'locked']);
+    expect(shown).toMatchObject({ viewer: 'follower', name: null });
+    expect(shown.doors.map((door) => door.state)).toEqual(['ready', 'locked']);
   });
 
   it('leaves a secret door out until it opens, also from the countdown', async () => {
-    const { create, view, doors, clock } = setup();
-    const calendar = await create.execute(SETTINGS);
-    const data = new TestData();
+    const { calendar, data, view, doors, clock, ida } = await shared();
     await doors.create(data.door(calendar.id, { number: 1, opensAt: hoursAfter(T0, -1) }));
     await doors.create(
       data.door(calendar.id, { number: 2, opensAt: hoursAfter(T0, 24), hidden: true }),
     );
-    const access = { slug: calendar.slug, accessKey: calendar.accessKey };
+    const access = { slug: calendar.slug, accessKey: ida.key };
 
     await expect(view.execute(access)).resolves.toMatchObject({ doors: [{ number: 1 }] });
     clock.set(hoursAfter(T0, 24));
@@ -388,15 +418,16 @@ describe('ViewCalendar', () => {
     });
   });
 
-  it('refuses a wrong key and an unknown slug alike', async () => {
-    const { create, view } = setup();
-    await create.execute(SETTINGS);
+  it('refuses a wrong key, a removed member’s key and an unknown slug alike', async () => {
+    const { view, members, ida, johann } = await shared();
+    await members.remove(johann.id);
 
-    await expect(view.execute({ slug: 'ida-30', accessKey: 'guess' })).rejects.toBeInstanceOf(
-      UnauthenticatedError,
-    );
-    await expect(view.execute({ slug: 'nope', accessKey: 'secret-1' })).rejects.toBeInstanceOf(
-      UnauthenticatedError,
-    );
+    for (const access of [
+      { slug: 'ida-30', accessKey: 'guess' },
+      { slug: 'ida-30', accessKey: johann.key },
+      { slug: 'nope', accessKey: ida.key },
+    ]) {
+      await expect(view.execute(access)).rejects.toBeInstanceOf(UnauthenticatedError);
+    }
   });
 });

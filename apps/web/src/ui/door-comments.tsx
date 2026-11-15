@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type {
   AddDoorCommentRequestDto,
   CalendarAccess,
-  CalendarRole,
+  CalendarViewerKind,
   DoorCommentDto,
 } from '@b-calendar/contracts';
 import { useServices } from '../app/services';
@@ -22,8 +22,8 @@ interface DoorCommentsProps {
   readonly load: () => Promise<readonly DoorCommentDto[]>;
   readonly add: (comment: AddDoorCommentRequestDto) => Promise<DoorCommentDto>;
   /**
-   * Where the writer's name is remembered on this device; null when the writer needs no name (her
-   * own link writes with her name).
+   * Where the writer's name is remembered on this device; null when the writer needs no name (a
+   * member's link writes with the member's name).
    */
   readonly nameKey: string | null;
   /** The admin can remove comments. */
@@ -88,7 +88,10 @@ export function DoorComments({ copy, load, add, nameKey, onRemove, hint }: DoorC
       )}
       <ul className="comments__list">
         {comments?.map((comment) => (
-          <li key={comment.id} className={`comments__item comments__item--${comment.role}`}>
+          <li
+            key={comment.id}
+            className={`comments__item comments__item--${comment.memberId === null ? comment.role : 'member'}`}
+          >
             <span className="comments__meta">
               {comment.author}
               {comment.role === 'giver' ? ' 🎁' : ''} ·{' '}
@@ -161,16 +164,16 @@ export function DoorComments({ copy, load, add, nameKey, onRemove, hint }: DoorC
   );
 }
 
-/** The comment section on her calendar or a follower's: by door number, with the link's key. */
+/** The comment section on a member's calendar or the follower link: by door number, with the key. */
 export function RecipientDoorComments({
   access,
   number,
-  role,
+  viewer,
   copy,
 }: {
   readonly access: CalendarAccess;
   readonly number: number;
-  readonly role: CalendarRole;
+  readonly viewer: CalendarViewerKind;
   readonly copy: CommentsCopy;
 }) {
   const { calendars } = useServices();
@@ -184,7 +187,7 @@ export function RecipientDoorComments({
       copy={copy}
       load={load}
       add={add}
-      nameKey={role === 'follower' ? access.slug : null}
+      nameKey={viewer === 'follower' ? access.slug : null}
     />
   );
 }
@@ -200,7 +203,7 @@ const GIVER_COPY: CommentsCopy = {
 
 /**
  * The comment section in the admin: the giver writes behind any published door, also one that
- * has not opened (it waits there for her), reads and removes.
+ * has not opened (it waits there for the members), reads and removes.
  */
 export function GiverDoorComments({
   doorId,
@@ -227,7 +230,7 @@ export function GiverDoorComments({
       {...(opened
         ? {}
         : {
-            hint: 'Luken har ikke åpnet: kommentaren venter på henne, uten varsel. Luken må være publisert.',
+            hint: 'Luken har ikke åpnet: kommentaren venter der, uten varsel. Luken må være publisert.',
           })}
     />
   );
