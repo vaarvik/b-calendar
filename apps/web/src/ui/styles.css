@@ -642,11 +642,32 @@ button {
   gap: 12px;
   align-items: center;
   justify-content: center;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #747775;
+  border-radius: 8px;
+  background: #fff;
+  color: #1f1f1f;
+  font:
+    500 15px/1.2 Roboto,
+    'Segoe UI',
+    system-ui,
+    sans-serif;
   text-decoration: none;
+  transition: background 0.15s;
+}
+
+.sign-in__provider:hover {
+  background: #f2f2f2;
+}
+
+.sign-in__provider:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .sign-in__mark {
-  font-weight: 800;
+  display: flex;
 }
 
 .sign-in__password {
