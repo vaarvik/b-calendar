@@ -35,11 +35,11 @@ const DRAFT = {
 
 describe('the admin over HTTP', () => {
   let api: TestApi;
-  let auth: { authorization: string };
+  let auth: Record<string, string>;
 
   beforeEach(async () => {
     api = await TestApi.start();
-    auth = { authorization: `Bearer ${await api.adminToken()}` };
+    auth = await api.adminHeaders();
   });
 
   afterEach(() => api.close());
@@ -64,7 +64,7 @@ describe('the admin over HTTP', () => {
     const anonymous = await api.app.inject({ url: '/v1/admin/calendars' });
     const forged = await api.app.inject({
       url: '/v1/admin/calendars',
-      headers: { authorization: 'Bearer 9999999999999.forged' },
+      headers: { cookie: 'bcal_session=-.9999999999999.forged' },
     });
 
     expect(wrong.statusCode).toBe(401);

@@ -1,3 +1,4 @@
+export * from './accounts/accounts.contract.js';
 export * from './calendars/calendars.contract.js';
 export * from './comments/comments.contract.js';
 export * from './doors/doors.contract.js';

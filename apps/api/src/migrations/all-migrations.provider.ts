@@ -9,6 +9,7 @@ import { M0007FollowerLinksMigration } from './m0007-follower-links.migration.js
 import { M0008SecondPhotosMigration } from './m0008-second-photos.migration.js';
 import { M0009DoorCommentsMigration } from './m0009-door-comments.migration.js';
 import { M0010MembersMigration } from './m0010-members.migration.js';
+import { M0011AccountsMigration } from './m0011-accounts.migration.js';
 
 /**
  * Every migration, keyed so that string order is execution order. Add new ones at the end.
@@ -28,6 +29,7 @@ export class AllMigrationsProvider implements MigrationProvider {
       '0008_second_photos': new M0008SecondPhotosMigration(),
       '0009_door_comments': new M0009DoorCommentsMigration(),
       '0010_members': new M0010MembersMigration(),
+      '0011_accounts': new M0011AccountsMigration(),
     };
     return Promise.resolve(
       Object.fromEntries(

@@ -1,5 +1,12 @@
 import { CALENDAR_LOCALES, CALENDAR_THEMES, NotFoundError } from '@b-calendar/contracts';
-import type { Calendar, CalendarId, CalendarReader, CalendarWriter } from '@b-calendar/contracts';
+import type {
+  AccountId,
+  Calendar,
+  CalendarId,
+  CalendarOwnerId,
+  CalendarReader,
+  CalendarWriter,
+} from '@b-calendar/contracts';
 import type { Kysely, Selectable } from 'kysely';
 import { z } from 'zod';
 import type { CalendarsTable, Database } from '../shared/shared.model.js';
@@ -37,10 +44,11 @@ export class PgCalendarRepository implements CalendarReader, CalendarWriter {
     return row === undefined ? null : this.toCalendar(row);
   }
 
-  public async list(): Promise<Calendar[]> {
+  public async listByOwner(owner: CalendarOwnerId): Promise<Calendar[]> {
     const rows = await this.db
       .selectFrom('calendars')
       .selectAll()
+      .where((eb) => (owner === null ? eb('owner_id', 'is', null) : eb('owner_id', '=', owner)))
       .orderBy('created_at', 'desc')
       .execute();
     return rows.map((row) => this.toCalendar(row));
@@ -76,6 +84,7 @@ export class PgCalendarRepository implements CalendarReader, CalendarWriter {
       id: calendar.id,
       slug: calendar.slug,
       title: calendar.title,
+      owner_id: calendar.ownerId,
       theme: calendar.theme,
       locale: calendar.locale,
       time_zone: calendar.timeZone,
@@ -91,6 +100,7 @@ export class PgCalendarRepository implements CalendarReader, CalendarWriter {
       id: row.id as CalendarId,
       slug: row.slug,
       title: row.title,
+      ownerId: row.owner_id as AccountId | null,
       theme,
       locale,
       timeZone: row.time_zone,

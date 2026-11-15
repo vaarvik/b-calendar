@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { UnauthenticatedError } from '@b-calendar/contracts';
 import type {
-  AdminSession,
-  AdminSessionService,
+  AccountId,
+  AccountSession,
+  AccountSessionService,
+  CalendarOwnerId,
   Calendar,
   CalendarId,
   Clock,
@@ -12,6 +14,8 @@ import type {
   DoorComment,
   DoorId,
   IdGenerator,
+  IdentityProvider,
+  IdentityProviderName,
   Logger,
   MediaId,
   MemberId,
@@ -20,7 +24,10 @@ import type {
   PushOutcome,
   PushSender,
   SecretGenerator,
+  SignInChallenge,
+  SignInChallengeSealer,
   SubscriptionId,
+  VerifiedIdentity,
 } from '@b-calendar/contracts';
 import { T0 } from '@b-calendar/contracts/test-kit';
 
@@ -56,6 +63,9 @@ export class RandomIds implements IdGenerator {
   public memberId(): MemberId {
     return randomUUID() as MemberId;
   }
+  public accountId(): AccountId {
+    return randomUUID() as AccountId;
+  }
 }
 
 /** `secret-1`, `secret-2`, … */
@@ -80,16 +90,18 @@ export class RecordingPushSender implements PushSender {
   }
 }
 
-/** Tokens are `session`; anything else is refused. */
-export class PlainSessions implements AdminSessionService {
-  public issue(): AdminSession {
-    return { token: 'session', expiresAt: T0 };
+/** Tokens are `session:<owner id or ->`; anything else is refused. */
+export class PlainSessions implements AccountSessionService {
+  public issue(owner: CalendarOwnerId): AccountSession {
+    return { token: `session:${owner ?? '-'}`, expiresAt: T0 };
   }
 
-  public verify(token: string): void {
-    if (token !== 'session') {
+  public verify(token: string): CalendarOwnerId {
+    const match = /^session:(.+)$/.exec(token);
+    if (match?.[1] === undefined) {
       throw new UnauthenticatedError();
     }
+    return match[1] === '-' ? null : (match[1] as AccountId);
   }
 }
 
@@ -121,5 +133,51 @@ export class RecordingCommentNotifier implements CommentNotifier {
   ): Promise<void> {
     this.notified.push({ comment, except });
     return Promise.resolve();
+  }
+}
+
+/** Limits small enough to reach in a test. */
+export const TEST_LIMITS = { calendars: 2, mediaBytes: 10, membersPerCalendar: 2 } as const;
+
+/** Hands out whatever identity a test sets for a code; anything else is refused. */
+export class FakeIdentityProvider implements IdentityProvider {
+  public readonly identities = new Map<string, Omit<VerifiedIdentity, 'provider'>>();
+  public readonly asked: { challenge: SignInChallenge; redirectUri: string }[] = [];
+
+  public constructor(public readonly name: IdentityProviderName = 'google') {}
+
+  public authorizationUrl(challenge: SignInChallenge, redirectUri: string): Promise<string> {
+    this.asked.push({ challenge, redirectUri });
+    return Promise.resolve(`https://${this.name}.example/auth?state=${challenge.state}`);
+  }
+
+  public verify(code: string, challenge: SignInChallenge): Promise<VerifiedIdentity> {
+    const identity = this.identities.get(`${code}:${challenge.nonce}`) ?? this.identities.get(code);
+    return identity === undefined
+      ? Promise.reject(new UnauthenticatedError('Bad code.'))
+      : Promise.resolve({ ...identity, provider: this.name });
+  }
+}
+
+/** Seals as JSON; refuses anything not sealed here, or past its time by the given clock. */
+export class JsonChallengeSealer implements SignInChallengeSealer {
+  public constructor(private readonly clock: Clock) {}
+
+  public seal(challenge: SignInChallenge): string {
+    return `sealed:${JSON.stringify(challenge)}`;
+  }
+
+  public open(sealed: string): SignInChallenge {
+    if (!sealed.startsWith('sealed:')) {
+      throw new UnauthenticatedError('Not sealed here.');
+    }
+    const raw = JSON.parse(sealed.slice('sealed:'.length)) as SignInChallenge & {
+      expiresAt: string;
+    };
+    const challenge = { ...raw, expiresAt: new Date(raw.expiresAt) };
+    if (challenge.expiresAt.getTime() <= this.clock.now().getTime()) {
+      throw new UnauthenticatedError('Too late.');
+    }
+    return challenge;
   }
 }

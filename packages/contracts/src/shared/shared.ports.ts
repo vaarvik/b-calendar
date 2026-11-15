@@ -5,6 +5,7 @@ import type {
   DoorId,
   MediaId,
   MemberId,
+  AccountId,
   SubscriptionId,
 } from './shared.model.js';
 
@@ -21,6 +22,7 @@ export interface IdGenerator {
   mediaId(): MediaId;
   commentId(): CommentId;
   memberId(): MemberId;
+  accountId(): AccountId;
 }
 
 /** Unguessable secrets, e.g. the key in a member's link. */

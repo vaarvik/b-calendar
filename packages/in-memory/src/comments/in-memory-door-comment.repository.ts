@@ -11,6 +11,13 @@ import type {
 export class InMemoryDoorCommentRepository implements DoorCommentReader, DoorCommentWriter {
   private readonly rows = new Map<CommentId, DoorComment>();
 
+  public getById(id: CommentId): Promise<DoorComment> {
+    const comment = this.rows.get(id);
+    return comment === undefined
+      ? Promise.reject(new NotFoundError('DoorComment', id))
+      : Promise.resolve(structuredClone(comment));
+  }
+
   public listByDoor(doorId: DoorId): Promise<DoorComment[]> {
     return Promise.resolve(
       [...this.rows.values()]

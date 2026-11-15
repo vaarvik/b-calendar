@@ -620,6 +620,41 @@ button {
   margin: 0;
 }
 
+.admin__who {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Signing in: one big button per provider, the old password quietly under. */
+.sign-in {
+  max-width: 440px;
+  margin: 40px auto;
+}
+
+.sign-in__providers {
+  display: grid;
+  gap: 10px;
+}
+
+.sign-in__provider {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.sign-in__mark {
+  font-weight: 800;
+}
+
+.sign-in__password {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
 .admin__link {
   color: var(--accent);
   word-break: break-all;

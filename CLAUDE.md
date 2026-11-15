@@ -2,8 +2,8 @@
 
 Countdown calendars with one door (luke) at a time: a birthday week, an advent calendar, any span
 of dates. Each door unlocks at its time, everyone gets a push notification, and each member opens
-the door for themselves; it stays open for them. One admin (the giver) writes the doors; members
-only need their own link.
+the door for themselves; it stays open for them. Anyone who signs in with SSO (Google, Microsoft)
+writes their own calendars; members only need their own link.
 
 Web first (a PWA, so iPhones get push from the Home Screen app); a native app may follow and reuse
 `packages/*`.
@@ -34,8 +34,8 @@ docs/                  Hosting and decisions
 Packages are layers; inside each layer, code is grouped by feature, with the same feature names
 in every layer: `calendars`, `doors`, `subscriptions` (push subscriptions), `notifications`
 (deciding and sending door notifications), `media` (uploaded photos, songs and videos), `comments`
-(comments behind an opened door), `members` (the people sharing a calendar), `admin` (the admin
-session),
+(comments behind an opened door), `members` (the people sharing a calendar), `accounts` (SSO
+sign-in, sessions and owners), `admin` (the old admin password),
 `shared`.
 
 ```
@@ -80,7 +80,7 @@ The class name must end in a known role: `use-case`, `unit-of-work`, `repository
 `resolver`, `generator`, `clock`, `logger`, `rate-limiter`, `translator`, `factory`, `service`,
 `rule`, `checker`, `loader`, `reporter`, `heritage`, `paths`, `reader`, `writer`, `client`,
 `locator`, `session`, `cache`, `storage`, `transport`, `presenter`, `monitor`, `notifier`, `ranker`,
-`cipher`, `hasher`, `scheduler`, `sender`, `classifier`, `resizer`, `subscriber`.
+`cipher`, `hasher`, `scheduler`, `sender`, `classifier`, `resizer`, `subscriber`, `sealer`.
 
 To add a role, add it to `ClassFileNamingRule` and this list in the same change.
 
@@ -138,7 +138,14 @@ UI copy uses the Norwegian in brackets.
   any published door, where it waits until the door opens. Never shown on a locked or secret door. Each
   comment on an opened door notifies every phone but the writer's own; the admin can remove one.
 - **Subscription**: one browser's Web Push endpoint for a calendar.
-- **Admin**: the one person who writes calendars; signs in with `ADMIN_PASSWORD`.
+- **Account** (konto): someone who signed in with SSO (OpenID Connect: code flow, PKCE, nonce;
+  `IdentityProvider` per provider) and **owns** calendars (`Calendar.ownerId`). Every admin
+  request works on the signed-in owner's calendars only (`CalendarOwnershipChecker`); someone
+  else's answers like one that does not exist. Accounts have limits (`AccountLimits`: calendars,
+  upload bytes, members per calendar). The session is an HttpOnly cookie; changing requests also
+  need `x-requested-with: b-calendar`.
+- **Owner claim**: calendars from before accounts have no owner. The account that signs in with the
+  verified `OWNER_EMAIL` takes them over. Until then `ADMIN_PASSWORD` (if set) opens them.
 
 ### Rules that keep the surprise
 

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type {
+  AccountId,
   CalendarId,
   CommentId,
   DoorId,
@@ -24,6 +25,10 @@ export class RandomUuidIdGenerator implements IdGenerator {
 
   public mediaId(): MediaId {
     return randomUUID() as MediaId;
+  }
+
+  public accountId(): AccountId {
+    return randomUUID() as AccountId;
   }
 
   public commentId(): CommentId {

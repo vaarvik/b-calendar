@@ -37,8 +37,9 @@ export class MediaController implements HttpController {
         parsed(null, payload);
       });
       scope.post('/v1/admin/media', async (request, reply) => {
-        this.admin.requireAdmin(request);
+        const owner = this.admin.requireAdmin(request);
         const output = await this.uploadMedia.execute({
+          owner,
           contentType: (request.headers['content-type'] ?? '').split(';')[0]?.trim() ?? '',
           chunks: request.body as AsyncIterable<Uint8Array>,
         });

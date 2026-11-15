@@ -1,5 +1,11 @@
 import { ConflictError, NotFoundError } from '@b-calendar/contracts';
-import type { Calendar, CalendarId, CalendarReader, CalendarWriter } from '@b-calendar/contracts';
+import type {
+  Calendar,
+  CalendarId,
+  CalendarReader,
+  CalendarWriter,
+  CalendarOwnerId,
+} from '@b-calendar/contracts';
 
 /** Calendars in a map. Copies on the way in and out, like a database would. */
 export class InMemoryCalendarRepository implements CalendarReader, CalendarWriter {
@@ -17,9 +23,10 @@ export class InMemoryCalendarRepository implements CalendarReader, CalendarWrite
     return Promise.resolve(row === undefined ? null : structuredClone(row));
   }
 
-  public list(): Promise<Calendar[]> {
+  public listByOwner(owner: CalendarOwnerId): Promise<Calendar[]> {
     return Promise.resolve(
       [...this.rows.values()]
+        .filter((row) => row.ownerId === owner)
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
         .map((row) => structuredClone(row)),
     );

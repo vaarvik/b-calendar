@@ -66,6 +66,10 @@ export function describeDoorCommentRepositoryContract(
 
       await expect(fixture.current.reader.listByDoor(doorId)).resolves.toEqual([]);
       await fixture.current.writer.create(comment);
+      await expect(fixture.current.reader.getById(comment.id)).resolves.toEqual(comment);
+      await expect(fixture.current.reader.getById(data.commentId())).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
       await expect(fixture.current.writer.create(comment)).rejects.toBeInstanceOf(ConflictError);
     });
 

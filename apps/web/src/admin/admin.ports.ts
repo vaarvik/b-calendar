@@ -1,5 +1,7 @@
 import type {
   AddDoorCommentRequestDto,
+  AuthConfigResponseDto,
+  MeResponseDto,
   CalendarDetailsResponseDto,
   CalendarDto,
   CalendarSettings,
@@ -34,12 +36,17 @@ export interface DoorDraftDto {
   readonly notification: { readonly title: string; readonly body: string };
 }
 
-/** The admin's side of the API. Every call but logIn needs a session. */
+/** The owner's side of the API. Every call but the sign-in ones needs a session. */
 export interface AdminClient {
-  /** @returns whether a session is stored (it may still have expired). */
-  signedIn(): boolean;
+  /** How one can sign in here. */
+  authConfig(): Promise<AuthConfigResponseDto>;
+  /** @returns who is signed in, or null when nobody is. */
+  me(): Promise<MeResponseDto | null>;
+  /** Where to send the browser to sign in with a provider, landing on `returnTo` after. */
+  signInUrl(provider: string, returnTo: string): string;
+  /** The old admin password, while it works. */
   logIn(password: string): Promise<void>;
-  logOut(): void;
+  logOut(): Promise<void>;
   listCalendars(): Promise<readonly CalendarDto[]>;
   createCalendar(settings: CalendarSettings): Promise<CalendarDto>;
   updateCalendar(calendarId: string, settings: CalendarSettings): Promise<CalendarDto>;

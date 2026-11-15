@@ -20,6 +20,8 @@ export type MediaId = Brand<string, 'MediaId'>;
 export type CommentId = Brand<string, 'CommentId'>;
 /** One person sharing a calendar. UUID. */
 export type MemberId = Brand<string, 'MemberId'>;
+/** Someone who signed in with SSO and owns calendars. UUID. */
+export type AccountId = Brand<string, 'AccountId'>;
 
 export const CalendarIdSchema: z.ZodType<CalendarId> = z
   .uuid()
@@ -33,6 +35,15 @@ export const CommentIdSchema: z.ZodType<CommentId> = z
   .uuid()
   .transform((value) => value as CommentId);
 export const MemberIdSchema: z.ZodType<MemberId> = z.uuid().transform((value) => value as MemberId);
+export const AccountIdSchema: z.ZodType<AccountId> = z
+  .uuid()
+  .transform((value) => value as AccountId);
+
+/**
+ * Whose calendars a session works on: an account's, or, with null, the calendars nobody owns yet
+ * (the old admin password, until the owner signs in with SSO and claims them).
+ */
+export type CalendarOwnerId = AccountId | null;
 
 /** A point in time on the wire: ISO 8601 with an offset, parsed to a Date. */
 export const InstantSchema: z.ZodType<Date, string> = z.iso

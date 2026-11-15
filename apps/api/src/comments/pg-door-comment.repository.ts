@@ -7,9 +7,9 @@ import type {
   DoorId,
   MemberId,
 } from '@b-calendar/contracts';
-import type { Kysely } from 'kysely';
+import type { Kysely, Selectable } from 'kysely';
 import { z } from 'zod';
-import type { Database } from '../shared/shared.model.js';
+import type { Database, DoorCommentsTable } from '../shared/shared.model.js';
 import type { DatabaseErrorTranslator } from '../shared/shared.ports.js';
 
 const RowSchema = z.object({ role: z.enum(COMMENT_ROLES) });
@@ -20,6 +20,18 @@ export class PgDoorCommentRepository implements DoorCommentReader, DoorCommentWr
     private readonly errors: DatabaseErrorTranslator,
   ) {}
 
+  public async getById(id: CommentId): Promise<DoorComment> {
+    const row = await this.db
+      .selectFrom('door_comments')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
+    if (row === undefined) {
+      throw new NotFoundError('DoorComment', id);
+    }
+    return this.toComment(row);
+  }
+
   public async listByDoor(doorId: DoorId): Promise<DoorComment[]> {
     const rows = await this.db
       .selectFrom('door_comments')
@@ -27,7 +39,11 @@ export class PgDoorCommentRepository implements DoorCommentReader, DoorCommentWr
       .where('door_id', '=', doorId)
       .orderBy('created_at')
       .execute();
-    return rows.map((row) => ({
+    return rows.map((row) => this.toComment(row));
+  }
+
+  private toComment(row: Selectable<DoorCommentsTable>): DoorComment {
+    return {
       id: row.id as CommentId,
       doorId: row.door_id as DoorId,
       author: row.author,
@@ -35,7 +51,7 @@ export class PgDoorCommentRepository implements DoorCommentReader, DoorCommentWr
       memberId: row.member_id as MemberId | null,
       text: row.text,
       createdAt: row.created_at,
-    }));
+    };
   }
 
   public async create(comment: DoorComment): Promise<void> {

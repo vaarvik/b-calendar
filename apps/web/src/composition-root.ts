@@ -39,7 +39,7 @@ export class CompositionRoot implements Services {
     this.keys = new KeyValueAccessKeyStorage(storage);
     this.names = new KeyValueCommenterNameStorage(storage);
     this.push = new BrowserPushSubscriber('/sw.js');
-    this.admin = new HttpAdminClient(http, storage);
+    this.admin = new HttpAdminClient(http);
     this.images = new CanvasImageResizer();
   }
 }

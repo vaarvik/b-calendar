@@ -21,6 +21,8 @@ export class TestApi {
       storage: 'memory',
       adminPassword: ADMIN_PASSWORD,
       sessionSecret: 'x'.repeat(32),
+      publicOrigin: 'http://localhost:3000',
+      limits: { calendars: 5, mediaBytes: 50 * 1024 * 1024, membersPerCalendar: 30 },
       mediaDir,
       host: '127.0.0.1',
       port: 0,
@@ -35,13 +37,23 @@ export class TestApi {
     return new TestApi(root, app, mediaDir);
   }
 
-  public async adminToken(): Promise<string> {
+  /** Signs in with the old admin password: headers for the unowned calendars. */
+  public async adminHeaders(): Promise<Record<string, string>> {
     const response = await this.app.inject({
       method: 'POST',
       url: '/v1/admin/session',
       payload: { password: ADMIN_PASSWORD },
     });
-    return response.json<{ token: string }>().token;
+    return this.headersOf(response.cookies);
+  }
+
+  /** The headers a browser sends with the session cookie it was given. */
+  public headersOf(cookies: readonly { name: string; value: string }[]): Record<string, string> {
+    const session = cookies.find((cookie) => cookie.name === 'bcal_session');
+    if (session === undefined) {
+      throw new Error('No session cookie.');
+    }
+    return { cookie: `bcal_session=${session.value}`, 'x-requested-with': 'b-calendar' };
   }
 
   public async close(): Promise<void> {

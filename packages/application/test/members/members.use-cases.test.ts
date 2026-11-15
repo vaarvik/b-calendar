@@ -5,11 +5,11 @@ import {
   RotateMemberKeyUseCase,
   ZodInputValidator,
 } from '@b-calendar/application';
-import { NotFoundError, ValidationError } from '@b-calendar/contracts';
+import { LimitExceededError, NotFoundError, ValidationError } from '@b-calendar/contracts';
 import { T0, TestData } from '@b-calendar/contracts/test-kit';
 import { InMemoryCalendarRepository, InMemoryMemberRepository } from '@b-calendar/in-memory';
 import { describe, expect, it } from 'vitest';
-import { CountingSecrets, ManualClock, RandomIds } from '../shared/fakes.js';
+import { CountingSecrets, ManualClock, RandomIds, TEST_LIMITS } from '../shared/fakes.js';
 
 async function setup() {
   const data = new TestData();
@@ -26,10 +26,12 @@ async function setup() {
     add: new AddMemberUseCase(
       calendars,
       members,
+      members,
       new RandomIds(),
       secrets,
       new ManualClock(),
       validator,
+      TEST_LIMITS,
     ),
     rename: new RenameMemberUseCase(members, members, validator),
     rotate: new RotateMemberKeyUseCase(members, members, secrets),
@@ -52,6 +54,16 @@ describe('AddMember', () => {
     });
     expect(johann.key).toBe('secret-2');
     await expect(members.listByCalendar(calendar.id)).resolves.toEqual([ida, johann]);
+  });
+
+  it('stops at the calendar’s limit of members', async () => {
+    const { add, calendar } = await setup();
+    await add.execute({ calendarId: calendar.id, name: 'Ida' });
+    await add.execute({ calendarId: calendar.id, name: 'Johann' });
+
+    await expect(add.execute({ calendarId: calendar.id, name: 'Mamma' })).rejects.toBeInstanceOf(
+      LimitExceededError,
+    );
   });
 
   it('refuses an empty name and an unknown calendar', async () => {

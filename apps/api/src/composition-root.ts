@@ -3,7 +3,12 @@ import {
   AddGiverDoorCommentUseCase,
   AddDoorUseCase,
   AddMemberUseCase,
+  CompleteSignInUseCase,
   CreateCalendarUseCase,
+  GetMeUseCase,
+  ListIdentityProvidersUseCase,
+  LookupCalendarOwnershipChecker,
+  StartSignInUseCase,
   EditDoorUseCase,
   GetCalendarDetailsUseCase,
   KeyCalendarAccessAuthenticator,
@@ -30,6 +35,11 @@ import {
   ZodInputValidator,
 } from '@b-calendar/application';
 import type {
+  AccountLimits,
+  AccountReader,
+  AccountWriter,
+  MediaFileReader,
+  MediaFileWriter,
   AddMember,
   DoorOpeningReader,
   DoorOpeningWriter,
@@ -66,6 +76,8 @@ import {
   ZonedDoorScheduleCalculator,
 } from '@b-calendar/domain';
 import {
+  InMemoryAccountRepository,
+  InMemoryMediaFileRepository,
   InMemoryCalendarRepository,
   InMemoryCalendarVersionRepository,
   InMemoryDoorCommentRepository,
@@ -81,9 +93,16 @@ import { Migrator } from 'kysely/migration';
 import pg from 'pg';
 import { pino } from 'pino';
 import { z } from 'zod';
+import { AuthController } from './accounts/auth.controller.js';
+import { GoogleOidcClaimsMapper } from './accounts/google-oidc-claims.mapper.js';
+import { HmacAccountSessionService } from './accounts/hmac-account-session.service.js';
+import { HmacSignInChallengeSealer } from './accounts/hmac-sign-in-challenge.sealer.js';
+import { MicrosoftOidcClaimsMapper } from './accounts/microsoft-oidc-claims.mapper.js';
+import { OidcIdentityProvider } from './accounts/oidc-identity.provider.js';
+import { PgAccountRepository } from './accounts/pg-account.repository.js';
 import { AdminController } from './admin/admin.controller.js';
-import { BearerAdminAuthenticator } from './admin/bearer-admin.authenticator.js';
-import { HmacAdminSessionService } from './admin/hmac-admin-session.service.js';
+import { CookieAdminAuthenticator } from './admin/cookie-admin.authenticator.js';
+import { PgMediaFileRepository } from './media/pg-media-file.repository.js';
 import { CalendarsController } from './calendars/calendars.controller.js';
 import { PgCalendarVersionRepository } from './calendars/pg-calendar-version.repository.js';
 import { PgCalendarRepository } from './calendars/pg-calendar.repository.js';
@@ -120,13 +139,30 @@ export interface PushConfig {
   readonly subject: string;
 }
 
+/** An app registered with an OpenID Connect provider. */
+export interface OidcClientConfig {
+  readonly clientId: string;
+  readonly clientSecret: string;
+  /** The provider's `/.well-known/openid-configuration`; each provider has its default. */
+  readonly discoveryUrl: string;
+}
+
 export interface ApiConfig {
   /** `memory` keeps everything in process; for tests and quick demos. */
   readonly storage: 'postgres' | 'memory';
   /** Required when storage is postgres. */
   readonly databaseUrl?: string;
-  readonly adminPassword: string;
+  /** The old admin password for the unowned calendars; unset once retired. */
+  readonly adminPassword?: string;
   readonly sessionSecret: string;
+  /** Where the site is reached, e.g. `https://calendar.johann.no`: for SSO callbacks and cookies. */
+  readonly publicOrigin: string;
+  /** Whoever signs in with this verified email takes over the calendars nobody owns. */
+  readonly ownerEmail?: string;
+  /** The SSO providers set up; one without config does not show. */
+  readonly google?: OidcClientConfig;
+  readonly microsoft?: OidcClientConfig;
+  readonly limits: AccountLimits;
   /** Unset: notifications are not sent (and the app does not offer them). */
   readonly push?: PushConfig;
   readonly mediaDir: string;
@@ -155,8 +191,47 @@ export const ApiConfigSchema: z.ZodType<ApiConfig> = z
           : url,
       )
       .exactOptional(),
-    adminPassword: z.string().min(12, 'ADMIN_PASSWORD needs at least 12 characters'),
+    adminPassword: z
+      .string()
+      .min(12, 'ADMIN_PASSWORD needs at least 12 characters')
+      .exactOptional(),
     sessionSecret: z.string().min(32, 'SESSION_SECRET needs at least 32 characters'),
+    publicOrigin: z
+      .url({ protocol: /^https?$/ })
+      .default('http://localhost:3000')
+      .transform((url) => url.replace(/\/+$/, '')),
+    ownerEmail: z.email().exactOptional(),
+    google: z
+      .object({
+        clientId: z.string().min(1),
+        clientSecret: z.string().min(1),
+        discoveryUrl: z
+          .url()
+          .default('https://accounts.google.com/.well-known/openid-configuration'),
+      })
+      .exactOptional(),
+    microsoft: z
+      .object({
+        clientId: z.string().min(1),
+        clientSecret: z.string().min(1),
+        discoveryUrl: z
+          .url()
+          .default(
+            'https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration',
+          ),
+      })
+      .exactOptional(),
+    limits: z
+      .object({
+        calendars: z.coerce.number().int().min(1).default(5),
+        mediaBytes: z.coerce
+          .number()
+          .int()
+          .min(1)
+          .default(500 * 1024 * 1024),
+        membersPerCalendar: z.coerce.number().int().min(1).default(30),
+      })
+      .default({ calendars: 5, mediaBytes: 500 * 1024 * 1024, membersPerCalendar: 30 }),
     push: z
       .object({
         publicKey: z.string().min(1),
@@ -198,6 +273,8 @@ interface Storage {
   readonly subscriptions: SubscriptionReader & SubscriptionWriter;
   readonly members: MemberReader & MemberWriter;
   readonly openings: DoorOpeningReader & DoorOpeningWriter;
+  readonly accounts: AccountReader & AccountWriter;
+  readonly mediaFiles: MediaFileReader & MediaFileWriter;
 }
 
 /**
@@ -239,20 +316,48 @@ export class CompositionRoot {
             }),
           })
         : null;
-    const { calendars, doors, drafts, versions, comments, subscriptions, members, openings } =
-      this.db === null ? this.inMemoryStorage() : this.postgresStorage(this.db);
+    const {
+      calendars,
+      doors,
+      drafts,
+      versions,
+      comments,
+      subscriptions,
+      members,
+      openings,
+      accounts,
+      mediaFiles,
+    } = this.db === null ? this.inMemoryStorage() : this.postgresStorage(this.db);
 
     const push: PushSender =
       config.push === undefined
         ? new NullPushSender(logger)
         : new WebPushSender({ ...config.push, ttlSeconds: 6 * 3600 }, logger);
     const access = new KeyCalendarAccessAuthenticator(calendars, members, matcher);
-    const sessions = new HmacAdminSessionService(
+    const sessions = new HmacAccountSessionService(
       { secret: config.sessionSecret, ttlHours: 30 * 24 },
       clock,
       matcher,
     );
-    const admin = new BearerAdminAuthenticator(sessions);
+    const admin = new CookieAdminAuthenticator(sessions);
+    const ownership = new LookupCalendarOwnershipChecker(
+      calendars,
+      drafts,
+      doors,
+      members,
+      comments,
+    );
+    const identityProviders = [
+      ...(config.google === undefined
+        ? []
+        : [new OidcIdentityProvider(new GoogleOidcClaimsMapper(), config.google)]),
+      ...(config.microsoft === undefined
+        ? []
+        : [new OidcIdentityProvider(new MicrosoftOidcClaimsMapper(), config.microsoft)]),
+    ];
+    const sealer = new HmacSignInChallengeSealer({ secret: config.sessionSecret }, clock, matcher);
+    const callbackUrl = (provider: string) =>
+      `${config.publicOrigin}/v1/auth/${encodeURIComponent(provider)}/callback`;
     const openedDoors = new VisibleOpenedDoorLocator(access, doors, presenter, clock);
     const commentNotifier = new PushCommentNotifier(
       subscriptions,
@@ -262,7 +367,15 @@ export class CompositionRoot {
       logger,
     );
 
-    this.createCalendar = new CreateCalendarUseCase(calendars, ids, secrets, clock, validator);
+    this.createCalendar = new CreateCalendarUseCase(
+      calendars,
+      calendars,
+      ids,
+      secrets,
+      clock,
+      validator,
+      config.limits,
+    );
     const draftPresenter = new NumberedDraftDoorPresenter(
       schedule,
       new OpensAtDoorNumberCalculator(),
@@ -279,7 +392,16 @@ export class CompositionRoot {
       clock,
       validator,
     );
-    this.addMember = new AddMemberUseCase(calendars, members, ids, secrets, clock, validator);
+    this.addMember = new AddMemberUseCase(
+      calendars,
+      members,
+      members,
+      ids,
+      secrets,
+      clock,
+      validator,
+      config.limits,
+    );
     this.publishCalendar = new PublishCalendarUseCase(
       calendars,
       drafts,
@@ -319,9 +441,40 @@ export class CompositionRoot {
           dtos,
           { vapidPublicKey: config.push?.publicKey ?? null },
         ),
+        new AuthController(
+          {
+            startSignIn: new StartSignInUseCase(identityProviders, sealer, secrets, clock, {
+              callbackUrl,
+              challengeMinutes: 15,
+            }),
+            completeSignIn: new CompleteSignInUseCase(
+              identityProviders,
+              sealer,
+              matcher,
+              accounts,
+              accounts,
+              calendars,
+              calendars,
+              sessions,
+              ids,
+              clock,
+              { callbackUrl, ownerEmail: config.ownerEmail ?? null },
+            ),
+            getMe: new GetMeUseCase(accounts),
+            listIdentityProviders: new ListIdentityProvidersUseCase(identityProviders),
+            logIn: new LogInUseCase(sessions, matcher, {
+              password: config.adminPassword ?? null,
+            }),
+          },
+          admin,
+          validator,
+          {
+            secureCookies: config.publicOrigin.startsWith('https://'),
+            passwordEnabled: config.adminPassword !== undefined,
+          },
+        ),
         new AdminController(
           {
-            logIn: new LogInUseCase(sessions, matcher, { password: config.adminPassword }),
             listCalendars: new ListCalendarsUseCase(calendars),
             createCalendar: this.createCalendar,
             getCalendarDetails: new GetCalendarDetailsUseCase(
@@ -357,6 +510,7 @@ export class CompositionRoot {
             ),
           },
           admin,
+          ownership,
           validator,
           dtos,
         ),
@@ -384,6 +538,7 @@ export class CompositionRoot {
             removeDoorComment: new RemoveDoorCommentUseCase(comments),
           },
           admin,
+          ownership,
           validator,
           dtos,
         ),
@@ -395,11 +550,19 @@ export class CompositionRoot {
             removeMember: new RemoveMemberUseCase(members),
           },
           admin,
+          ownership,
           validator,
           dtos,
         ),
         new MediaController(
-          new UploadMediaUseCase(new DiskMediaStorage({ directory: config.mediaDir }), ids),
+          new UploadMediaUseCase(
+            new DiskMediaStorage({ directory: config.mediaDir }),
+            mediaFiles,
+            mediaFiles,
+            ids,
+            clock,
+            config.limits,
+          ),
           admin,
           { directory: config.mediaDir },
         ),
@@ -432,6 +595,18 @@ export class CompositionRoot {
       databaseUrl: env.DATABASE_URL,
       adminPassword: env.ADMIN_PASSWORD,
       sessionSecret: env.SESSION_SECRET,
+      publicOrigin: env.PUBLIC_ORIGIN,
+      ownerEmail: env.OWNER_EMAIL,
+      google: CompositionRoot.oidcClient(env, 'GOOGLE'),
+      microsoft: CompositionRoot.oidcClient(env, 'MICROSOFT'),
+      limits: {
+        calendars: env.LIMIT_CALENDARS,
+        mediaBytes:
+          env.LIMIT_MEDIA_MB === undefined || env.LIMIT_MEDIA_MB === ''
+            ? undefined
+            : String(Number(env.LIMIT_MEDIA_MB) * 1024 * 1024),
+        membersPerCalendar: env.LIMIT_MEMBERS_PER_CALENDAR,
+      },
       push,
       mediaDir: env.MEDIA_DIR,
       webRoot: env.WEB_ROOT,
@@ -447,6 +622,21 @@ export class CompositionRoot {
         Object.entries(values).filter(([, value]) => value !== undefined && value !== ''),
       ),
     );
+  }
+
+  /** `<PREFIX>_CLIENT_ID` and `<PREFIX>_CLIENT_SECRET`, both or nothing. */
+  private static oidcClient(env: NodeJS.ProcessEnv, prefix: string) {
+    const clientId = env[`${prefix}_CLIENT_ID`];
+    const clientSecret = env[`${prefix}_CLIENT_SECRET`];
+    return clientId && clientSecret
+      ? {
+          clientId,
+          clientSecret,
+          ...(env[`${prefix}_DISCOVERY_URL`]
+            ? { discoveryUrl: env[`${prefix}_DISCOVERY_URL`] }
+            : {}),
+        }
+      : undefined;
   }
 
   /** Serves HTTP and sends notifications. Postgres must be migrated first (migrate.ts). */
@@ -479,6 +669,8 @@ export class CompositionRoot {
       subscriptions: new InMemorySubscriptionRepository(),
       members: new InMemoryMemberRepository(),
       openings: new InMemoryDoorOpeningRepository(doors),
+      accounts: new InMemoryAccountRepository(),
+      mediaFiles: new InMemoryMediaFileRepository(),
     };
   }
 
@@ -493,6 +685,8 @@ export class CompositionRoot {
       subscriptions: new PgSubscriptionRepository(db),
       members: new PgMemberRepository(db, errors),
       openings: new PgDoorOpeningRepository(db, errors),
+      accounts: new PgAccountRepository(db, errors),
+      mediaFiles: new PgMediaFileRepository(db, errors),
     };
   }
 }

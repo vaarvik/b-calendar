@@ -40,7 +40,9 @@ export class PostgresTestDatabase {
 
   /** Empties every table. */
   public async reset(): Promise<void> {
-    await sql`TRUNCATE calendars, doors, subscriptions CASCADE`.execute(this.db);
+    await sql`TRUNCATE calendars, doors, subscriptions, accounts, media_files CASCADE`.execute(
+      this.db,
+    );
   }
 
   public async stop(): Promise<void> {

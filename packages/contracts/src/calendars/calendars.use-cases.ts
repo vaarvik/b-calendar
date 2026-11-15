@@ -1,6 +1,6 @@
 import type { DoorPreview, RecipientDoor } from '../doors/doors.model.js';
 import type { Member } from '../members/members.model.js';
-import type { CalendarId } from '../shared/shared.model.js';
+import type { CalendarId, CalendarOwnerId } from '../shared/shared.model.js';
 import type {
   Calendar,
   CalendarAccess,
@@ -11,13 +11,19 @@ import type {
   CalendarVersionSummary,
 } from './calendars.model.js';
 
-/** An admin creates a calendar, with a fresh follower key and no members yet. */
+export interface CreateCalendarInput {
+  readonly owner: CalendarOwnerId;
+  readonly settings: CalendarSettings;
+}
+
+/** A signed-in owner creates a calendar, with a fresh follower key and no members yet. */
 export interface CreateCalendar {
   /**
    * @throws ValidationError when the settings are invalid.
    * @throws ConflictError when the slug is taken.
+   * @throws LimitExceededError when the owner has as many calendars as they may.
    */
-  execute(input: CalendarSettings): Promise<Calendar>;
+  execute(input: CreateCalendarInput): Promise<Calendar>;
 }
 
 export interface UpdateCalendarInput {
@@ -47,9 +53,9 @@ export interface RotateCalendarKey {
   execute(input: { readonly calendarId: CalendarId }): Promise<Calendar>;
 }
 
-/** Every calendar, newest first. */
+/** The owner's calendars, newest first. */
 export interface ListCalendars {
-  execute(): Promise<Calendar[]>;
+  execute(input: { readonly owner: CalendarOwnerId }): Promise<Calendar[]>;
 }
 
 /** A calendar with its draft in full, for the admin. */

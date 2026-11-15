@@ -11,6 +11,7 @@ export interface AddMember {
   /**
    * @throws ValidationError when the name is empty or too long.
    * @throws NotFoundError when the calendar does not exist.
+   * @throws LimitExceededError when the calendar has as many members as it may.
    */
   execute(input: AddMemberInput): Promise<Member>;
 }

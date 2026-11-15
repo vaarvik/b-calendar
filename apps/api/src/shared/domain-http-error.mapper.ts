@@ -2,6 +2,7 @@ import {
   ConflictError,
   DomainError,
   DoorLockedError,
+  LimitExceededError,
   NotFoundError,
   UnauthenticatedError,
   ValidationError,
@@ -26,6 +27,9 @@ export class DomainHttpErrorMapper implements HttpErrorMapper {
     }
     if (error instanceof NotFoundError) {
       return this.response(404, error);
+    }
+    if (error instanceof LimitExceededError) {
+      return this.response(409, error, { limit: error.limit, max: error.max });
     }
     if (error instanceof ConflictError) {
       return this.response(409, error);

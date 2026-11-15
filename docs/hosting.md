@@ -21,17 +21,37 @@ connected to the app, which sets `DATABASE_URL`.
 
 ## Environment
 
-| Variable                  | Value                                                                    |
-| ------------------------- | ------------------------------------------------------------------------ |
-| `DATABASE_URL`            | Postgres connection string                                               |
-| `ADMIN_PASSWORD`          | Secret, 12+ characters. Signs in at `/admin`                             |
-| `SESSION_SECRET`          | Secret, 32+ random characters. Changing it signs the admin out           |
-| `VAPID_PUBLIC_KEY`        | From `node dist/src/cli.js vapid-keys`, once                             |
-| `VAPID_PRIVATE_KEY`       | Secret, same run. Changing the pair breaks every existing subscription   |
-| `VAPID_SUBJECT`           | `https://<the app's host>` or a `mailto:` address push services may use  |
-| `TRUST_PROXY`             | `true` behind the cluster's proxy                                        |
-| `NOTIFY_GRACE_MINUTES`    | Optional, default 180: later than this, a door's notification is skipped |
-| `NOTIFY_INTERVAL_SECONDS` | Optional, default 30                                                     |
+| Variable                     | Value                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------ |
+| `DATABASE_URL`               | Postgres connection string                                                           |
+| `PUBLIC_ORIGIN`              | `https://calendar.johann.no`: SSO callbacks and secure cookies                       |
+| `GOOGLE_CLIENT_ID`           | Google OAuth client (Web application). Both set, or Google is not shown              |
+| `GOOGLE_CLIENT_SECRET`       | Secret, same client                                                                  |
+| `MICROSOFT_CLIENT_ID`        | Microsoft Entra app registration (any org + personal accounts)                       |
+| `MICROSOFT_CLIENT_SECRET`    | Secret, same app                                                                     |
+| `OWNER_EMAIL`                | Whoever signs in with this verified email takes over unowned calendars               |
+| `ADMIN_PASSWORD`             | Optional, 12+ characters: the old way into the unowned calendars. Unset once claimed |
+| `SESSION_SECRET`             | Secret, 32+ random characters. Changing it signs everyone out                        |
+| `LIMIT_CALENDARS`            | Optional, default 5 calendars per account                                            |
+| `LIMIT_MEDIA_MB`             | Optional, default 500 MB of uploads per account                                      |
+| `LIMIT_MEMBERS_PER_CALENDAR` | Optional, default 30                                                                 |
+| `VAPID_PUBLIC_KEY`           | From `node dist/src/cli.js vapid-keys`, once                                         |
+| `VAPID_PRIVATE_KEY`          | Secret, same run. Changing the pair breaks every existing subscription               |
+| `VAPID_SUBJECT`              | `https://<the app's host>` or a `mailto:` address push services may use              |
+| `TRUST_PROXY`                | `true` behind the cluster's proxy                                                    |
+| `NOTIFY_GRACE_MINUTES`       | Optional, default 180: later than this, a door's notification is skipped             |
+| `NOTIFY_INTERVAL_SECONDS`    | Optional, default 30                                                                 |
+
+## Sign-in (SSO)
+
+Redirect URIs to register: `<PUBLIC_ORIGIN>/v1/auth/google/callback` and
+`<PUBLIC_ORIGIN>/v1/auth/microsoft/callback`.
+
+- Google: Cloud console → APIs & Services → OAuth consent screen (External, scopes `openid`,
+  `email`, `profile`) → Credentials → Create OAuth client ID → Web application.
+- Microsoft: Entra admin center → App registrations → New registration → "Accounts in any
+  organizational directory and personal Microsoft accounts" → Web redirect URI → Certificates &
+  secrets → New client secret.
 
 ## First calendar
 

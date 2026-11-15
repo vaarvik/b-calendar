@@ -3,6 +3,8 @@ import type { DoorComment } from './comments.model.js';
 
 /** Reads comments. */
 export interface DoorCommentReader {
+  /** @throws NotFoundError when no comment has this id. */
+  getById(id: CommentId): Promise<DoorComment>;
   /** A door's comments, oldest first; `[]` when there are none. */
   listByDoor(doorId: DoorId): Promise<DoorComment[]>;
 }

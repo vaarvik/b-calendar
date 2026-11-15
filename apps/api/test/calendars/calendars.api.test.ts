@@ -20,12 +20,15 @@ describe('a member’s calendar over HTTP', () => {
       push: { publicKey: 'BPub', privateKey: 'priv', subject: 'https://b.example' },
     });
     calendar = await api.root.createCalendar.execute({
-      slug: 'ida-30',
-      title: 'Bursdagsuka',
-      theme: 'birthday',
-      locale: 'nb',
-      timeZone: 'UTC',
-      defaultOpenTime: '08:00',
+      owner: null,
+      settings: {
+        slug: 'ida-30',
+        title: 'Bursdagsuka',
+        theme: 'birthday',
+        locale: 'nb',
+        timeZone: 'UTC',
+        defaultOpenTime: '08:00',
+      },
     });
     member = await api.root.addMember.execute({ calendarId: calendar.id, name: 'Ida' });
     const content = {

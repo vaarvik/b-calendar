@@ -77,6 +77,7 @@ export class ClassFileNamingRule implements Rule {
       'classifier',
       'resizer',
       'subscriber',
+      'sealer',
     ],
     private readonly classlessKinds: readonly string[] = ['ports', 'model'],
     private readonly vagueMechanisms: readonly string[] = [

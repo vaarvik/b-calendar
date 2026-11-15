@@ -1,21 +1,25 @@
 import {
+  describeAccountRepositoryContract,
   describeCalendarRepositoryContract,
   describeCalendarVersionRepositoryContract,
   describeDoorCommentRepositoryContract,
   describeDoorOpeningRepositoryContract,
   describeDoorRepositoryContract,
   describeDraftDoorRepositoryContract,
+  describeMediaFileRepositoryContract,
   describeMemberRepositoryContract,
   describeSubscriptionRepositoryContract,
 } from '@b-calendar/contracts/test-kit';
 import { NO_MIGRATIONS } from 'kysely/migration';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { PgAccountRepository } from '../../src/accounts/pg-account.repository.js';
 import { PgCalendarVersionRepository } from '../../src/calendars/pg-calendar-version.repository.js';
 import { PgCalendarRepository } from '../../src/calendars/pg-calendar.repository.js';
 import { PgDoorCommentRepository } from '../../src/comments/pg-door-comment.repository.js';
 import { PgDoorOpeningRepository } from '../../src/doors/pg-door-opening.repository.js';
 import { PgDoorRepository } from '../../src/doors/pg-door.repository.js';
 import { PgDraftDoorRepository } from '../../src/doors/pg-draft-door.repository.js';
+import { PgMediaFileRepository } from '../../src/media/pg-media-file.repository.js';
 import { PgMemberRepository } from '../../src/members/pg-member.repository.js';
 import { PgDatabaseErrorTranslator } from '../../src/shared/pg-database-error.translator.js';
 import { PgSubscriptionRepository } from '../../src/subscriptions/pg-subscription.repository.js';
@@ -34,7 +38,23 @@ async function fresh() {
 
 describeCalendarRepositoryContract('PgCalendarRepository', async () => {
   const calendars = await fresh();
-  return { writer: calendars, reader: calendars };
+  return {
+    writer: calendars,
+    reader: calendars,
+    accounts: new PgAccountRepository(database.db, errors),
+  };
+});
+
+describeAccountRepositoryContract('PgAccountRepository', async () => {
+  await fresh();
+  const accounts = new PgAccountRepository(database.db, errors);
+  return { writer: accounts, reader: accounts };
+});
+
+describeMediaFileRepositoryContract('PgMediaFileRepository', async () => {
+  await fresh();
+  const files = new PgMediaFileRepository(database.db, errors);
+  return { writer: files, reader: files, accounts: new PgAccountRepository(database.db, errors) };
 });
 
 describeDoorRepositoryContract('PgDoorRepository', async () => {

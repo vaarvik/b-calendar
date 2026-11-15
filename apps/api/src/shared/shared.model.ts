@@ -1,4 +1,9 @@
 import type { ColumnType } from 'kysely';
+
+/** The cookie that holds a signed-in session. */
+export const SESSION_COOKIE = 'bcal_session';
+/** The cookie that holds a sealed sign-in challenge while someone is at the provider. */
+export const SIGN_IN_COOKIE = 'bcal_sign_in';
 /** What an error becomes on the wire. `unexpected` errors are logged; their details are hidden. */
 export interface HttpErrorResponse {
   readonly statusCode: number;
@@ -11,6 +16,7 @@ export interface CalendarsTable {
   id: string;
   slug: string;
   title: string;
+  owner_id: string | null;
   theme: string;
   locale: string;
   time_zone: string;
@@ -91,6 +97,28 @@ export interface MembersTable {
   added_at: Date;
 }
 
+export interface AccountsTable {
+  id: string;
+  name: string;
+  email: string | null;
+  created_at: Date;
+}
+
+export interface AccountIdentitiesTable {
+  provider: string;
+  subject: string;
+  account_id: string;
+}
+
+export interface MediaFilesTable {
+  id: string;
+  owner_id: string | null;
+  content_type: string;
+  /** bigint: node-postgres reads it as a string. */
+  bytes: ColumnType<string, number, number>;
+  created_at: Date;
+}
+
 export interface DoorOpeningsTable {
   door_id: string;
   member_id: string;
@@ -98,6 +126,9 @@ export interface DoorOpeningsTable {
 }
 
 export interface Database {
+  accounts: AccountsTable;
+  account_identities: AccountIdentitiesTable;
+  media_files: MediaFilesTable;
   calendars: CalendarsTable;
   doors: DoorsTable;
   door_drafts: DoorDraftsTable;

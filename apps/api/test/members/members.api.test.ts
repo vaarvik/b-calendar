@@ -9,12 +9,12 @@ import { TestApi } from '../shared/test-api.js';
 
 describe('members over HTTP', () => {
   let api: TestApi;
-  let auth: { authorization: string };
+  let auth: Record<string, string>;
   let calendar: CalendarDto;
 
   beforeEach(async () => {
     api = await TestApi.start();
-    auth = { authorization: `Bearer ${await api.adminToken()}` };
+    auth = await api.adminHeaders();
     calendar = (
       await api.app.inject({
         method: 'POST',

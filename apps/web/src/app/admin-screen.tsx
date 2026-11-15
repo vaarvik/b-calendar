@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type {
+  AuthConfigResponseDto,
+  MeResponseDto,
   CalendarDetailsResponseDto,
   CalendarDto,
   CalendarSettings,
@@ -35,17 +37,35 @@ function usePath(): string {
   return path;
 }
 
+const LIMITS: Readonly<Record<string, string>> = {
+  calendars: 'kalendere',
+  mediaBytes: 'MB opplastinger',
+  membersPerCalendar: 'personer i en kalender',
+};
+
 function message(error: unknown): string {
+  if (error instanceof ApiError && error.code === 'limit_exceeded') {
+    const [, limit = '', max = ''] = /The (\w+) limit of (\d+)/.exec(error.message) ?? [];
+    const amount = limit === 'mediaBytes' ? String(Math.round(Number(max) / 1024 / 1024)) : max;
+    return `Du har nådd grensen på ${amount} ${LIMITS[limit] ?? ''} for kontoen din.`;
+  }
   return error instanceof Error ? error.message : 'Noe gikk galt.';
 }
 
 export function AdminScreen() {
   const { admin } = useServices();
-  const [signedIn, setSignedIn] = useState(admin.signedIn());
+  // undefined while asking; null when nobody is signed in.
+  const [me, setMe] = useState<MeResponseDto | null | undefined>(undefined);
   const path = usePath();
   const calendarId = /^\/admin\/([0-9a-f-]{36})$/.exec(path)?.[1];
   const previewId = /^\/admin\/([0-9a-f-]{36})\/preview$/.exec(path)?.[1];
   const loadCalendar = useCallback((id: string) => admin.calendar(id), [admin]);
+
+  useEffect(() => {
+    admin.me().then(setMe, () => {
+      setMe(null);
+    });
+  }, [admin]);
 
   useEffect(() => {
     document.title = 'Kalender · admin';
@@ -54,23 +74,24 @@ export function AdminScreen() {
     }
   }, [previewId]);
 
-  const onUnauthenticated = useCallback(
-    (error: unknown) => {
-      if (error instanceof ApiError && error.status === 401) {
-        admin.logOut();
-        setSignedIn(false);
-        return true;
-      }
-      return false;
-    },
-    [admin],
-  );
+  const onUnauthenticated = useCallback((error: unknown) => {
+    if (error instanceof ApiError && error.status === 401) {
+      setMe(null);
+      return true;
+    }
+    return false;
+  }, []);
 
-  if (!signedIn) {
+  if (me === undefined) {
+    return <p className="admin__muted admin">Laster …</p>;
+  }
+  if (me === null) {
     return (
       <LogIn
         onDone={() => {
-          setSignedIn(true);
+          admin.me().then(setMe, () => {
+            setMe(null);
+          });
         }}
       />
     );
@@ -102,15 +123,19 @@ export function AdminScreen() {
             Kalendere
           </a>
         </h1>
-        <button
-          className="button button--ghost"
-          onClick={() => {
-            admin.logOut();
-            setSignedIn(false);
-          }}
-        >
-          Logg ut
-        </button>
+        <span className="admin__who">
+          {me.account !== null && <span className="admin__muted">{me.account.name}</span>}
+          <button
+            className="button button--ghost"
+            onClick={() => {
+              void admin.logOut().finally(() => {
+                setMe(null);
+              });
+            }}
+          >
+            Logg ut
+          </button>
+        </span>
       </div>
       {calendarId === undefined ? (
         <CalendarList onUnauthenticated={onUnauthenticated} />
@@ -121,38 +146,82 @@ export function AdminScreen() {
   );
 }
 
+const PROVIDERS: Readonly<Record<string, { readonly label: string; readonly mark: string }>> = {
+  google: { label: 'Logg inn med Google', mark: 'G' },
+  microsoft: { label: 'Logg inn med Microsoft', mark: '⊞' },
+};
+
+const SIGN_IN_PROBLEMS: Readonly<Record<string, string>> = {
+  avbrutt: 'Innloggingen ble avbrutt.',
+  feilet: 'Innloggingen gikk ikke. Prøv igjen.',
+};
+
 function LogIn({ onDone }: { readonly onDone: () => void }) {
   const { admin } = useServices();
+  const [config, setConfig] = useState<AuthConfigResponseDto | null>(null);
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    () => SIGN_IN_PROBLEMS[new URLSearchParams(location.search).get('innlogging') ?? ''] ?? null,
+  );
+  useEffect(() => {
+    admin.authConfig().then(setConfig, (caught: unknown) => {
+      setError(message(caught));
+    });
+  }, [admin]);
+  const returnTo = location.pathname + location.search.replace(/[?&]innlogging=[a-z]+/, '');
+
   return (
     <main className="admin">
-      <form
-        className="card form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          admin.logIn(password).then(onDone, (caught: unknown) => {
-            setError(message(caught));
-          });
-        }}
-      >
-        <h1>Logg inn</h1>
-        <label className="field">
-          Passord
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-            }}
-          />
-        </label>
+      <section className="card form sign-in">
+        <h1>Lag din egen kalender 🎁</h1>
+        <p className="admin__muted">
+          Logg inn for å lage kalendere og dele dem. De du deler med trenger bare lenken sin.
+        </p>
+        <div className="sign-in__providers">
+          {config?.providers.map((provider) => (
+            <a
+              key={provider}
+              className="button sign-in__provider"
+              href={admin.signInUrl(provider, returnTo === '' ? '/admin' : returnTo)}
+            >
+              <span className="sign-in__mark" aria-hidden="true">
+                {PROVIDERS[provider]?.mark}
+              </span>
+              {PROVIDERS[provider]?.label ?? provider}
+            </a>
+          ))}
+          {config !== null && config.providers.length === 0 && !config.password && (
+            <p className="admin__muted">Innlogging er ikke satt opp ennå.</p>
+          )}
+        </div>
         {error !== null && <p className="error">{error}</p>}
-        <button className="button button--ghost" type="submit">
-          Logg inn
-        </button>
-      </form>
+        {config?.password === true && (
+          <form
+            className="form sign-in__password"
+            onSubmit={(event) => {
+              event.preventDefault();
+              admin.logIn(password).then(onDone, (caught: unknown) => {
+                setError(message(caught));
+              });
+            }}
+          >
+            <label className="field">
+              Eller med admin-passordet
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                }}
+              />
+            </label>
+            <button className="button button--ghost" type="submit">
+              Logg inn
+            </button>
+          </form>
+        )}
+      </section>
     </main>
   );
 }

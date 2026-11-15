@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type {
+  Account,
+  AccountId,
   Calendar,
   CalendarId,
   CalendarVersion,
@@ -10,6 +12,7 @@ import type {
   DoorId,
   DoorOpening,
   DraftDoor,
+  MediaFile,
   MediaId,
   Member,
   MemberId,
@@ -62,6 +65,32 @@ export class TestData {
     };
   }
 
+  public accountId(): AccountId {
+    return randomUUID() as AccountId;
+  }
+
+  public account(overrides: Partial<Account> = {}): Account {
+    return {
+      id: this.accountId(),
+      name: 'Johann',
+      email: 'johann@example.com',
+      identities: [{ provider: 'google', subject: `google-${randomUUID()}` }],
+      createdAt: T0,
+      ...overrides,
+    };
+  }
+
+  public mediaFile(overrides: Partial<MediaFile> = {}): MediaFile {
+    return {
+      id: this.mediaId(),
+      ownerId: null,
+      contentType: 'image/jpeg',
+      bytes: 1024,
+      createdAt: T0,
+      ...overrides,
+    };
+  }
+
   public memberId(): MemberId {
     return randomUUID() as MemberId;
   }
@@ -98,6 +127,7 @@ export class TestData {
       id: this.calendarId(),
       slug: this.slug(),
       title: 'Bursdagsuka',
+      ownerId: null,
       theme: 'birthday',
       locale: 'nb',
       timeZone: 'Europe/Oslo',

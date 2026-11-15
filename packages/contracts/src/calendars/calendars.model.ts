@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Door } from '../doors/doors.model.js';
 import type { Member } from '../members/members.model.js';
-import type { CalendarId } from '../shared/shared.model.js';
+import type { CalendarId, CalendarOwnerId } from '../shared/shared.model.js';
 import { TimeOfDaySchema, TimeZoneSchema } from '../shared/shared.model.js';
 
 /** Look and feel of a calendar. */
@@ -46,6 +46,8 @@ export const CalendarSettingsSchema: z.ZodType<CalendarSettings> = z.object({
  */
 export interface Calendar extends CalendarSettings {
   readonly id: CalendarId;
+  /** The account that writes it; null until its owner claims it (calendars from before accounts). */
+  readonly ownerId: CalendarOwnerId;
   /** The followers' secret: their link shows the doors, but opening one records nothing. */
   readonly followerKey: string;
   readonly createdAt: Date;

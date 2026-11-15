@@ -1,4 +1,10 @@
-import type { CalendarId } from '../shared/shared.model.js';
+import type {
+  CalendarId,
+  CalendarOwnerId,
+  CommentId,
+  DoorId,
+  MemberId,
+} from '../shared/shared.model.js';
 import type {
   Calendar,
   CalendarAccess,
@@ -11,8 +17,8 @@ export interface CalendarReader {
   /** @throws NotFoundError when no calendar has this id. */
   getById(id: CalendarId): Promise<Calendar>;
   findBySlug(slug: string): Promise<Calendar | null>;
-  /** Every calendar, newest first. */
-  list(): Promise<Calendar[]>;
+  /** The owner's calendars (null: those nobody owns), newest first. */
+  listByOwner(owner: CalendarOwnerId): Promise<Calendar[]>;
 }
 
 /** Stores calendars. */
@@ -49,4 +55,19 @@ export interface CalendarVersionReader {
 export interface CalendarVersionWriter {
   /** @throws ConflictError when the calendar already has this version number. */
   create(version: CalendarVersion): Promise<void>;
+}
+
+/**
+ * Checks that what an admin request names belongs to the signed-in owner, before any use case
+ * runs. Someone else's calendar answers like one that does not exist, so ids cannot be probed.
+ */
+export interface CalendarOwnershipChecker {
+  /** @throws NotFoundError when the calendar does not exist or is someone else's. */
+  calendar(owner: CalendarOwnerId, calendarId: CalendarId): Promise<Calendar>;
+  /** A draft or published door. @throws NotFoundError likewise. */
+  door(owner: CalendarOwnerId, doorId: DoorId): Promise<Calendar>;
+  /** @throws NotFoundError likewise. */
+  member(owner: CalendarOwnerId, memberId: MemberId): Promise<Calendar>;
+  /** @throws NotFoundError likewise. */
+  comment(owner: CalendarOwnerId, commentId: CommentId): Promise<Calendar>;
 }

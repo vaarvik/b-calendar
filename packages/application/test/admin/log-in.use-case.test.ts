@@ -9,13 +9,20 @@ describe('LogIn', () => {
     password: 'correct horse',
   });
 
-  it('issues a session for the right password', async () => {
+  it('issues a session for the unowned calendars with the right password', async () => {
     await expect(logIn.execute({ password: 'correct horse' })).resolves.toMatchObject({
-      token: 'session',
+      token: 'session:-',
     });
   });
 
-  it('refuses a wrong password', async () => {
+  it('refuses a wrong password, and every password once it is retired', async () => {
+    const retired = new LogInUseCase(new PlainSessions(), new ConstantTimeSecretMatcher(), {
+      password: null,
+    });
+
     await expect(logIn.execute({ password: 'wrong' })).rejects.toBeInstanceOf(UnauthenticatedError);
+    await expect(retired.execute({ password: 'correct horse' })).rejects.toBeInstanceOf(
+      UnauthenticatedError,
+    );
   });
 });

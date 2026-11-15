@@ -48,9 +48,24 @@ export class ConflictError extends DomainError {
   }
 }
 
-/** Credentials (an access key, an admin session) are missing or wrong. */
+/** Credentials (an access key, a session, a sign-in) are missing or wrong. */
 export class UnauthenticatedError extends DomainError {
   public constructor(message = 'Valid credentials are required.', options?: ErrorOptions) {
     super('unauthenticated', message, options);
+  }
+}
+
+/** What an account may have at most, per AccountLimits. */
+export const ACCOUNT_LIMITS = ['calendars', 'mediaBytes', 'membersPerCalendar'] as const;
+export type AccountLimitName = (typeof ACCOUNT_LIMITS)[number];
+
+/** An account has reached one of its limits. */
+export class LimitExceededError extends DomainError {
+  public constructor(
+    public readonly limit: AccountLimitName,
+    public readonly max: number,
+    options?: ErrorOptions,
+  ) {
+    super('limit_exceeded', `The ${limit} limit of ${String(max)} is reached.`, options);
   }
 }

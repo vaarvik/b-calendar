@@ -4,7 +4,6 @@ import type {
   EditDoor,
   GetCalendarDetails,
   ListCalendars,
-  LogIn,
   PublishCalendar,
   RemoveDoor,
   RotateCalendarKey,
@@ -14,7 +13,6 @@ import type {
 
 /** Everything the admin can do over HTTP. */
 export interface AdminUseCases {
-  readonly logIn: LogIn;
   readonly listCalendars: ListCalendars;
   readonly createCalendar: CreateCalendar;
   readonly getCalendarDetails: GetCalendarDetails;

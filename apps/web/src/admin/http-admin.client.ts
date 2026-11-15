@@ -1,4 +1,5 @@
 import {
+  AuthConfigResponseDtoSchema,
   CalendarDetailsResponseDtoSchema,
   CalendarDtoSchema,
   CalendarListResponseDtoSchema,
@@ -6,13 +7,15 @@ import {
   DoorCommentDtoSchema,
   DoorCommentsResponseDtoSchema,
   DoorPreviewDtoSchema,
-  LogInResponseDtoSchema,
+  MeResponseDtoSchema,
   MemberDtoSchema,
   SendTestNotificationResponseDtoSchema,
   UploadMediaResponseDtoSchema,
 } from '@b-calendar/contracts';
 import type {
   AddDoorCommentRequestDto,
+  AuthConfigResponseDto,
+  MeResponseDto,
   CalendarDetailsResponseDto,
   CalendarDto,
   CalendarSettings,
@@ -23,33 +26,42 @@ import type {
   SendTestNotificationResponseDto,
   UploadMediaResponseDto,
 } from '@b-calendar/contracts';
-import type { JsonHttpClient, JsonRequest, KeyValueStorage } from '../shared/shared.ports';
+import { ApiError } from '../shared/shared.model';
+import type { JsonHttpClient, JsonRequest } from '../shared/shared.ports';
 import type { AdminClient, DoorDraftDto } from './admin.ports';
 
-const TOKEN = 'admin-token';
-
+/**
+ * The session is an HttpOnly cookie the browser sends by itself; every request also says
+ * `x-requested-with`, which the API wants on anything that changes something (CSRF).
+ */
 export class HttpAdminClient implements AdminClient {
-  public constructor(
-    private readonly http: JsonHttpClient,
-    private readonly storage: KeyValueStorage,
-  ) {}
+  public constructor(private readonly http: JsonHttpClient) {}
 
-  public signedIn(): boolean {
-    return this.storage.get(TOKEN) !== null;
+  public authConfig(): Promise<AuthConfigResponseDto> {
+    return this.http.request({ path: '/v1/auth/config', schema: AuthConfigResponseDtoSchema });
   }
 
-  public async logIn(password: string): Promise<void> {
-    const session = await this.http.request({
-      method: 'POST',
-      path: '/v1/admin/session',
-      body: { password },
-      schema: LogInResponseDtoSchema,
-    });
-    this.storage.set(TOKEN, session.token);
+  public async me(): Promise<MeResponseDto | null> {
+    try {
+      return await this.send({ path: '/v1/me', schema: MeResponseDtoSchema });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        return null;
+      }
+      throw error;
+    }
   }
 
-  public logOut(): void {
-    this.storage.remove(TOKEN);
+  public signInUrl(provider: string, returnTo: string): string {
+    return `/v1/auth/${encodeURIComponent(provider)}/start?returnTo=${encodeURIComponent(returnTo)}`;
+  }
+
+  public logIn(password: string): Promise<void> {
+    return this.send({ method: 'POST', path: '/v1/admin/session', body: { password } });
+  }
+
+  public logOut(): Promise<void> {
+    return this.send({ method: 'POST', path: '/v1/auth/sign-out' });
   }
 
   public async listCalendars(): Promise<readonly CalendarDto[]> {
@@ -194,7 +206,7 @@ export class HttpAdminClient implements AdminClient {
   private send<T>(request: JsonRequest<T>): Promise<T> {
     return this.http.request({
       ...request,
-      headers: { ...request.headers, authorization: `Bearer ${this.storage.get(TOKEN) ?? ''}` },
+      headers: { ...request.headers, 'x-requested-with': 'b-calendar' },
     });
   }
 }

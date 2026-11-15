@@ -17,12 +17,15 @@ describe('comments behind a door over HTTP', () => {
   beforeEach(async () => {
     api = await TestApi.start();
     calendar = await api.root.createCalendar.execute({
-      slug: 'ida-30',
-      title: 'Bursdagsuka',
-      theme: 'birthday',
-      locale: 'nb',
-      timeZone: 'UTC',
-      defaultOpenTime: '08:00',
+      owner: null,
+      settings: {
+        slug: 'ida-30',
+        title: 'Bursdagsuka',
+        theme: 'birthday',
+        locale: 'nb',
+        timeZone: 'UTC',
+        defaultOpenTime: '08:00',
+      },
     });
     member = await api.root.addMember.execute({ calendarId: calendar.id, name: 'Karoline' });
     const content = {
@@ -83,7 +86,7 @@ describe('comments behind a door over HTTP', () => {
   });
 
   it('lets the giver comment behind a door that has not opened, which she cannot see yet', async () => {
-    const auth = { authorization: `Bearer ${await api.adminToken()}` };
+    const auth = await api.adminHeaders();
     const doors = (
       await api.app.inject({ url: `/v1/admin/calendars/${calendar.id}`, headers: auth })
     ).json<{ doors: { id: string }[] }>().doors;
@@ -112,7 +115,7 @@ describe('comments behind a door over HTTP', () => {
 
   it('lets the admin read and remove comments', async () => {
     const created = await post(member.key, 1, { text: 'Fjern meg' });
-    const auth = { authorization: `Bearer ${await api.adminToken()}` };
+    const auth = await api.adminHeaders();
     const details = await api.root.publishCalendar.execute({ calendarId: calendar.id });
     expect(details.doorCount).toBe(2);
     const doorId = (

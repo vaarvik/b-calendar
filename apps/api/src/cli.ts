@@ -23,8 +23,9 @@ if (command === 'vapid-keys') {
   const root = CompositionRoot.fromEnv(process.env);
   try {
     const calendar = await root.createCalendar.execute({
-      ...BIRTHDAY_WEEK.settings,
-      slug: values.slug,
+      // Unowned, like calendars from before accounts: OWNER_EMAIL claims it at the first sign-in.
+      owner: null,
+      settings: { ...BIRTHDAY_WEEK.settings, slug: values.slug },
     });
     const member = await root.addMember.execute({ calendarId: calendar.id, name: values.name });
     for (const draft of BIRTHDAY_WEEK.doors) {

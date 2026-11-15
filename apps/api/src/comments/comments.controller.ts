@@ -7,7 +7,11 @@ import {
   DoorIdSchema,
   UnauthenticatedError,
 } from '@b-calendar/contracts';
-import type { CalendarAccess, InputValidator } from '@b-calendar/contracts';
+import type {
+  CalendarAccess,
+  CalendarOwnershipChecker,
+  InputValidator,
+} from '@b-calendar/contracts';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { CommentUseCases } from './comments.model.js';
@@ -29,6 +33,7 @@ export class CommentsController implements HttpController {
   public constructor(
     private readonly useCases: CommentUseCases,
     private readonly admin: AdminRequestAuthenticator,
+    private readonly ownership: CalendarOwnershipChecker,
     private readonly validator: InputValidator,
     private readonly dtos: HttpDtoMapper,
   ) {}
@@ -58,8 +63,9 @@ export class CommentsController implements HttpController {
     });
 
     app.get('/v1/admin/doors/:doorId/comments', async (request) => {
-      this.admin.requireAdmin(request);
+      const owner = this.admin.requireAdmin(request);
       const { doorId } = this.validator.validate(AdminDoorParamsSchema, request.params);
+      await this.ownership.door(owner, doorId);
       const comments = await listAdminDoorComments.execute({ doorId });
       return DoorCommentsResponseDtoSchema.parse({
         comments: comments.map((comment) => this.dtos.comment(comment)),
@@ -67,8 +73,9 @@ export class CommentsController implements HttpController {
     });
 
     app.post('/v1/admin/doors/:doorId/comments', async (request, reply) => {
-      this.admin.requireAdmin(request);
+      const owner = this.admin.requireAdmin(request);
       const { doorId } = this.validator.validate(AdminDoorParamsSchema, request.params);
+      await this.ownership.door(owner, doorId);
       const { author, text, endpoint } = this.validator.validate(
         AddDoorCommentRequestDtoSchema,
         request.body,
@@ -83,8 +90,9 @@ export class CommentsController implements HttpController {
     });
 
     app.delete('/v1/admin/comments/:commentId', async (request, reply) => {
-      this.admin.requireAdmin(request);
+      const owner = this.admin.requireAdmin(request);
       const { commentId } = this.validator.validate(CommentParamsSchema, request.params);
+      await this.ownership.comment(owner, commentId);
       await removeDoorComment.execute({ commentId });
       return reply.status(204).send();
     });

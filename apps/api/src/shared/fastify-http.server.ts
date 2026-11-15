@@ -1,3 +1,4 @@
+import fastifyCookie from '@fastify/cookie';
 import Fastify from 'fastify';
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
 import type { HttpController, HttpErrorMapper, HttpServer } from './shared.ports.js';
@@ -38,6 +39,7 @@ export class FastifyHttpServer implements HttpServer {
       bodyLimit: this.options.bodyLimit,
       trustProxy: this.options.trustProxy,
     });
+    void app.register(fastifyCookie);
     app.setErrorHandler((error, request, reply) => {
       const response = this.errors.toResponse(error);
       if (response.unexpected) {

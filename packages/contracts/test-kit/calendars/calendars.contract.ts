@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ConflictError, NotFoundError } from '../../src/index.js';
 import type {
+  AccountWriter,
   CalendarReader,
   CalendarVersionReader,
   CalendarVersionWriter,
@@ -13,6 +14,8 @@ import { T0, TestData, hoursAfter } from '../test-data.js';
 export interface CalendarRepositoryFixture {
   readonly writer: CalendarWriter;
   readonly reader: CalendarReader;
+  /** Owners must exist. */
+  readonly accounts: AccountWriter;
 }
 
 /** Behaviour every CalendarWriter and CalendarReader pair must have. */
@@ -40,14 +43,36 @@ export function describeCalendarRepositoryContract(
       await expect(fixture.current.reader.findBySlug(data.slug())).resolves.toBeNull();
     });
 
-    it('lists calendars newest first', async () => {
+    it('lists an owner’s calendars newest first, and the unowned ones apart', async () => {
       const data = new TestData();
-      const older = data.calendar({ createdAt: T0 });
-      const newer = data.calendar({ createdAt: hoursAfter(T0, 1) });
-      await fixture.current.writer.create(older);
-      await fixture.current.writer.create(newer);
+      const owner = data.account();
+      const other = data.account();
+      await fixture.current.accounts.create(owner);
+      await fixture.current.accounts.create(other);
+      const older = data.calendar({ ownerId: owner.id, createdAt: T0 });
+      const newer = data.calendar({ ownerId: owner.id, createdAt: hoursAfter(T0, 1) });
+      const unowned = data.calendar();
+      for (const calendar of [older, newer, unowned, data.calendar({ ownerId: other.id })]) {
+        await fixture.current.writer.create(calendar);
+      }
 
-      await expect(fixture.current.reader.list()).resolves.toEqual([newer, older]);
+      await expect(fixture.current.reader.listByOwner(owner.id)).resolves.toEqual([newer, older]);
+      await expect(fixture.current.reader.listByOwner(null)).resolves.toEqual([unowned]);
+    });
+
+    it('moves a calendar to an owner', async () => {
+      const data = new TestData();
+      const owner = data.account();
+      await fixture.current.accounts.create(owner);
+      const calendar = data.calendar();
+      await fixture.current.writer.create(calendar);
+
+      await fixture.current.writer.save({ ...calendar, ownerId: owner.id });
+
+      await expect(fixture.current.reader.getById(calendar.id)).resolves.toEqual({
+        ...calendar,
+        ownerId: owner.id,
+      });
     });
 
     it('throws ConflictError when the slug is taken', async () => {
