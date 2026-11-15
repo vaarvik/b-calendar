@@ -2,8 +2,6 @@ export * from './accounts/accounts.dtos.js';
 export * from './accounts/accounts.model.js';
 export * from './accounts/accounts.ports.js';
 export * from './accounts/accounts.use-cases.js';
-export * from './admin/admin.model.js';
-export * from './admin/admin.use-cases.js';
 export * from './calendars/calendars.dtos.js';
 export * from './calendars/calendars.model.js';
 export * from './calendars/calendars.ports.js';

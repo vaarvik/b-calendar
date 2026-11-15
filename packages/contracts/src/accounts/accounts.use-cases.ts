@@ -35,8 +35,7 @@ export interface CompleteSignInOutput {
 
 /**
  * The provider sent someone back. Their account is found by the provider's subject, or created;
- * the name and verified email are refreshed. When that email is the owner's (`OWNER_EMAIL`), the
- * account takes over every calendar nobody owns yet.
+ * the name and verified email are refreshed.
  */
 export interface CompleteSignIn {
   /**

@@ -1,4 +1,4 @@
-import type { CalendarOwnerId, MediaId } from '../shared/shared.model.js';
+import type { AccountId, MediaId } from '../shared/shared.model.js';
 import type { MediaContentType, MediaFile } from './media.model.js';
 
 /** Stores uploaded files and serves them under `/media/`. */
@@ -19,7 +19,7 @@ export interface MediaStorage {
 /** Reads the records of uploaded files. */
 export interface MediaFileReader {
   /** The owner's files (null: uploads from before accounts), oldest first. */
-  listByOwner(owner: CalendarOwnerId): Promise<MediaFile[]>;
+  listByOwner(owner: AccountId): Promise<MediaFile[]>;
 }
 
 /** Records uploaded files. */

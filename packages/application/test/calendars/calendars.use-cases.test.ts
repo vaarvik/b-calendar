@@ -18,6 +18,8 @@ import {
 } from '@b-calendar/contracts';
 import type { CalendarSettings } from '@b-calendar/contracts';
 import { T0, TestData, hoursAfter } from '@b-calendar/contracts/test-kit';
+
+const OWNER = new TestData().accountId();
 import {
   ConstantTimeSecretMatcher,
   LinkDoorPreviewPresenter,
@@ -125,7 +127,7 @@ describe('CreateCalendar', () => {
   it('creates a calendar with a fresh key for the follower link', async () => {
     const { create, calendars } = setup();
 
-    const calendar = await create.execute({ owner: null, settings: SETTINGS });
+    const calendar = await create.execute({ owner: OWNER, settings: SETTINGS });
 
     expect(calendar).toMatchObject({ ...SETTINGS, followerKey: 'secret-1', createdAt: T0 });
     await expect(calendars.getById(calendar.id)).resolves.toEqual(calendar);
@@ -133,7 +135,7 @@ describe('CreateCalendar', () => {
 
   it('refuses invalid settings', async () => {
     await expect(
-      setup().create.execute({ owner: null, settings: { ...SETTINGS, slug: 'Not A Slug' } }),
+      setup().create.execute({ owner: OWNER, settings: { ...SETTINGS, slug: 'Not A Slug' } }),
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
@@ -148,17 +150,17 @@ describe('CreateCalendar', () => {
 
     expect(first.ownerId).toBe(owner);
     await expect(create.execute(settings('cc'))).rejects.toBeInstanceOf(LimitExceededError);
-    await expect(list.execute({ owner: null })).resolves.toEqual([]);
-    await expect(create.execute({ owner: null, settings: SETTINGS })).resolves.toMatchObject({
-      ownerId: null,
-    });
+    await expect(list.execute({ owner: data.accountId() })).resolves.toEqual([]);
+    await expect(
+      create.execute({ owner: data.accountId(), settings: SETTINGS }),
+    ).resolves.toBeDefined();
   });
 
   it('refuses a taken slug', async () => {
     const { create } = setup();
-    await create.execute({ owner: null, settings: SETTINGS });
+    await create.execute({ owner: OWNER, settings: SETTINGS });
 
-    await expect(create.execute({ owner: null, settings: SETTINGS })).rejects.toBeInstanceOf(
+    await expect(create.execute({ owner: OWNER, settings: SETTINGS })).rejects.toBeInstanceOf(
       ConflictError,
     );
   });
@@ -167,7 +169,7 @@ describe('CreateCalendar', () => {
 describe('UpdateCalendar and RotateCalendarKey', () => {
   it('changes the settings and keeps the key', async () => {
     const { create, update } = setup();
-    const calendar = await create.execute({ owner: null, settings: SETTINGS });
+    const calendar = await create.execute({ owner: OWNER, settings: SETTINGS });
 
     const updated = await update.execute({
       calendarId: calendar.id,
@@ -179,7 +181,7 @@ describe('UpdateCalendar and RotateCalendarKey', () => {
 
   it('refuses invalid settings', async () => {
     const { create, update } = setup();
-    const calendar = await create.execute({ owner: null, settings: SETTINGS });
+    const calendar = await create.execute({ owner: OWNER, settings: SETTINGS });
 
     await expect(
       update.execute({ calendarId: calendar.id, settings: { ...SETTINGS, title: '' } }),
@@ -188,7 +190,7 @@ describe('UpdateCalendar and RotateCalendarKey', () => {
 
   it('gives the follower link a new key', async () => {
     const { create, rotate } = setup();
-    const calendar = await create.execute({ owner: null, settings: SETTINGS });
+    const calendar = await create.execute({ owner: OWNER, settings: SETTINGS });
 
     await expect(rotate.execute({ calendarId: calendar.id })).resolves.toEqual({
       ...calendar,
@@ -201,7 +203,7 @@ describe('ListCalendars and GetCalendarDetails', () => {
   it('lists calendars and shows one with its draft in full, its versions and subscribers', async () => {
     const { create, list, details, drafts, publish, clock, subscriptions, members, openings } =
       setup();
-    const calendar = await create.execute({ owner: null, settings: SETTINGS });
+    const calendar = await create.execute({ owner: OWNER, settings: SETTINGS });
     const data = new TestData();
     const door = data.draftDoor(calendar.id, {
       opensOn: '2026-11-16',
@@ -220,7 +222,7 @@ describe('ListCalendars and GetCalendarDetails', () => {
     await openings.create(data.opening(door.id, gone.id));
     await members.remove(gone.id);
 
-    await expect(list.execute({ owner: null })).resolves.toEqual([calendar]);
+    await expect(list.execute({ owner: OWNER })).resolves.toEqual([calendar]);
     const shown = await details.execute({ calendarId: calendar.id });
     expect(shown).toMatchObject({
       calendar,
@@ -242,7 +244,7 @@ describe('ListCalendars and GetCalendarDetails', () => {
 
   it('tells when the draft differs from what the members have', async () => {
     const { create, details, drafts, publish } = setup();
-    const calendar = await create.execute({ owner: null, settings: SETTINGS });
+    const calendar = await create.execute({ owner: OWNER, settings: SETTINGS });
     const data = new TestData();
     const changed = async () =>
       (await details.execute({ calendarId: calendar.id })).unpublishedChanges;
@@ -261,7 +263,7 @@ describe('ListCalendars and GetCalendarDetails', () => {
 describe('PublishCalendar', () => {
   it('gives the members the draft’s doors, numbered by date, as version 1', async () => {
     const { create, publish, drafts, doors, versions } = setup();
-    const calendar = await create.execute({ owner: null, settings: SETTINGS });
+    const calendar = await create.execute({ owner: OWNER, settings: SETTINGS });
     const data = new TestData();
     const later = data.draftDoor(calendar.id, { opensOn: '2026-11-17' });
     const first = data.draftDoor(calendar.id, {
@@ -302,7 +304,7 @@ describe('PublishCalendar', () => {
 
   it('keeps the progress, renumbers, notifies a door moved into the future again, and removes dropped doors', async () => {
     const { create, publish, drafts, doors, members, openings, clock } = setup();
-    const calendar = await create.execute({ owner: null, settings: SETTINGS });
+    const calendar = await create.execute({ owner: OWNER, settings: SETTINGS });
     const data = new TestData();
     const opened = data.draftDoor(calendar.id, { opensOn: '2026-11-15' });
     const moved = data.draftDoor(calendar.id, { opensOn: '2026-11-14' });
@@ -334,7 +336,7 @@ describe('PublishCalendar', () => {
 
   it('moves doors without their own time when the default time changed since the last publish', async () => {
     const { create, update, publish, drafts, doors } = setup();
-    const calendar = await create.execute({ owner: null, settings: SETTINGS });
+    const calendar = await create.execute({ owner: OWNER, settings: SETTINGS });
     const data = new TestData();
     const byDefault = data.draftDoor(calendar.id, { opensOn: '2026-11-16' });
     const ownTime = data.draftDoor(calendar.id, { opensOn: '2026-11-17', openTime: '18:30' });
@@ -361,7 +363,7 @@ describe('PublishCalendar', () => {
 
   it('keeps a door notified when it moves but has already opened', async () => {
     const { create, publish, drafts, doors, clock } = setup();
-    const calendar = await create.execute({ owner: null, settings: SETTINGS });
+    const calendar = await create.execute({ owner: OWNER, settings: SETTINGS });
     const door = new TestData().draftDoor(calendar.id, { opensOn: '2026-11-15' });
     await drafts.create(door);
     await publish.execute({ calendarId: calendar.id });
@@ -385,7 +387,7 @@ describe('PublishCalendar', () => {
 describe('ViewCalendar', () => {
   async function shared() {
     const tools = setup();
-    const calendar = await tools.create.execute({ owner: null, settings: SETTINGS });
+    const calendar = await tools.create.execute({ owner: OWNER, settings: SETTINGS });
     const data = new TestData();
     const ida = data.member(calendar.id, { name: 'Ida' });
     const johann = data.member(calendar.id, { name: 'Johann' });

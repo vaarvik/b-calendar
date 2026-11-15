@@ -1,6 +1,6 @@
 import type {
   Calendar,
-  CalendarOwnerId,
+  AccountId,
   CalendarDetails,
   CalendarDetailsResponseDto,
   CalendarVersionDto,
@@ -42,7 +42,7 @@ export interface HttpServer {
 /** Lets admin requests through, and says whose calendars they may touch. */
 export interface AdminRequestAuthenticator {
   /** @throws UnauthenticatedError when the request carries no valid session. */
-  requireAdmin(request: FastifyRequest): CalendarOwnerId;
+  requireAdmin(request: FastifyRequest): AccountId;
 }
 
 /** Turns database driver errors into domain errors. */

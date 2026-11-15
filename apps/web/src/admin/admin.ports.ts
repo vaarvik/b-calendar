@@ -44,8 +44,6 @@ export interface AdminClient {
   me(): Promise<MeResponseDto | null>;
   /** Where to send the browser to sign in with a provider, landing on `returnTo` after. */
   signInUrl(provider: string, returnTo: string): string;
-  /** The old admin password, while it works. */
-  logIn(password: string): Promise<void>;
   logOut(): Promise<void>;
   listCalendars(): Promise<readonly CalendarDto[]>;
   createCalendar(settings: CalendarSettings): Promise<CalendarDto>;

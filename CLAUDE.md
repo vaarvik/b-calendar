@@ -35,7 +35,7 @@ Packages are layers; inside each layer, code is grouped by feature, with the sam
 in every layer: `calendars`, `doors`, `subscriptions` (push subscriptions), `notifications`
 (deciding and sending door notifications), `media` (uploaded photos, songs and videos), `comments`
 (comments behind an opened door), `members` (the people sharing a calendar), `accounts` (SSO
-sign-in, sessions and owners), `admin` (the old admin password),
+sign-in, sessions and owners), `admin` (the owner's HTTP side: session cookie, admin routes),
 `shared`.
 
 ```
@@ -144,8 +144,6 @@ UI copy uses the Norwegian in brackets.
   else's answers like one that does not exist. Accounts have limits (`AccountLimits`: calendars,
   upload bytes, members per calendar). The session is an HttpOnly cookie; changing requests also
   need `x-requested-with: b-calendar`.
-- **Owner claim**: calendars from before accounts have no owner. The account that signs in with the
-  verified `OWNER_EMAIL` takes them over. Until then `ADMIN_PASSWORD` (if set) opens them.
 
 ### Rules that keep the surprise
 
@@ -251,7 +249,7 @@ pnpm api                     # build and start the API (serves apps/web/dist too
 pnpm web                     # Vite dev server on :5173, proxying /v1 and /media to :3000
 pnpm web:build               # apps/web/dist
 node --env-file=.env apps/api/dist/src/cli.js vapid-keys     # VAPID keys, once
-node --env-file=.env apps/api/dist/src/cli.js seed-birthday  # the birthday week, prints a member's link
+node --env-file=.env apps/api/dist/src/cli.js seed-birthday --owner <account id>  # the birthday week, prints a member's link
 ```
 
 Copy `.env.example` to `.env`. Hosting: `docs/hosting.md`.

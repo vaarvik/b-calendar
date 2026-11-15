@@ -39,12 +39,6 @@ export const AccountIdSchema: z.ZodType<AccountId> = z
   .uuid()
   .transform((value) => value as AccountId);
 
-/**
- * Whose calendars a session works on: an account's, or, with null, the calendars nobody owns yet
- * (the old admin password, until the owner signs in with SSO and claims them).
- */
-export type CalendarOwnerId = AccountId | null;
-
 /** A point in time on the wire: ISO 8601 with an offset, parsed to a Date. */
 export const InstantSchema: z.ZodType<Date, string> = z.iso
   .datetime({ offset: true })

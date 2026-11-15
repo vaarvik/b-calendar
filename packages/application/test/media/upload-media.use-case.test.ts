@@ -5,6 +5,8 @@ import { InMemoryMediaFileRepository, InMemoryMediaStorage } from '@b-calendar/i
 import { describe, expect, it } from 'vitest';
 import { ManualClock, RandomIds } from '../shared/fakes.js';
 
+const OWNER = new TestData().accountId();
+
 async function* chunks(...sizes: number[]): AsyncIterable<Uint8Array> {
   for (const size of sizes) {
     await Promise.resolve();
@@ -35,7 +37,7 @@ describe('UploadMedia', () => {
   ])('stores %s as %s and gives its URL', async (contentType, kind, extension) => {
     const { upload } = setup();
 
-    const output = await upload.execute({ owner: null, contentType, chunks: chunks(2, 3) });
+    const output = await upload.execute({ owner: OWNER, contentType, chunks: chunks(2, 3) });
 
     expect(output.kind).toBe(kind);
     expect(output.url).toMatch(new RegExp(`^/media/[0-9a-f-]{36}\\.${extension}$`));
@@ -46,7 +48,7 @@ describe('UploadMedia', () => {
 
     await expect(
       upload.execute({
-        owner: null,
+        owner: OWNER,
         contentType: 'video/mp4',
         chunks: chunks(MAX_MEDIA_BYTES.image + 1),
       }),
@@ -63,7 +65,7 @@ describe('UploadMedia', () => {
     const { upload, storage } = setup();
 
     await expect(
-      upload.execute({ owner: null, contentType, chunks: chunks(...sizes) }),
+      upload.execute({ owner: OWNER, contentType, chunks: chunks(...sizes) }),
     ).rejects.toBeInstanceOf(ValidationError);
     expect(storage.files.size).toBe(0);
   });
@@ -93,7 +95,7 @@ describe('UploadMedia', () => {
     ).rejects.toBeInstanceOf(LimitExceededError);
     // Someone else's uploads count for them alone.
     await expect(
-      upload.execute({ owner: null, contentType: 'image/png', chunks: chunks(5) }),
+      upload.execute({ owner: OWNER, contentType: 'image/png', chunks: chunks(5) }),
     ).resolves.toMatchObject({ kind: 'image' });
   });
 });

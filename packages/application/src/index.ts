@@ -2,7 +2,6 @@ export * from './accounts/complete-sign-in.use-case.js';
 export * from './accounts/get-me.use-case.js';
 export * from './accounts/list-identity-providers.use-case.js';
 export * from './accounts/start-sign-in.use-case.js';
-export * from './admin/log-in.use-case.js';
 export * from './calendars/create-calendar.use-case.js';
 export * from './calendars/get-calendar-details.use-case.js';
 export * from './calendars/key-calendar-access.authenticator.js';

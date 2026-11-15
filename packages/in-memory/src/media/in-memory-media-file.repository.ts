@@ -1,6 +1,6 @@
 import { ConflictError } from '@b-calendar/contracts';
 import type {
-  CalendarOwnerId,
+  AccountId,
   MediaFile,
   MediaFileReader,
   MediaFileWriter,
@@ -11,7 +11,7 @@ import type {
 export class InMemoryMediaFileRepository implements MediaFileReader, MediaFileWriter {
   private readonly rows = new Map<MediaId, MediaFile>();
 
-  public listByOwner(owner: CalendarOwnerId): Promise<MediaFile[]> {
+  public listByOwner(owner: AccountId): Promise<MediaFile[]> {
     return Promise.resolve(
       [...this.rows.values()]
         .filter((row) => row.ownerId === owner)

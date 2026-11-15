@@ -1,6 +1,6 @@
 import type { Calendar, Member, RecipientCalendarResponseDto } from '@b-calendar/contracts';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { TestApi } from '../shared/test-api.js';
+import { TEST_OWNER, TestApi } from '../shared/test-api.js';
 
 const HOUR = 3_600_000;
 
@@ -20,7 +20,7 @@ describe('a member’s calendar over HTTP', () => {
       push: { publicKey: 'BPub', privateKey: 'priv', subject: 'https://b.example' },
     });
     calendar = await api.root.createCalendar.execute({
-      owner: null,
+      owner: TEST_OWNER,
       settings: {
         slug: 'ida-30',
         title: 'Bursdagsuka',

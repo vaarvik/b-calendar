@@ -3,7 +3,6 @@ import type {
   AccountId,
   Calendar,
   CalendarId,
-  CalendarOwnerId,
   CalendarReader,
   CalendarWriter,
 } from '@b-calendar/contracts';
@@ -44,11 +43,11 @@ export class PgCalendarRepository implements CalendarReader, CalendarWriter {
     return row === undefined ? null : this.toCalendar(row);
   }
 
-  public async listByOwner(owner: CalendarOwnerId): Promise<Calendar[]> {
+  public async listByOwner(owner: AccountId): Promise<Calendar[]> {
     const rows = await this.db
       .selectFrom('calendars')
       .selectAll()
-      .where((eb) => (owner === null ? eb('owner_id', 'is', null) : eb('owner_id', '=', owner)))
+      .where('owner_id', '=', owner)
       .orderBy('created_at', 'desc')
       .execute();
     return rows.map((row) => this.toCalendar(row));

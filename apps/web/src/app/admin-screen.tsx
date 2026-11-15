@@ -86,15 +86,7 @@ export function AdminScreen() {
     return <p className="admin__muted admin">Laster …</p>;
   }
   if (me === null) {
-    return (
-      <LogIn
-        onDone={() => {
-          admin.me().then(setMe, () => {
-            setMe(null);
-          });
-        }}
-      />
-    );
+    return <LogIn />;
   }
   if (previewId !== undefined) {
     return (
@@ -124,7 +116,7 @@ export function AdminScreen() {
           </a>
         </h1>
         <span className="admin__who">
-          {me.account !== null && <span className="admin__muted">{me.account.name}</span>}
+          <span className="admin__muted">{me.account.name}</span>
           <button
             className="button button--ghost"
             onClick={() => {
@@ -186,10 +178,9 @@ const SIGN_IN_PROBLEMS: Readonly<Record<string, string>> = {
   feilet: 'Innloggingen gikk ikke. Prøv igjen.',
 };
 
-function LogIn({ onDone }: { readonly onDone: () => void }) {
+function LogIn() {
   const { admin } = useServices();
   const [config, setConfig] = useState<AuthConfigResponseDto | null>(null);
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(
     () => SIGN_IN_PROBLEMS[new URLSearchParams(location.search).get('innlogging') ?? ''] ?? null,
   );
@@ -220,37 +211,11 @@ function LogIn({ onDone }: { readonly onDone: () => void }) {
               {PROVIDERS[provider]?.label ?? provider}
             </a>
           ))}
-          {config !== null && config.providers.length === 0 && !config.password && (
+          {config !== null && config.providers.length === 0 && (
             <p className="admin__muted">Innlogging er ikke satt opp ennå.</p>
           )}
         </div>
         {error !== null && <p className="error">{error}</p>}
-        {config?.password === true && (
-          <form
-            className="form sign-in__password"
-            onSubmit={(event) => {
-              event.preventDefault();
-              admin.logIn(password).then(onDone, (caught: unknown) => {
-                setError(message(caught));
-              });
-            }}
-          >
-            <label className="field">
-              Eller med admin-passordet
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                }}
-              />
-            </label>
-            <button className="button button--ghost" type="submit">
-              Logg inn
-            </button>
-          </form>
-        )}
       </section>
     </main>
   );

@@ -29,8 +29,6 @@ connected to the app, which sets `DATABASE_URL`.
 | `GOOGLE_CLIENT_SECRET`       | Secret, same client                                                                  |
 | `MICROSOFT_CLIENT_ID`        | Microsoft Entra app registration (any org + personal accounts)                       |
 | `MICROSOFT_CLIENT_SECRET`    | Secret, same app                                                                     |
-| `OWNER_EMAIL`                | Whoever signs in with this verified email takes over unowned calendars               |
-| `ADMIN_PASSWORD`             | Optional, 12+ characters: the old way into the unowned calendars. Unset once claimed |
 | `SESSION_SECRET`             | Secret, 32+ random characters. Changing it signs everyone out                        |
 | `LIMIT_CALENDARS`            | Optional, default 5 calendars per account                                            |
 | `LIMIT_MEDIA_MB`             | Optional, default 500 MB of uploads per account                                      |

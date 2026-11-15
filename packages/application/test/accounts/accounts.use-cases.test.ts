@@ -5,9 +5,9 @@ import {
   StartSignInUseCase,
 } from '@b-calendar/application';
 import { NotFoundError, UnauthenticatedError } from '@b-calendar/contracts';
-import { T0, TestData, hoursAfter } from '@b-calendar/contracts/test-kit';
+import { T0, hoursAfter } from '@b-calendar/contracts/test-kit';
 import { ConstantTimeSecretMatcher } from '@b-calendar/domain';
-import { InMemoryAccountRepository, InMemoryCalendarRepository } from '@b-calendar/in-memory';
+import { InMemoryAccountRepository } from '@b-calendar/in-memory';
 import { describe, expect, it } from 'vitest';
 import {
   CountingSecrets,
@@ -20,20 +20,18 @@ import {
 
 const callbackUrl = (provider: string) => `https://cal.example/v1/auth/${provider}/callback`;
 
-function setup(ownerEmail: string | null = 'owner@example.com') {
+function setup() {
   const clock = new ManualClock();
   const google = new FakeIdentityProvider('google');
   const microsoft = new FakeIdentityProvider('microsoft');
   const providers = [google, microsoft];
   const sealer = new JsonChallengeSealer(clock);
   const accounts = new InMemoryAccountRepository();
-  const calendars = new InMemoryCalendarRepository();
   const sessions = new PlainSessions();
   return {
     clock,
     google,
     accounts,
-    calendars,
     sessions,
     start: new StartSignInUseCase(providers, sealer, new CountingSecrets(), clock, {
       callbackUrl,
@@ -45,12 +43,10 @@ function setup(ownerEmail: string | null = 'owner@example.com') {
       new ConstantTimeSecretMatcher(),
       accounts,
       accounts,
-      calendars,
-      calendars,
       sessions,
       new RandomIds(),
       clock,
-      { callbackUrl, ownerEmail },
+      { callbackUrl },
     ),
     me: new GetMeUseCase(accounts),
     list: new ListIdentityProvidersUseCase(providers),
@@ -117,48 +113,13 @@ describe('CompleteSignIn', () => {
 
     expect(first.returnTo).toBe('/admin/abc');
     const owner = tools.sessions.verify(first.session.token);
-    expect(owner).not.toBeNull();
     expect(tools.sessions.verify(again.session.token)).toBe(owner);
-    await expect(
-      tools.me.execute({ accountId: owner ?? new TestData().accountId() }),
-    ).resolves.toMatchObject({
+    await expect(tools.me.execute({ accountId: owner })).resolves.toMatchObject({
       name: 'Ann B',
       email: 'a@example.com',
       identities: [{ provider: 'google', subject: 's-1' }],
       createdAt: T0,
     });
-  });
-
-  it('gives the owner every calendar nobody owns, and nobody else', async () => {
-    const tools = setup(' Owner@Example.com ');
-    const data = new TestData();
-    const unowned = data.calendar();
-    const someoneElses = data.calendar({ ownerId: data.accountId() });
-    await tools.calendars.create(unowned);
-    await tools.calendars.create(someoneElses);
-
-    await signIn(tools, { subject: 'x', email: 'stranger@example.com', name: 'X' });
-    await expect(tools.calendars.listByOwner(null)).resolves.toHaveLength(1);
-    const signedIn = await signIn(tools, {
-      subject: 'o',
-      email: 'owner@example.com',
-      name: 'Owner',
-    });
-
-    const owner = tools.sessions.verify(signedIn.session.token);
-    await expect(tools.calendars.listByOwner(owner)).resolves.toEqual([
-      { ...unowned, ownerId: owner },
-    ]);
-    await expect(tools.calendars.getById(someoneElses.id)).resolves.toEqual(someoneElses);
-  });
-
-  it('claims nothing without an owner email, or for an account without a verified email', async () => {
-    const tools = setup(null);
-    await tools.calendars.create(new TestData().calendar());
-
-    await signIn(tools, { subject: 'o', email: 'owner@example.com', name: 'Owner' });
-
-    await expect(tools.calendars.listByOwner(null)).resolves.toHaveLength(1);
   });
 
   it('refuses a wrong state, a tampered or expired cookie, another provider and a bad code', async () => {

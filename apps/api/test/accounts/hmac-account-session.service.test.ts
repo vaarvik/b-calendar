@@ -20,13 +20,11 @@ describe('HmacAccountSessionService', () => {
     matcher,
   );
 
-  it('gives back the account, or null for the password, until the session expires', () => {
+  it('gives back the account until the session expires', () => {
     const forAccount = sessions.issue(ACCOUNT);
-    const forPassword = sessions.issue(null);
 
     expect(forAccount.expiresAt).toEqual(new Date('2026-11-15T08:00:00.000Z'));
     expect(sessions.verify(forAccount.token)).toBe(ACCOUNT);
-    expect(sessions.verify(forPassword.token)).toBeNull();
     const later = new HmacAccountSessionService(
       { secret: 's'.repeat(32), ttlHours: 1 },
       clockAt(new Date('2026-11-15T08:00:00.000Z')),

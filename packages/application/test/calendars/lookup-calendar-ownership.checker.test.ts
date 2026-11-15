@@ -64,7 +64,6 @@ describe('LookupCalendarOwnershipChecker', () => {
     await expect(t.checker.door(t.owner, t.published.id)).resolves.toEqual(t.mine);
     await expect(t.checker.member(t.owner, t.member.id)).resolves.toEqual(t.mine);
     await expect(t.checker.comment(t.owner, t.comment.id)).resolves.toEqual(t.mine);
-    await expect(t.checker.calendar(null, t.unowned.id)).resolves.toEqual(t.unowned);
   });
 
   it('answers someone else’s things like things that do not exist', async () => {
@@ -72,7 +71,6 @@ describe('LookupCalendarOwnershipChecker', () => {
 
     for (const attempt of [
       t.checker.calendar(t.owner, t.theirs.id),
-      t.checker.calendar(null, t.mine.id),
       t.checker.calendar(t.owner, t.unowned.id),
       t.checker.door(t.owner, t.theirDoor.id),
       t.checker.door(t.owner, t.data.doorId()),

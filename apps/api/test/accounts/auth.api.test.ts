@@ -38,7 +38,6 @@ describe('signing in with SSO over HTTP', () => {
 
   beforeEach(async () => {
     api = await TestApi.start({
-      ownerEmail: 'owner@example.com',
       google: { clientId: 'cal-client', clientSecret: 'secret', discoveryUrl: issuer.discoveryUrl },
       limits: { calendars: 2, mediaBytes: 1024 * 1024, membersPerCalendar: 30 },
     });
@@ -76,7 +75,7 @@ describe('signing in with SSO over HTTP', () => {
   it('tells the app how one can sign in', async () => {
     const config = await api.app.inject({ url: '/v1/auth/config' });
 
-    expect(config.json()).toEqual({ providers: ['google'], password: true });
+    expect(config.json()).toEqual({ providers: ['google'] });
   });
 
   it('signs in, lands where it started, knows who is signed in, and signs out', async () => {
@@ -87,27 +86,6 @@ describe('signing in with SSO over HTTP', () => {
     expect(location).toBe('/admin/x');
     expect(me.json()).toEqual({ account: { name: 'Ann', email: 'ann@example.com' } });
     expect(out.cookies.find((cookie) => cookie.name === 'bcal_session')?.value).toBe('');
-  });
-
-  it('gives the owner the calendars from before accounts, and the password then sees none', async () => {
-    const password = await api.adminHeaders();
-    await api.app.inject({
-      method: 'POST',
-      url: '/v1/admin/calendars',
-      headers: password,
-      payload: SETTINGS,
-    });
-
-    const owner = await signIn(person('o', 'owner@example.com', 'Owner'));
-    const theirs = await api.app.inject({ url: '/v1/admin/calendars', headers: owner.headers });
-    const left = await api.app.inject({ url: '/v1/admin/calendars', headers: password });
-
-    expect(theirs.json<{ calendars: CalendarDto[] }>().calendars.map((c) => c.slug)).toEqual([
-      'jul',
-    ]);
-    expect(left.json()).toEqual({ calendars: [] });
-    const me = await api.app.inject({ url: '/v1/me', headers: password });
-    expect(me.json()).toEqual({ account: null });
   });
 
   it('keeps every account to its own calendars, doors, people and comments', async () => {
@@ -258,18 +236,16 @@ describe('a provider that cannot be reached', () => {
 });
 
 describe('the retired password', () => {
-  it('no longer signs in once ADMIN_PASSWORD is unset', async () => {
-    const api = await TestApi.start({ adminPassword: undefined as never });
+  it('no longer signs in', async () => {
+    const api = await TestApi.start();
     try {
-      const config = await api.app.inject({ url: '/v1/auth/config' });
       const attempt = await api.app.inject({
         method: 'POST',
         url: '/v1/admin/session',
         payload: { password: 'correct horse battery' },
       });
 
-      expect(config.json()).toEqual({ providers: [], password: false });
-      expect(attempt.statusCode).toBe(401);
+      expect(attempt.statusCode).toBe(404);
     } finally {
       await api.close();
     }

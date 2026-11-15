@@ -19,7 +19,6 @@ import {
   RemoveDoorCommentUseCase,
   VisibleOpenedDoorLocator,
   PublishCalendarUseCase,
-  LogInUseCase,
   NotifyOpenedDoorsUseCase,
   OpenDoorUseCase,
   RemoveDoorUseCase,
@@ -152,13 +151,9 @@ export interface ApiConfig {
   readonly storage: 'postgres' | 'memory';
   /** Required when storage is postgres. */
   readonly databaseUrl?: string;
-  /** The old admin password for the unowned calendars; unset once retired. */
-  readonly adminPassword?: string;
   readonly sessionSecret: string;
   /** Where the site is reached, e.g. `https://calendar.johann.no`: for SSO callbacks and cookies. */
   readonly publicOrigin: string;
-  /** Whoever signs in with this verified email takes over the calendars nobody owns. */
-  readonly ownerEmail?: string;
   /** The SSO providers set up; one without config does not show. */
   readonly google?: OidcClientConfig;
   readonly microsoft?: OidcClientConfig;
@@ -191,16 +186,11 @@ export const ApiConfigSchema: z.ZodType<ApiConfig> = z
           : url,
       )
       .exactOptional(),
-    adminPassword: z
-      .string()
-      .min(12, 'ADMIN_PASSWORD needs at least 12 characters')
-      .exactOptional(),
     sessionSecret: z.string().min(32, 'SESSION_SECRET needs at least 32 characters'),
     publicOrigin: z
       .url({ protocol: /^https?$/ })
       .default('http://localhost:3000')
       .transform((url) => url.replace(/\/+$/, '')),
-    ownerEmail: z.email().exactOptional(),
     google: z
       .object({
         clientId: z.string().min(1),
@@ -453,25 +443,17 @@ export class CompositionRoot {
               matcher,
               accounts,
               accounts,
-              calendars,
-              calendars,
               sessions,
               ids,
               clock,
-              { callbackUrl, ownerEmail: config.ownerEmail ?? null },
+              { callbackUrl },
             ),
             getMe: new GetMeUseCase(accounts),
             listIdentityProviders: new ListIdentityProvidersUseCase(identityProviders),
-            logIn: new LogInUseCase(sessions, matcher, {
-              password: config.adminPassword ?? null,
-            }),
           },
           admin,
           validator,
-          {
-            secureCookies: config.publicOrigin.startsWith('https://'),
-            passwordEnabled: config.adminPassword !== undefined,
-          },
+          { secureCookies: config.publicOrigin.startsWith('https://') },
         ),
         new AdminController(
           {
@@ -593,10 +575,8 @@ export class CompositionRoot {
     const values = {
       storage: env.STORAGE,
       databaseUrl: env.DATABASE_URL,
-      adminPassword: env.ADMIN_PASSWORD,
       sessionSecret: env.SESSION_SECRET,
       publicOrigin: env.PUBLIC_ORIGIN,
-      ownerEmail: env.OWNER_EMAIL,
       google: CompositionRoot.oidcClient(env, 'GOOGLE'),
       microsoft: CompositionRoot.oidcClient(env, 'MICROSOFT'),
       limits: {

@@ -626,7 +626,7 @@ button {
   align-items: center;
 }
 
-/* Signing in: one big button per provider, the old password quietly under. */
+/* Signing in: one button per provider, in its own colours. */
 .sign-in {
   max-width: 440px;
   margin: 40px auto;
@@ -668,12 +668,6 @@ button {
 
 .sign-in__mark {
   display: flex;
-}
-
-.sign-in__password {
-  margin-top: 8px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
 }
 
 .admin__link {

@@ -1,10 +1,4 @@
-import type {
-  CalendarId,
-  CalendarOwnerId,
-  CommentId,
-  DoorId,
-  MemberId,
-} from '../shared/shared.model.js';
+import type { CalendarId, AccountId, CommentId, DoorId, MemberId } from '../shared/shared.model.js';
 import type {
   Calendar,
   CalendarAccess,
@@ -18,7 +12,7 @@ export interface CalendarReader {
   getById(id: CalendarId): Promise<Calendar>;
   findBySlug(slug: string): Promise<Calendar | null>;
   /** The owner's calendars (null: those nobody owns), newest first. */
-  listByOwner(owner: CalendarOwnerId): Promise<Calendar[]>;
+  listByOwner(owner: AccountId): Promise<Calendar[]>;
 }
 
 /** Stores calendars. */
@@ -63,11 +57,11 @@ export interface CalendarVersionWriter {
  */
 export interface CalendarOwnershipChecker {
   /** @throws NotFoundError when the calendar does not exist or is someone else's. */
-  calendar(owner: CalendarOwnerId, calendarId: CalendarId): Promise<Calendar>;
+  calendar(owner: AccountId, calendarId: CalendarId): Promise<Calendar>;
   /** A draft or published door. @throws NotFoundError likewise. */
-  door(owner: CalendarOwnerId, doorId: DoorId): Promise<Calendar>;
+  door(owner: AccountId, doorId: DoorId): Promise<Calendar>;
   /** @throws NotFoundError likewise. */
-  member(owner: CalendarOwnerId, memberId: MemberId): Promise<Calendar>;
+  member(owner: AccountId, memberId: MemberId): Promise<Calendar>;
   /** @throws NotFoundError likewise. */
-  comment(owner: CalendarOwnerId, commentId: CommentId): Promise<Calendar>;
+  comment(owner: AccountId, commentId: CommentId): Promise<Calendar>;
 }

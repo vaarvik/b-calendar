@@ -72,7 +72,7 @@ export function describeMediaFileRepositoryContract(
   describe(`${name} satisfies MediaFileReader and MediaFileWriter`, () => {
     const fixture = new FixtureHolder(factory);
 
-    it('lists an owner’s files oldest first, and the unowned ones apart', async () => {
+    it('lists an owner’s files oldest first, leaving out the others', async () => {
       const data = new TestData();
       const owner = data.account();
       await fixture.current.accounts.create(owner);
@@ -89,7 +89,6 @@ export function describeMediaFileRepositoryContract(
       }
 
       await expect(fixture.current.reader.listByOwner(owner.id)).resolves.toEqual([older, newer]);
-      await expect(fixture.current.reader.listByOwner(null)).resolves.toEqual([unowned]);
       await expect(fixture.current.reader.listByOwner(data.accountId())).resolves.toEqual([]);
     });
 

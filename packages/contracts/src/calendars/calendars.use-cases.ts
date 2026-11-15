@@ -1,6 +1,6 @@
 import type { DoorPreview, RecipientDoor } from '../doors/doors.model.js';
 import type { Member } from '../members/members.model.js';
-import type { CalendarId, CalendarOwnerId } from '../shared/shared.model.js';
+import type { CalendarId, AccountId } from '../shared/shared.model.js';
 import type {
   Calendar,
   CalendarAccess,
@@ -12,7 +12,7 @@ import type {
 } from './calendars.model.js';
 
 export interface CreateCalendarInput {
-  readonly owner: CalendarOwnerId;
+  readonly owner: AccountId;
   readonly settings: CalendarSettings;
 }
 
@@ -55,7 +55,7 @@ export interface RotateCalendarKey {
 
 /** The owner's calendars, newest first. */
 export interface ListCalendars {
-  execute(input: { readonly owner: CalendarOwnerId }): Promise<Calendar[]>;
+  execute(input: { readonly owner: AccountId }): Promise<Calendar[]>;
 }
 
 /** A calendar with its draft in full, for the admin. */

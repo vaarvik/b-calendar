@@ -1,4 +1,4 @@
-import type { CalendarOwnerId, MediaId } from '../shared/shared.model.js';
+import type { AccountId, MediaId } from '../shared/shared.model.js';
 
 /** What an upload is for: a door's photo, its song or its video. */
 export const MEDIA_KINDS = ['image', 'audio', 'video'] as const;
@@ -26,7 +26,7 @@ export type MediaContentType = keyof typeof MEDIA_TYPES;
 /** An uploaded file's record: whose it is and how big, for the owner's upload limit. */
 export interface MediaFile {
   readonly id: MediaId;
-  readonly ownerId: CalendarOwnerId;
+  readonly ownerId: AccountId | null;
   readonly contentType: MediaContentType;
   readonly bytes: number;
   readonly createdAt: Date;

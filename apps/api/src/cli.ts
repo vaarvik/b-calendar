@@ -1,11 +1,13 @@
 import { parseArgs } from 'node:util';
 import webPush from 'web-push';
+import { AccountIdSchema } from '@b-calendar/contracts';
 import { BIRTHDAY_WEEK } from './api.model.js';
 import { CompositionRoot } from './composition-root.js';
 
 // Usage:
 //   cli vapid-keys                                   VAPID keys for .env (once)
-//   cli seed-birthday [--slug s] [--name n] [--origin https://…]   the birthday week, with one member's link
+//   cli seed-birthday --owner <account id> [--slug s] [--name n] [--origin https://…]
+//                                                    the birthday week for an account, with one member's link
 const [command, ...rest] = process.argv.slice(2);
 
 if (command === 'vapid-keys') {
@@ -15,16 +17,18 @@ if (command === 'vapid-keys') {
   const { values } = parseArgs({
     args: rest,
     options: {
+      owner: { type: 'string' },
       slug: { type: 'string', default: BIRTHDAY_WEEK.settings.slug },
       name: { type: 'string', default: 'deg' },
       origin: { type: 'string', default: 'http://localhost:3000' },
     },
   });
+  // The account's id is in the accounts table once its owner has signed in.
+  const owner = AccountIdSchema.parse(values.owner);
   const root = CompositionRoot.fromEnv(process.env);
   try {
     const calendar = await root.createCalendar.execute({
-      // Unowned, like calendars from before accounts: OWNER_EMAIL claims it at the first sign-in.
-      owner: null,
+      owner,
       settings: { ...BIRTHDAY_WEEK.settings, slug: values.slug },
     });
     const member = await root.addMember.execute({ calendarId: calendar.id, name: values.name });
@@ -43,6 +47,8 @@ if (command === 'vapid-keys') {
     await root.close();
   }
 } else {
-  console.error('Usage: cli vapid-keys | cli seed-birthday [--slug s] [--name n] [--origin url]');
+  console.error(
+    'Usage: cli vapid-keys | cli seed-birthday --owner <account id> [--slug s] [--name n] [--origin url]',
+  );
   process.exitCode = 2;
 }

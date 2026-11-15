@@ -43,7 +43,7 @@ export function describeCalendarRepositoryContract(
       await expect(fixture.current.reader.findBySlug(data.slug())).resolves.toBeNull();
     });
 
-    it('lists an owner’s calendars newest first, and the unowned ones apart', async () => {
+    it('lists an owner’s calendars newest first, leaving out the others', async () => {
       const data = new TestData();
       const owner = data.account();
       const other = data.account();
@@ -57,7 +57,6 @@ export function describeCalendarRepositoryContract(
       }
 
       await expect(fixture.current.reader.listByOwner(owner.id)).resolves.toEqual([newer, older]);
-      await expect(fixture.current.reader.listByOwner(null)).resolves.toEqual([unowned]);
     });
 
     it('moves a calendar to an owner', async () => {

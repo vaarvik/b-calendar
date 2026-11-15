@@ -1,5 +1,4 @@
 import {
-  AdminCredentialsSchema,
   AuthConfigResponseDtoSchema,
   DomainError,
   MeResponseDtoSchema,
@@ -15,8 +14,6 @@ import type { AdminRequestAuthenticator, HttpController } from '../shared/shared
 export interface AuthControllerConfig {
   /** Cookies only over https when the site is served over https. */
   readonly secureCookies: boolean;
-  /** Whether the old admin password still works. */
-  readonly passwordEnabled: boolean;
 }
 
 const ProviderParamsSchema = z.object({ provider: z.string().max(40) });
@@ -27,7 +24,7 @@ const CallbackQuerySchema = z.object({
   error: z.string().max(200).optional(),
 });
 
-/** Sign in with a provider (a round trip through it), with the old password, and sign out. */
+/** Sign in with a provider (a round trip through it), and sign out. */
 export class AuthController implements HttpController {
   public constructor(
     private readonly useCases: AuthUseCases,
@@ -37,13 +34,10 @@ export class AuthController implements HttpController {
   ) {}
 
   public register(app: FastifyInstance): void {
-    const { startSignIn, completeSignIn, getMe, listIdentityProviders, logIn } = this.useCases;
+    const { startSignIn, completeSignIn, getMe, listIdentityProviders } = this.useCases;
 
     app.get('/v1/auth/config', () =>
-      AuthConfigResponseDtoSchema.parse({
-        providers: listIdentityProviders.execute(),
-        password: this.config.passwordEnabled,
-      }),
+      AuthConfigResponseDtoSchema.parse({ providers: listIdentityProviders.execute() }),
     );
 
     app.get('/v1/auth/:provider/start', async (request, reply) => {
@@ -89,12 +83,6 @@ export class AuthController implements HttpController {
       }
     });
 
-    app.post('/v1/admin/session', async (request, reply) => {
-      const credentials = this.validator.validate(AdminCredentialsSchema, request.body);
-      const session = await logIn.execute(credentials);
-      return this.signedIn(reply, session).status(204).send();
-    });
-
     app.post('/v1/auth/sign-out', (_request, reply) =>
       reply
         .clearCookie(SESSION_COOKIE, { ...this.cookie(), path: '/' })
@@ -103,13 +91,10 @@ export class AuthController implements HttpController {
     );
 
     app.get('/v1/me', async (request, reply) => {
-      const owner = this.admin.requireAdmin(request);
-      const account = owner === null ? null : await getMe.execute({ accountId: owner });
-      return reply.header('cache-control', 'no-store').send(
-        MeResponseDtoSchema.parse({
-          account: account === null ? null : { name: account.name, email: account.email },
-        }),
-      );
+      const account = await getMe.execute({ accountId: this.admin.requireAdmin(request) });
+      return reply
+        .header('cache-control', 'no-store')
+        .send(MeResponseDtoSchema.parse({ account: { name: account.name, email: account.email } }));
     });
   }
 

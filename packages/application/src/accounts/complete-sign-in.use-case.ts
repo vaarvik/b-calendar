@@ -4,8 +4,6 @@ import type {
   AccountReader,
   AccountSessionService,
   AccountWriter,
-  CalendarReader,
-  CalendarWriter,
   Clock,
   CompleteSignIn,
   CompleteSignInInput,
@@ -18,10 +16,7 @@ import type {
 } from '@b-calendar/contracts';
 import type { StartSignInUseCaseConfig } from './start-sign-in.use-case.js';
 
-export interface CompleteSignInUseCaseConfig extends Pick<StartSignInUseCaseConfig, 'callbackUrl'> {
-  /** Whoever signs in with this verified email takes over the calendars nobody owns. */
-  readonly ownerEmail: string | null;
-}
+export type CompleteSignInUseCaseConfig = Pick<StartSignInUseCaseConfig, 'callbackUrl'>;
 
 export class CompleteSignInUseCase implements CompleteSignIn {
   public constructor(
@@ -30,8 +25,6 @@ export class CompleteSignInUseCase implements CompleteSignIn {
     private readonly matcher: SecretMatcher,
     private readonly accountReader: AccountReader,
     private readonly accountWriter: AccountWriter,
-    private readonly calendarReader: CalendarReader,
-    private readonly calendarWriter: CalendarWriter,
     private readonly sessions: AccountSessionService,
     private readonly ids: IdGenerator,
     private readonly clock: Clock,
@@ -56,11 +49,6 @@ export class CompleteSignInUseCase implements CompleteSignIn {
       this.config.callbackUrl(provider.name),
     );
     const account = await this.account(identity);
-    if (account.email !== null && this.isOwner(account.email)) {
-      for (const calendar of await this.calendarReader.listByOwner(null)) {
-        await this.calendarWriter.save({ ...calendar, ownerId: account.id });
-      }
-    }
     return { session: this.sessions.issue(account.id), returnTo: challenge.returnTo };
   }
 
@@ -81,10 +69,5 @@ export class CompleteSignInUseCase implements CompleteSignIn {
     const refreshed = { ...known, name: identity.name, email: identity.email ?? known.email };
     await this.accountWriter.save(refreshed);
     return refreshed;
-  }
-
-  private isOwner(email: string): boolean {
-    const { ownerEmail } = this.config;
-    return ownerEmail !== null && ownerEmail.trim().toLowerCase() === email.trim().toLowerCase();
   }
 }

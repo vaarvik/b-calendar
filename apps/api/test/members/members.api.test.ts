@@ -14,7 +14,7 @@ describe('members over HTTP', () => {
 
   beforeEach(async () => {
     api = await TestApi.start();
-    auth = await api.adminHeaders();
+    auth = api.adminHeaders();
     calendar = (
       await api.app.inject({
         method: 'POST',

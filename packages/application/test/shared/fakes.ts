@@ -4,7 +4,6 @@ import type {
   AccountId,
   AccountSession,
   AccountSessionService,
-  CalendarOwnerId,
   Calendar,
   CalendarId,
   Clock,
@@ -90,18 +89,18 @@ export class RecordingPushSender implements PushSender {
   }
 }
 
-/** Tokens are `session:<owner id or ->`; anything else is refused. */
+/** Tokens are `session:<account id>`; anything else is refused. */
 export class PlainSessions implements AccountSessionService {
-  public issue(owner: CalendarOwnerId): AccountSession {
-    return { token: `session:${owner ?? '-'}`, expiresAt: T0 };
+  public issue(owner: AccountId): AccountSession {
+    return { token: `session:${owner}`, expiresAt: T0 };
   }
 
-  public verify(token: string): CalendarOwnerId {
+  public verify(token: string): AccountId {
     const match = /^session:(.+)$/.exec(token);
     if (match?.[1] === undefined) {
       throw new UnauthenticatedError();
     }
-    return match[1] === '-' ? null : (match[1] as AccountId);
+    return match[1] as AccountId;
   }
 }
 

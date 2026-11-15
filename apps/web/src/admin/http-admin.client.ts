@@ -56,10 +56,6 @@ export class HttpAdminClient implements AdminClient {
     return `/v1/auth/${encodeURIComponent(provider)}/start?returnTo=${encodeURIComponent(returnTo)}`;
   }
 
-  public logIn(password: string): Promise<void> {
-    return this.send({ method: 'POST', path: '/v1/admin/session', body: { password } });
-  }
-
   public logOut(): Promise<void> {
     return this.send({ method: 'POST', path: '/v1/auth/sign-out' });
   }

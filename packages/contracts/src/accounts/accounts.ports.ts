@@ -1,4 +1,4 @@
-import type { AccountId, CalendarOwnerId } from '../shared/shared.model.js';
+import type { AccountId } from '../shared/shared.model.js';
 import type {
   Account,
   AccountSession,
@@ -49,8 +49,7 @@ export interface SignInChallengeSealer {
 
 /** Issues and verifies session tokens. */
 export interface AccountSessionService {
-  /** @param owner the account, or null for the old admin password (unowned calendars). */
-  issue(owner: CalendarOwnerId): AccountSession;
+  issue(owner: AccountId): AccountSession;
   /** @throws UnauthenticatedError when the token is malformed, forged or expired. */
-  verify(token: string): CalendarOwnerId;
+  verify(token: string): AccountId;
 }

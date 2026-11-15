@@ -1,7 +1,6 @@
 import { MEDIA_TYPES } from '@b-calendar/contracts';
 import type {
   AccountId,
-  CalendarOwnerId,
   MediaContentType,
   MediaFile,
   MediaFileReader,
@@ -23,11 +22,11 @@ export class PgMediaFileRepository implements MediaFileReader, MediaFileWriter {
     private readonly errors: DatabaseErrorTranslator,
   ) {}
 
-  public async listByOwner(owner: CalendarOwnerId): Promise<MediaFile[]> {
+  public async listByOwner(owner: AccountId): Promise<MediaFile[]> {
     const rows = await this.db
       .selectFrom('media_files')
       .selectAll()
-      .where((eb) => (owner === null ? eb('owner_id', 'is', null) : eb('owner_id', '=', owner)))
+      .where('owner_id', '=', owner)
       .orderBy('created_at')
       .orderBy('id')
       .execute();

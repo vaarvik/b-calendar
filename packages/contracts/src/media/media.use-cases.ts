@@ -1,8 +1,8 @@
-import type { CalendarOwnerId } from '../shared/shared.model.js';
+import type { AccountId } from '../shared/shared.model.js';
 import type { MediaKind } from './media.model.js';
 
 export interface UploadMediaInput {
-  readonly owner: CalendarOwnerId;
+  readonly owner: AccountId;
   readonly contentType: string;
   /** The file as it arrives. */
   readonly chunks: AsyncIterable<Uint8Array>;

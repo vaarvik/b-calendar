@@ -1,11 +1,17 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { ConstantTimeSecretMatcher } from '@b-calendar/domain';
+import type { AccountId } from '@b-calendar/contracts';
 import type { FastifyInstance } from 'fastify';
+import { HmacAccountSessionService } from '../../src/accounts/hmac-account-session.service.js';
 import { CompositionRoot } from '../../src/composition-root.js';
 import type { ApiConfig } from '../../src/composition-root.js';
+import { SystemClock } from '../../src/shared/system.clock.js';
 
-export const ADMIN_PASSWORD = 'correct horse battery';
+/** The account the tests' calendars belong to. */
+export const TEST_OWNER = '0e000000-0000-4000-8000-000000000001' as AccountId;
+const SESSION_SECRET = 'x'.repeat(32);
 
 /** The whole API in memory, with uploads in a temp directory. Close it after the test. */
 export class TestApi {
@@ -19,8 +25,7 @@ export class TestApi {
     const mediaDir = await mkdtemp(join(tmpdir(), 'b-calendar-media-'));
     const root = new CompositionRoot({
       storage: 'memory',
-      adminPassword: ADMIN_PASSWORD,
-      sessionSecret: 'x'.repeat(32),
+      sessionSecret: SESSION_SECRET,
       publicOrigin: 'http://localhost:3000',
       limits: { calendars: 5, mediaBytes: 50 * 1024 * 1024, membersPerCalendar: 30 },
       mediaDir,
@@ -37,14 +42,14 @@ export class TestApi {
     return new TestApi(root, app, mediaDir);
   }
 
-  /** Signs in with the old admin password: headers for the unowned calendars. */
-  public async adminHeaders(): Promise<Record<string, string>> {
-    const response = await this.app.inject({
-      method: 'POST',
-      url: '/v1/admin/session',
-      payload: { password: ADMIN_PASSWORD },
-    });
-    return this.headersOf(response.cookies);
+  /** The headers of a browser signed in as this account, without the round trip through SSO. */
+  public adminHeaders(owner: AccountId = TEST_OWNER): Record<string, string> {
+    const sessions = new HmacAccountSessionService(
+      { secret: SESSION_SECRET, ttlHours: 1 },
+      new SystemClock(),
+      new ConstantTimeSecretMatcher(),
+    );
+    return this.headersOf([{ name: 'bcal_session', value: sessions.issue(owner).token }]);
   }
 
   /** The headers a browser sends with the session cookie it was given. */

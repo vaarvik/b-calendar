@@ -4,7 +4,7 @@ import type {
   CalendarId,
   CalendarReader,
   CalendarWriter,
-  CalendarOwnerId,
+  AccountId,
 } from '@b-calendar/contracts';
 
 /** Calendars in a map. Copies on the way in and out, like a database would. */
@@ -23,7 +23,7 @@ export class InMemoryCalendarRepository implements CalendarReader, CalendarWrite
     return Promise.resolve(row === undefined ? null : structuredClone(row));
   }
 
-  public listByOwner(owner: CalendarOwnerId): Promise<Calendar[]> {
+  public listByOwner(owner: AccountId): Promise<Calendar[]> {
     return Promise.resolve(
       [...this.rows.values()]
         .filter((row) => row.ownerId === owner)

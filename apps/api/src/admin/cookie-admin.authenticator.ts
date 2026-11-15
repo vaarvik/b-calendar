@@ -1,5 +1,5 @@
 import { UnauthenticatedError } from '@b-calendar/contracts';
-import type { AccountSessionService, CalendarOwnerId } from '@b-calendar/contracts';
+import type { AccountSessionService, AccountId } from '@b-calendar/contracts';
 import type { FastifyRequest } from 'fastify';
 import { SESSION_COOKIE } from '../shared/shared.model.js';
 import type { AdminRequestAuthenticator } from '../shared/shared.ports.js';
@@ -12,7 +12,7 @@ import type { AdminRequestAuthenticator } from '../shared/shared.ports.js';
 export class CookieAdminAuthenticator implements AdminRequestAuthenticator {
   public constructor(private readonly sessions: AccountSessionService) {}
 
-  public requireAdmin(request: FastifyRequest): CalendarOwnerId {
+  public requireAdmin(request: FastifyRequest): AccountId {
     const token = request.cookies[SESSION_COOKIE];
     if (token === undefined || token === '') {
       throw new UnauthenticatedError('Sign in first.');

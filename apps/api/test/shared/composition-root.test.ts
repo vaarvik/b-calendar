@@ -33,16 +33,15 @@ describe('ApiConfigSchema', () => {
     expect(parse('postgres://u:p@localhost:5433/app')).toBe('postgres://u:p@localhost:5433/app');
   });
 
-  it('requires a database URL for Postgres and a long enough password', () => {
+  it('requires a database URL for Postgres and a long enough session secret', () => {
     expect(ApiConfigSchema.safeParse({ ...BASE, storage: 'postgres' }).success).toBe(false);
-    expect(ApiConfigSchema.safeParse({ ...BASE, adminPassword: 'short' }).success).toBe(false);
+    expect(ApiConfigSchema.safeParse({ ...BASE, sessionSecret: 'short' }).success).toBe(false);
   });
 });
 
 describe('CompositionRoot.configFromEnv', () => {
   const env = {
     STORAGE: 'memory',
-    ADMIN_PASSWORD: 'correct horse battery',
     SESSION_SECRET: 'x'.repeat(32),
   };
 
